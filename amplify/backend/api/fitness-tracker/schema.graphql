@@ -1,0 +1,699 @@
+# Fitness Tracker GraphQL Schema
+# AWS AppSync with DynamoDB
+
+# Scalar types for custom data
+scalar AWSDateTime
+scalar AWSJSON
+
+# ============================================
+# Auth & User
+# ============================================
+
+type User @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  username: String!
+  email: String!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+
+  # Goals
+  currentGoal: Goal @connection
+  goals: [Goal] @connection(keyName: "byUser", fields: ["id"])
+
+  # Profile
+  profile: UserProfile @connection
+
+  # Data
+  workouts: [WorkoutSession] @connection(keyName: "byUser", fields: ["id"])
+  meals: [MealInstance] @connection(keyName: "byUser", fields: ["id"])
+  sleepSessions: [SleepSession] @connection(keyName: "byUser", fields: ["id"])
+}
+
+type UserProfile @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+  user: User @connection(fields: ["userId"])
+
+  # Body metrics
+  weight: Float # kg
+  height: Float # cm
+  birthdate: AWSDateTime
+
+  # Preferences
+  units: UnitSystem @default(ENGLISH)
+
+  # Integrations
+  garminConnected: Boolean @default(false)
+  garminToken: AWSJSON # Encrypted
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum UnitSystem {
+  METRIC
+  ENGLISH
+}
+
+# ============================================
+# Goals
+# ============================================
+
+type Goal @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+  user: User @connection(fields: ["userId"])
+
+  name: String!
+  description: String
+
+  # Goal type
+  type: GoalType!
+  target: GoalTarget!
+
+  # Status
+  status: GoalStatus @default(ACTIVE)
+  startDate: AWSDateTime!
+  targetDate: AWSDateTime
+  completedAt: AWSDateTime
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum GoalType {
+  WEIGHT_LOSS
+  WEIGHT_GAIN
+  MAINTENANCE
+  MUSCLE_GAIN
+  STRENGTH
+  ENDURANCE
+  HEALTH
+}
+
+type GoalTarget {
+  weight: Float # kg
+  bodyFatPercentage: Float
+  strength: StrengthTarget
+  activity: ActivityTarget
+}
+
+type StrengthTarget {
+  exerciseId: ID!
+  targetWeight: Float # kg
+  targetReps: Int
+}
+
+type ActivityTarget {
+  workoutsPerWeek: Int
+  caloriesPerDay: Int
+  stepsPerDay: Int
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+# ============================================
+# Exercises Domain
+# ============================================
+
+type Exercise @model @auth(rules: [
+  {allow: owner, ownerField: "owner"},
+  {allow: public, operations: [read], provider: iam}
+]) {
+  id: ID!
+  name: String!
+  owner: String # "system" for canonical, userId for user-defined
+
+  # Classification
+  type: ExerciseType!
+  equipment: String
+  movementPattern: MovementPattern
+  classification: ExerciseClassification!
+
+  # Muscles
+  primaryMuscles: [MuscleGroup]!
+  secondaryMuscles: [MuscleGroup]
+  stabilizerMuscles: [MuscleGroup]
+
+  # Ownership
+  isCanonical: Boolean @default(false)
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum ExerciseType {
+  WEIGHT_BASED
+  BODYWEIGHT
+  DURATION_BASED
+}
+
+enum MovementPattern {
+  PUSH
+  PULL
+  HINGE
+  SQUAT
+  CARRY
+  ROTATE
+  LUNGE
+  GAIT
+}
+
+enum ExerciseClassification {
+  UPPER_BODY
+  LOWER_BODY
+  CORE
+  FULL_BODY
+}
+
+enum MuscleGroup {
+  HEAD_NECK
+  CHEST
+  BACK
+  SHOULDERS
+  BICEPS
+  TRICEPS
+  FOREARMS
+  ABS
+  OBLIQUES
+  LOWER_BACK
+  GLUTES
+  QUADS
+  HAMSTRINGS
+  CALVES
+  HIP_FLEXORS
+  ADDUCTORS
+  ABDUCTORS
+}
+
+type Muscle @model @auth(rules: [{allow: public, operations: [read], provider: iam}]) {
+  id: ID!
+  name: String!
+  group: MuscleGroup!
+  region: BodyRegion!
+}
+
+enum BodyRegion {
+  UPPER_BODY
+  LOWER_BODY
+  CORE
+}
+
+# Training Programs
+type TrainingProgram @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+
+  name: String!
+  description: String
+
+  # Status
+  status: ProgramStatus @default(ACTIVE)
+  isActive: Boolean @default(false)
+
+  # Training days
+  trainingDays: [TrainingDay] @connection(keyName: "byProgram", fields: ["id"])
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum ProgramStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+type TrainingDay @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  programId: ID!
+  program: TrainingProgram @connection(fields: ["programId"])
+
+  name: String! # e.g., "Upper Body Day 1"
+
+  # Preset exercises
+  plannedExercises: [PlannedExercise] @connection(keyName: "byTrainingDay", fields: ["id"])
+
+  # Versioning (immutable when archived)
+  version: Int @default(1)
+  isArchived: Boolean @default(false)
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type PlannedExercise @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  trainingDayId: ID!
+  trainingDay: TrainingDay @connection(fields: ["trainingDayId"])
+
+  exerciseId: ID!
+  exercise: Exercise @connection(fields: ["exerciseId"])
+
+  # Target parameters
+  targetSets: Int!
+  targetReps: Int
+  targetDuration: Int # seconds
+  targetWeight: Float # kg
+  notes: String
+
+  # Order
+  order: Int!
+
+  createdAt: AWSDateTime!
+}
+
+# Workout Sessions
+type WorkoutSession @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+  user: User @connection(fields: ["userId"])
+
+  # Timestamps
+  date: AWSDateTime!
+  startTimestamp: AWSDateTime!
+  endTimestamp: AWSDateTime
+  isAutoClosed: Boolean @default(false)
+
+  # Preset reference (snapshot)
+  trainingDaySnapshot: TrainingDaySnapshot @connection
+
+  # Session items
+  sessionItems: [SessionItem] @connection(keyName: "bySession", fields: ["id"])
+
+  # Notes
+  notes: String
+
+  # Source
+  source: SessionSource @default(MANUAL)
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum SessionSource {
+  MANUAL
+  AI_ASSISTED
+  DEVICE
+}
+
+type TrainingDaySnapshot @model {
+  id: ID!
+  sessionId: ID!
+
+  # Immutable snapshot
+  name: String!
+  plannedExercisesSnapshot: AWSJSON! # JSON of planned exercises
+  capturedAt: AWSDateTime!
+}
+
+type SessionItem @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  sessionId: ID!
+  session: WorkoutSession @connection(fields: ["sessionId"])
+
+  # Type
+  type: SessionItemType!
+
+  # References
+  exerciseId: ID
+  exercise: Exercise @connection(fields: ["exerciseId"])
+
+  # Timing
+  eventTimestamp: AWSDateTime!
+  isEstimated: Boolean @default(false)
+
+  # Order
+  order: Int!
+
+  createdAt: AWSDateTime!
+}
+
+enum SessionItemType {
+  EXERCISE_SET
+  WARM_UP
+  MOBILITY
+  STRETCHING
+  OTHER_ACTIVITY
+  REST
+}
+
+type ExerciseSet @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  sessionId: ID!
+  session: WorkoutSession @connection(fields: ["sessionId"])
+  sessionItemId: ID!
+  sessionItem: SessionItem @connection(fields: ["sessionItemId"])
+
+  # Exercise reference
+  exerciseId: ID!
+  exercise: Exercise @connection(fields: ["exerciseId"])
+
+  # Set type
+  setType: SetType @default(WORKING)
+
+  # Performance
+  weight: Float # kg
+  reps: Int
+  duration: Int # seconds
+
+  # Timing
+  endTimestamp: AWSDateTime!
+  startTimestamp: AWSDateTime! # Inferred
+  isEstimated: Boolean @default(false)
+
+  # RPE/RIR (optional)
+  rpe: Int # Rate of Perceived Exertion (1-10)
+  rir: Int # Reps In Reserve (0-10)
+
+  createdAt: AWSDateTime!
+}
+
+enum SetType {
+  WARM_UP
+  WORKING
+  DROP_SET
+  FAILURE
+}
+
+# ============================================
+# Food Domain
+# ============================================
+
+type FoodItem @model @auth(rules: [
+  {allow: owner, ownerField: "owner"},
+  {allow: public, operations: [read], provider: iam}
+]) {
+  id: ID!
+  name: String!
+  owner: String # "system" for canonical, userId for user-defined
+
+  # Category
+  category: FoodCategory!
+
+  # Nutrition per 100g
+  caloriesPer100g: Float!
+  proteinPer100g: Float! # g
+  carbsPer100g: Float! # g
+  fatPer100g: Float! # g
+  fiberPer100g: Float # g
+
+  # Metabolism attributes (estimated)
+  glycemicIndex: Int # 0-100
+  absorptionSpeed: AbsorptionSpeed
+  insulinResponse: InsulinResponse
+  satietyScore: Int # 1-10
+
+  # Ownership
+  isCanonical: Boolean @default(false)
+  source: FoodSource @default(MANUAL)
+
+  # Barcode
+  barcode: String
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum FoodCategory {
+  CARB
+  PROTEIN
+  FAT
+  MIXED
+}
+
+enum AbsorptionSpeed {
+  FAST
+  MODERATE
+  SLOW
+}
+
+enum InsulinResponse {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum FoodSource {
+  MANUAL
+  AI_GENERATED
+  BARCODE
+  DATABASE_IMPORT
+}
+
+type MealTemplate @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+
+  name: String!
+
+  # Category
+  category: MealCategory!
+
+  # Ingredients
+  ingredients: [MealIngredient] @connection(keyName: "byMealTemplate", fields: ["id"])
+
+  # Tags
+  tags: [String]
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum MealCategory {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+  POST_WORKOUT
+  BEVERAGE
+}
+
+type MealIngredient @model {
+  id: ID!
+  mealTemplateId: ID
+  mealTemplate: MealTemplate @connection(fields: ["mealTemplateId"])
+  mealInstanceId: ID
+  mealInstance: MealInstance @connection(fields: ["mealInstanceId"])
+
+  # Food and quantity
+  foodItemId: ID!
+  foodItem: FoodItem @connection(fields: ["foodItemId"])
+  quantity: Float! # g
+}
+
+type MealInstance @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+  user: User @connection(fields: ["userId"])
+
+  # Timestamp
+  timestamp: AWSDateTime!
+  isEstimated: Boolean @default(false)
+
+  # Category
+  category: MealCategory!
+
+  # Ingredients
+  ingredients: [MealIngredient] @connection(keyName: "byMealInstance", fields: ["id"])
+
+  # Notes
+  notes: String
+
+  # Source
+  source: SessionSource @default(MANUAL)
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+# ============================================
+# Sleep Domain
+# ============================================
+
+type SleepSession @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+  user: User @connection(fields: ["userId"])
+
+  # Date
+  date: AWSDateTime!
+
+  # Timing
+  bedtime: AWSDateTime!
+  wakeTime: AWSDateTime!
+  duration: Int! # minutes
+
+  # Sleep stages (from device)
+  deepSleep: Int # minutes
+  lightSleep: Int # minutes
+  remSleep: Int # minutes
+  awakeTime: Int # minutes
+
+  # Quality metrics
+  qualityScore: Int # 1-100
+  sleepEfficiency: Float # percentage
+
+  # Recovery indicators
+  restingHeartRate: Int # bpm
+  hrv: Float # ms, Heart Rate Variability
+
+  # Source
+  source: SessionSource @default(MANUAL)
+
+  # Notes
+  notes: String
+
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+# ============================================
+# Passive Activities (Garmin)
+# ============================================
+
+type Activity @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+
+  # Type
+  type: ActivityType!
+
+  # Timing
+  startTime: AWSDateTime!
+  endTime: AWSDateTime!
+  duration: Int! # minutes
+
+  # Metrics
+  steps: Int
+  distance: Float # km
+  caloriesBurned: Int
+  averageHeartRate: Int # bpm
+  maxHeartRate: Int # bpm
+
+  # Source
+  source: ActivitySource @default(DEVICE)
+  deviceId: String
+
+  # Notes
+  notes: String
+
+  createdAt: AWSDateTime!
+}
+
+enum ActivityType {
+  WALKING
+  RUNNING
+  CYCLING
+  SWIMMING
+  HIKING
+  STANDING
+  OTHER
+}
+
+enum ActivitySource {
+  MANUAL
+  DEVICE
+  AI_ASSISTED
+}
+
+# ============================================
+# Metabolism & Insights
+# ============================================
+
+type MetabolicState @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+
+  # Date/time
+  timestamp: AWSDateTime!
+
+  # Modeled states
+  energyAvailability: EnergyLevel
+  glycogenStatus: GlycogenLevel
+  insulinActivity: InsulinLevel
+  recoveryState: RecoveryLevel
+  fatigueLevel: FatigueLevel
+
+  # Contributing factors (for explainability)
+  factors: AWSJSON
+
+  createdAt: AWSDateTime!
+}
+
+enum EnergyLevel {
+  VERY_LOW
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
+}
+
+enum GlycogenLevel {
+  DEPLETED
+  LOW
+  MODERATE
+  FULL
+}
+
+enum InsulinLevel {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum RecoveryLevel {
+  VERY_POOR
+  POOR
+  MODERATE
+  GOOD
+  EXCELLENT
+}
+
+enum FatigueLevel {
+  VERY_LOW
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
+}
+
+type Advice @model @auth(rules: [{allow: owner}]) {
+  id: ID!
+  userId: ID!
+
+  # Content
+  title: String!
+  message: String!
+  reasoning: String! # Explainability
+
+  # Trigger
+  trigger: AdviceTrigger!
+  context: AWSJSON # Additional context
+
+  # User action
+  isRead: Boolean @default(false)
+  isDismissed: Boolean @default(false)
+  isActioned: Boolean @default(false)
+
+  # Confidence
+  confidence: Float # 0-1
+
+  # Timestamp
+  createdAt: AWSDateTime!
+  expiresAt: AWSDateTime
+}
+
+enum AdviceTrigger {
+  MORNING
+  PRE_WORKOUT
+  POST_WORKOUT
+  END_OF_DAY
+  POOR_SLEEP
+  LOW_RECOVERY
+  CALORIE_PACING
+}
