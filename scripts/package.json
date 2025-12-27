@@ -1,0 +1,22 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "zip-lambdas": "tsx zip-lambdas.ts",
+    "local-deploy": "tsx local-deploy.ts",
+    "seed-data": "tsx seed-data.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.709.0",
+    "@aws-sdk/client-dynamodb": "^3.709.0",
+    "@aws-sdk/client-s3": "^3.709.0",
+    "@aws-sdk/lib-dynamodb": "^3.709.0",
+    "archiver": "^7.0.1"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

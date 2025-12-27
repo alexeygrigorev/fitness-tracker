@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --minify --sourcemap --outfile=dist/index.js",
-    "watch": "esbuild src/index.ts --bundle --minify --sourcemap --outfile=dist/index.js --watch"
+    "build": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --outfile=dist/index.js",
+    "watch": "esbuild src/index.ts --bundle --minify --sourcemap --platform=node --outfile=dist/index.js --watch"
   },
   "dependencies": {
     "@aws-lambda-powertools/logger": "^2.0.0",
