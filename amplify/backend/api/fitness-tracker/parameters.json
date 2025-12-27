@@ -1,0 +1,30 @@
+{
+  "AppName": "fitness-tracker",
+  "AuthCognitoUserPool": {
+    "AliasAttributes": ["email"],
+    "AutoVerifiedAttributes": ["email"],
+    "MfaConfiguration": "OFF",
+    "PasswordPolicy": {
+      "MinimumLength": 8,
+      "RequireLowercase": true,
+      "RequireNumbers": true,
+      "RequireSymbols": false,
+      "RequireUppercase": true
+    }
+  },
+  "AuthCognitoIdentityPool": {
+    "UnauthenticatedIdentities": false
+  },
+  "APIAppSync": {
+    "AuthMode": "AMAZON_COGNITO_USER_POOLS",
+    "DefaultAuthenticationType": "AMAZON_COGNITO_USER_POOLS",
+    "AdditionalAuthenticationProviders": [
+      {
+        "AuthenticationType": "AWS_IAM"
+      }
+    ]
+  },
+  "DynamoDB": {
+    "BillingMode": "PAY_PER_REQUEST"
+  }
+}
