@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartBar, faDumbbell, faAppleWhole, faBed, faBolt } from '@fortawesome/free-solid-svg-icons';
+import { faChartBar, faDumbbell, faAppleWhole, faBed, faBolt, faUser, faWeightScale } from '@fortawesome/free-solid-svg-icons';
 import Dashboard from './pages/Dashboard';
 import Exercises from './pages/Exercises';
 import Nutrition from './pages/Nutrition';
 import Sleep from './pages/Sleep';
 import Metabolism from './pages/Metabolism';
+import Profile from './pages/Profile';
+import Weight from './pages/Weight';
 
-type Tab = 'dashboard' | 'exercises' | 'nutrition' | 'sleep' | 'metabolism';
+type Tab = 'dashboard' | 'exercises' | 'nutrition' | 'sleep' | 'metabolism' | 'profile' | 'weight';
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -16,8 +18,10 @@ function App() {
     { id: 'dashboard' as Tab, label: 'Dashboard', icon: faChartBar },
     { id: 'exercises' as Tab, label: 'Exercises', icon: faDumbbell },
     { id: 'nutrition' as Tab, label: 'Nutrition', icon: faAppleWhole },
+    { id: 'weight' as Tab, label: 'Weight', icon: faWeightScale },
     { id: 'sleep' as Tab, label: 'Sleep', icon: faBed },
     { id: 'metabolism' as Tab, label: 'Metabolism', icon: faBolt },
+    { id: 'profile' as Tab, label: 'Profile', icon: faUser },
   ];
 
   return (
@@ -48,6 +52,8 @@ function App() {
         {activeTab === 'nutrition' && <Nutrition />}
         {activeTab === 'sleep' && <Sleep />}
         {activeTab === 'metabolism' && <Metabolism />}
+        {activeTab === 'weight' && <Weight />}
+        {activeTab === 'profile' && <Profile />}
       </main>
     </div>
   );

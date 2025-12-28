@@ -34,14 +34,14 @@ export default function FoodSelector({ selectedFoods, onChange }: FoodSelectorPr
 
   const updateServings = (foodId: string, servings: number) => {
     if (servings <= 0) {
-      onChange(selectedFoods.filter(f => f.foodId \!== foodId));
+      onChange(selectedFoods.filter(f => f.foodId !== foodId));
     } else {
       onChange(selectedFoods.map(f => f.foodId === foodId ? { ...f, servings } : f));
     }
   };
 
   const removeFood = (foodId: string) => {
-    onChange(selectedFoods.filter(f => f.foodId \!== foodId));
+    onChange(selectedFoods.filter(f => f.foodId !== foodId));
   };
 
   const getCategoryColor = (category: string) => {
@@ -71,7 +71,7 @@ export default function FoodSelector({ selectedFoods, onChange }: FoodSelectorPr
           <div className="space-y-2">
             {selectedFoods.map(sf => {
               const food = foods.find(f => f.id === sf.foodId);
-              if (\!food) return null;
+              if (!food) return null;
               return (
                 <div key={sf.foodId} className="flex items-center justify-between bg-white p-2 rounded border">
                   <div className="flex-1">
@@ -109,3 +109,40 @@ export default function FoodSelector({ selectedFoods, onChange }: FoodSelectorPr
           </div>
         </div>
       )}
+
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 mb-2">Food Database</h4>
+        {loading ? (
+          <div className="text-center py-4 text-gray-500">Loading...</div>
+        ) : (
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {filteredFoods.map(food => (
+              <button
+                key={food.id}
+                onClick={() => addFood(food.id)}
+                className="w-full text-left p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{food.name}</span>
+                      <span className={"text-xs px-1.5 py-0.5 rounded " + getCategoryColor(food.category)}>
+                        {food.category}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {food.calories} kcal per {food.servingSize}{food.servingUnit}
+                    </div>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
