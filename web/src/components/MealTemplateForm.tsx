@@ -76,7 +76,7 @@ export default function MealTemplateForm({ template, onSave, onCancel }: MealTem
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Foods</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Food Items</label>
         <FoodSelector selectedFoods={foods} onChange={setFoods} />
       </div>
 

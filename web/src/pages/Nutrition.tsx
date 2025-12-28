@@ -4,9 +4,28 @@ import Modal from "../components/Modal";
 import FoodItemForm from "../components/FoodItemForm";
 import MealTemplateForm from "../components/MealTemplateForm";
 import LogMealModal from "../components/LogMealModal";
+import AddFoodWithAIModal from "../components/AddFoodWithAIModal";
 import type { FoodItem, Meal, MealTemplate } from "../lib/types";
 
-type Tab = "meals" | "foods" | "templates";
+type Tab = "meals" | "templates" | "foods";
+
+// Helper to check if dates are the same day
+const isSameDay = (date1: Date, date2: Date) => {
+  return date1.getFullYear() === date2.getFullYear() &&
+    date1.getMonth() === date2.getMonth() &&
+    date1.getDate() === date2.getDate();
+};
+
+// Format date for display
+const formatDate = (date: Date) => {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  if (isSameDay(date, today)) return "Today";
+  if (isSameDay(date, yesterday)) return "Yesterday";
+  return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+};
 
 export default function Nutrition() {
   const [activeTab, setActiveTab] = useState<Tab>("meals");
@@ -15,9 +34,13 @@ export default function Nutrition() {
   const [templates, setTemplates] = useState<MealTemplate[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Date navigation state
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   const [showLogMeal, setShowLogMeal] = useState(false);
   const [showFoodForm, setShowFoodForm] = useState(false);
   const [showTemplateForm, setShowTemplateForm] = useState(false);
+  const [showAIAddFood, setShowAIAddFood] = useState(false);
   const [editingFood, setEditingFood] = useState<FoodItem>();
   const [editingTemplate, setEditingTemplate] = useState<MealTemplate>();
 
@@ -30,7 +53,13 @@ export default function Nutrition() {
     });
   }, []);
 
-  const totals = meals.reduce((acc, meal) => ({
+  // Filter meals by selected date
+  const mealsForDate = meals.filter(meal =>
+    isSameDay(new Date(meal.loggedAt), selectedDate)
+  );
+
+  // Calculate totals for selected date
+  const totals = mealsForDate.reduce((acc, meal) => ({
     calories: acc.calories + meal.totalCalories,
     protein: acc.protein + meal.totalProtein,
     carbs: acc.carbs + meal.totalCarbs,
@@ -55,6 +84,10 @@ export default function Nutrition() {
         ? prev.map(f => f.id === food.id ? food : f)
         : [...prev, food];
     });
+  };
+
+  const handleAIFoodCreated = (food: FoodItem) => {
+    setFoodItems(prev => [...prev, food]);
   };
 
   const handleDeleteFood = async (id: string) => {
@@ -87,6 +120,20 @@ export default function Nutrition() {
     }
   };
 
+  // Date navigation handlers
+  const goToDate = (daysOffset: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + daysOffset);
+    setSelectedDate(newDate);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
+
+  // Check if selected date is today (to disable forward button)
+  const isToday = isSameDay(selectedDate, new Date());
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -95,42 +142,91 @@ export default function Nutrition() {
     );
   }
 
+  // Tab labels
+  const tabLabels: Record<Tab, string> = {
+    meals: "Meals",
+    templates: "Meal Templates",
+    foods: "Food Items"
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Nutrition Tracking</h2>
-        <button
-          onClick={() => setShowLogMeal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
-        >
-          + Log Meal
-        </button>
+        {activeTab === "meals" && (
+          <button
+            onClick={() => setShowLogMeal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            + Log Meal
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-500">Calories</div>
-          <div className="text-xl font-bold text-gray-900">{totals.calories}</div>
-          <div className="text-xs text-gray-400">/ 2500 goal</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-500">Protein</div>
-          <div className="text-xl font-bold text-blue-600">{totals.protein}g</div>
-          <div className="text-xs text-gray-400">/ 130g goal</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-500">Carbs</div>
-          <div className="text-xl font-bold text-gray-900">{totals.carbs}g</div>
-        </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm text-gray-500">Fat</div>
-          <div className="text-xl font-bold text-gray-900">{totals.fat}g</div>
-        </div>
-      </div>
+      {/* Daily totals - only show on meals tab */}
+      {activeTab === "meals" && (
+        <>
+          {/* Date navigation */}
+          <div className="flex items-center justify-center gap-4">
+            <button
+              onClick={() => goToDate(-1)}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div className="text-center">
+              <button
+                onClick={goToToday}
+                className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+              >
+                {formatDate(selectedDate)}
+              </button>
+              <div className="text-xs text-gray-500">
+                {selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              </div>
+            </div>
+            <button
+              onClick={() => goToDate(1)}
+              disabled={isToday}
+              className={"p-2 rounded-md transition-colors " + (isToday
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+              )}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500">Calories</div>
+              <div className="text-xl font-bold text-gray-900">{totals.calories}</div>
+              <div className="text-xs text-gray-400">/ 2500 goal</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500">Protein</div>
+              <div className="text-xl font-bold text-blue-600">{totals.protein}g</div>
+              <div className="text-xs text-gray-400">/ 130g goal</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500">Carbs</div>
+              <div className="text-xl font-bold text-gray-900">{totals.carbs}g</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500">Fat</div>
+              <div className="text-xl font-bold text-gray-900">{totals.fat}g</div>
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="border-b border-gray-200">
         <nav className="flex space-x-8">
-          {(["meals", "foods", "templates"] as Tab[]).map(tab => (
+          {(["meals", "templates", "foods"] as Tab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -141,7 +237,7 @@ export default function Nutrition() {
                   : "border-transparent text-gray-500")
               }
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tabLabels[tab]}
             </button>
           ))}
         </nav>
@@ -149,18 +245,18 @@ export default function Nutrition() {
 
       {activeTab === "meals" && (
         <div className="space-y-3">
-          {meals.length === 0 ? (
+          {mealsForDate.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <p>No meals logged yet</p>
+              <p>No meals logged for {formatDate(selectedDate).toLowerCase()}</p>
               <button
                 onClick={() => setShowLogMeal(true)}
                 className="mt-2 text-blue-600 hover:text-blue-700"
               >
-                Log your first meal
+                Log a meal
               </button>
             </div>
           ) : (
-            meals.map(meal => (
+            mealsForDate.map(meal => (
               <div key={meal.id} className="bg-white rounded-lg shadow p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -171,7 +267,7 @@ export default function Nutrition() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
-                      {new Date(meal.loggedAt).toLocaleDateString()} • {meal.foods.length} food items
+                      {meal.foods.length} food items
                     </div>
                   </div>
                   <div className="text-right mr-4">
@@ -187,92 +283,6 @@ export default function Nutrition() {
                 </div>
               </div>
             ))
-          )}
-        </div>
-      )}
-
-      {activeTab === "foods" && (
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <button
-              onClick={() => {
-                setEditingFood(undefined);
-                setShowFoodForm(true);
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-            >
-              + Add Food Item
-            </button>
-          </div>
-          {foodItems.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No food items yet. Add your first food item to get started.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {foodItems.map(food => (
-                <div key={food.id} className="bg-white rounded-lg shadow p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{food.name}</span>
-                        <span className={"text-xs px-1.5 py-0.5 rounded " + getCategoryColor(food.category)}>
-                          {food.category}
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {food.servingSize}{food.servingUnit} serving
-                      </div>
-                      {food.brand && (
-                        <div className="text-xs text-gray-400">{food.brand}</div>
-                      )}
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingFood(food);
-                          setShowFoodForm(true);
-                        }}
-                        className="text-blue-500 hover:text-blue-700 p-1"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteFood(food.id)}
-                        className="text-red-500 hover:text-red-700 p-1"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 mt-3 text-center">
-                    <div>
-                      <div className="text-xs text-gray-500">Cals</div>
-                      <div className="text-sm font-medium">{food.calories}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Protein</div>
-                      <div className="text-sm font-medium text-blue-600">{food.protein}g</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Carbs</div>
-                      <div className="text-sm font-medium">{food.carbs}g</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Fat</div>
-                      <div className="text-sm font-medium">{food.fat}g</div>
-                    </div>
-                  </div>
-                  {food.glycemicIndex && (
-                    <div className="mt-2 pt-2 border-t text-xs text-gray-500 flex gap-3">
-                      <span>GI: {food.glycemicIndex}</span>
-                      <span>Absorption: {food.absorptionSpeed}</span>
-                      <span>Satiety: {food.satietyScore}/10</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
           )}
         </div>
       )}
@@ -372,6 +382,101 @@ export default function Nutrition() {
         </div>
       )}
 
+      {activeTab === "foods" && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                setEditingFood(undefined);
+                setShowFoodForm(true);
+              }}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              + Add Food Item
+            </button>
+            <button
+              onClick={() => setShowAIAddFood(true)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Add with AI
+            </button>
+          </div>
+          {foodItems.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No food items yet. Add your first food item to get started.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {foodItems.map(food => (
+                <div key={food.id} className="bg-white rounded-lg shadow p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{food.name}</span>
+                        <span className={"text-xs px-1.5 py-0.5 rounded " + getCategoryColor(food.category)}>
+                          {food.category}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {food.servingSize}{food.servingType} serving
+                      </div>
+                      {food.brand && (
+                        <div className="text-xs text-gray-400">{food.brand}</div>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => {
+                          setEditingFood(food);
+                          setShowFoodForm(true);
+                        }}
+                        className="text-blue-500 hover:text-blue-700 p-1"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteFood(food.id)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 mt-3 text-center">
+                    <div>
+                      <div className="text-xs text-gray-500">Cals</div>
+                      <div className="text-sm font-medium">{food.calories}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Protein</div>
+                      <div className="text-sm font-medium text-blue-600">{food.protein}g</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Carbs</div>
+                      <div className="text-sm font-medium">{food.carbs}g</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Fat</div>
+                      <div className="text-sm font-medium">{food.fat}g</div>
+                    </div>
+                  </div>
+                  {(food.glycemicIndex !== undefined || food.absorptionSpeed || food.satietyScore) && (
+                    <div className="mt-2 pt-2 border-t text-xs text-gray-500 flex gap-3">
+                      <span>GI: {food.glycemicIndex && food.glycemicIndex > 0 ? food.glycemicIndex : "-"}</span>
+                      <span>Absorption: {food.absorptionSpeed || "-"}</span>
+                      <span>Satiety: {food.satietyScore ? `${food.satietyScore}/10` : "-"}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {showLogMeal && (
         <LogMealModal
           isOpen={showLogMeal}
@@ -418,6 +523,14 @@ export default function Nutrition() {
             }}
           />
         </Modal>
+      )}
+
+      {showAIAddFood && (
+        <AddFoodWithAIModal
+          isOpen={showAIAddFood}
+          onClose={() => setShowAIAddFood(false)}
+          onFoodCreated={handleAIFoodCreated}
+        />
       )}
     </div>
   );

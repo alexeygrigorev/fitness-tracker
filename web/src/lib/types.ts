@@ -75,13 +75,14 @@ export interface FoodItem {
   barcode?: string;
   source?: FoodSource;
   servingSize: number;
-  servingUnit: string;
+  servingType: string;
   calories: number;
-  protein: number;
-  carbs: number;
   fat: number;
-  fiber?: number;
+  saturatedFat?: number;
+  carbs: number;
   sugar?: number;
+  fiber?: number;
+  protein: number;
   sodium?: number;
   glycemicIndex?: number;
   absorptionSpeed?: 'slow' | 'moderate' | 'fast';
