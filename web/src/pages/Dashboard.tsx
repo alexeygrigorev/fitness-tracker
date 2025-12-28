@@ -35,7 +35,7 @@ export default function Dashboard() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-500">Workout Volume</div>
           <div className="text-2xl font-bold text-gray-900">{summary.totalVolume}</div>
-          <div className="text-xs text-gray-400">lbs</div>
+          <div className="text-xs text-gray-400">kg</div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-sm text-gray-500">Sleep Quality</div>
@@ -54,7 +54,7 @@ export default function Dashboard() {
               {summary.workouts.map(workout => (
                 <div key={workout.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="font-medium text-gray-900">{workout.name}</div>
-                  <div className="text-sm text-gray-500">{workout.sets.length} sets • {workout.totalVolume} lbs volume</div>
+                  <div className="text-sm text-gray-500">{workout.sets.length} sets • {workout.totalVolume} kg volume</div>
                   {workout.estimatedRecovery && (
                     <div className="text-sm text-orange-600 mt-1">~{workout.estimatedRecovery}h recovery needed</div>
                   )}

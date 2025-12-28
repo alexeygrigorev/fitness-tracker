@@ -86,7 +86,7 @@ export default function Exercises() {
                   <div className="text-sm text-gray-500">{new Date(workout.startedAt).toLocaleDateString()}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium text-gray-900">{workout.totalVolume} lbs</div>
+                  <div className="font-medium text-gray-900">{workout.totalVolume} kg</div>
                   <div className="text-sm text-gray-500">{workout.sets.length} sets</div>
                 </div>
               </div>
