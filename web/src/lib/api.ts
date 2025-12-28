@@ -2,6 +2,8 @@ import {
   mockExercises,
   mockFoodItems,
   mockWorkoutSessions,
+  mockWorkoutPrograms,
+  mockWorkoutPresets,
   mockMeals,
   mockSleepEntries,
   mockMetabolismStates,
@@ -11,12 +13,15 @@ import {
 import type {
   FoodItem,
   WorkoutSession,
+  WorkoutProgram,
+  WorkoutPreset,
   Meal,
   SleepEntry,
   WorkoutSet,
   DailySummary,
   MealTemplate,
-  MealFoodItem
+  MealFoodItem,
+  MealCategory
 } from './types';
 
 const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
@@ -24,6 +29,8 @@ const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
 let exercises = [...mockExercises];
 let foodItems = [...mockFoodItems] as FoodItem[];
 let workoutSessions = [...mockWorkoutSessions] as WorkoutSession[];
+let workoutPrograms = [...mockWorkoutPrograms];
+let workoutPresets = [...mockWorkoutPresets];
 let meals = [...mockMeals] as Meal[];
 let sleepEntries = [...mockSleepEntries] as SleepEntry[];
 let metabolismStates = [...mockMetabolismStates];
@@ -306,11 +313,11 @@ export const mealTemplatesApi = {
     for (const item of foods) {
       const food = foodItems.find(f => f.id === item.foodId);
       if (food) {
-        const s = item.servings;
-        totalCalories += food.calories * s;
-        totalProtein += food.protein * s;
-        totalCarbs += food.carbs * s;
-        totalFat += food.fat * s;
+        const multiplier = item.grams / 100;
+        totalCalories += food.calories * multiplier;
+        totalProtein += food.protein * multiplier;
+        totalCarbs += food.carbs * multiplier;
+        totalFat += food.fat * multiplier;
       }
     }
     return { totalCalories, totalProtein, totalCarbs, totalFat };
@@ -363,7 +370,224 @@ export const workoutsApi = {
       : 7;
     session.estimatedRecovery = Math.round(24 + (totalVolume / 1000) * 12 + (avgRpe - 5) * 6);
     return session;
+  },
+  delete: async (id: string) => {
+    await delay();
+    const index = workoutSessions.findIndex(w => w.id === id);
+    if (index === -1) throw new Error('Workout not found');
+    workoutSessions.splice(index, 1);
+    return true;
+  },
+  update: async (id: string, updates: Partial<WorkoutSession>) => {
+    await delay();
+    const index = workoutSessions.findIndex(w => w.id === id);
+    if (index === -1) throw new Error('Workout not found');
+    workoutSessions[index] = { ...workoutSessions[index], ...updates };
+    return workoutSessions[index];
   }
+};
+
+export const workoutProgramsApi = {
+  getAll: async () => {
+    await delay();
+    return [...workoutPrograms];
+  },
+  getById: async (id: string) => {
+    await delay();
+    return workoutPrograms.find(p => p.id === id);
+  },
+  create: async (program: Omit<WorkoutProgram, 'id'>) => {
+    await delay();
+    const newProgram: WorkoutProgram = { ...program, id: 'wp' + Date.now() };
+    workoutPrograms.push(newProgram);
+    return newProgram;
+  },
+  update: async (id: string, updates: Partial<WorkoutProgram>) => {
+    await delay();
+    const index = workoutPrograms.findIndex(p => p.id === id);
+    if (index === -1) throw new Error('Program not found');
+    workoutPrograms[index] = { ...workoutPrograms[index], ...updates };
+    return workoutPrograms[index];
+  },
+  delete: async (id: string) => {
+    await delay();
+    const index = workoutPrograms.findIndex(p => p.id === id);
+    if (index === -1) throw new Error('Program not found');
+    workoutPrograms.splice(index, 1);
+    return true;
+  }
+};
+
+export const workoutPresetsApi = {
+  getAll: async () => {
+    await delay();
+    return [...workoutPresets];
+  },
+  getById: async (id: string) => {
+    await delay();
+    return workoutPresets.find(p => p.id === id);
+  },
+  getActive: async () => {
+    await delay();
+    return workoutPresets.filter(p => p.status === 'active');
+  },
+  create: async (preset: Omit<WorkoutPreset, 'id'>) => {
+    await delay();
+    const newPreset: WorkoutPreset = { ...preset, id: 'preset' + Date.now() };
+    workoutPresets.push(newPreset);
+    return newPreset;
+  },
+  update: async (id: string, updates: Partial<WorkoutPreset>) => {
+    await delay();
+    const index = workoutPresets.findIndex(p => p.id === id);
+    if (index === -1) throw new Error('Preset not found');
+    workoutPresets[index] = { ...workoutPresets[index], ...updates };
+    return workoutPresets[index];
+  },
+  delete: async (id: string) => {
+    await delay();
+    const index = workoutPresets.findIndex(p => p.id === id);
+    if (index === -1) throw new Error('Preset not found');
+    workoutPresets.splice(index, 1);
+    return true;
+  }
+};
+
+// AI-powered meal analysis from description
+// Parses a meal description and suggests meal with foods and amounts
+// TODO: Replace with real AI API call
+export const analyzeMealWithAI = async (description: string) => {
+  await delay(2000); // Simulate AI processing time
+
+  const desc = description.toLowerCase();
+  let mealName = description.split(' ').slice(0, 4).join(' ') || 'Custom Meal';
+  let mealType: MealCategory = 'snack';
+  let suggestedFoods: Array<{ foodId: string; grams: number }> = [];
+
+  // Detect meal type from time keywords
+  if (desc.includes('breakfast') || desc.includes('morning')) {
+    mealType = 'breakfast';
+  } else if (desc.includes('lunch') || desc.includes('afternoon')) {
+    mealType = 'lunch';
+  } else if (desc.includes('dinner') || desc.includes('evening')) {
+    mealType = 'dinner';
+  } else if (desc.includes('post-workout') || desc.includes('after workout') || desc.includes('gym')) {
+    mealType = 'post_workout';
+  }
+
+  // Parse foods from description
+  const foodsMap: Map<string, number> = new Map();
+
+  // Helper to find food by keywords
+  const findFood = (keywords: string[]): FoodItem | undefined => {
+    for (const food of foodItems) {
+      const foodNameLower = food.name.toLowerCase();
+      if (keywords.some(k => foodNameLower.includes(k))) {
+        return food;
+      }
+    }
+    return undefined;
+  };
+
+  // Chicken with rice (common meal)
+  if (desc.includes('chicken') && (desc.includes('rice') || desc.includes('breast'))) {
+    mealName = 'Chicken with Rice';
+    const chicken = findFood(['chicken', 'breast']);
+    const rice = findFood(['rice']);
+    if (chicken) foodsMap.set(chicken.id, 150); // 150g chicken
+    if (rice) foodsMap.set(rice.id, 150); // 150g rice
+    if (desc.includes('broccoli')) {
+      const broccoli = findFood(['broccoli']);
+      if (broccoli) foodsMap.set(broccoli.id, 100);
+    }
+  }
+  // Salmon with sweet potato
+  else if (desc.includes('salmon')) {
+    mealName = 'Salmon Dinner';
+    const salmon = findFood(['salmon']);
+    if (salmon) foodsMap.set(salmon.id, 150);
+    if (desc.includes('potato')) {
+      const potato = findFood(['sweet potato']);
+      if (potato) foodsMap.set(potato.id, 200);
+    }
+    if (desc.includes('broccoli')) {
+      const broccoli = findFood(['broccoli']);
+      if (broccoli) foodsMap.set(broccoli.id, 100);
+    }
+  }
+  // Oatmeal/porridge
+  else if (desc.includes('oat') || desc.includes('porridge')) {
+    mealName = 'Overnight Oats';
+    mealType = 'breakfast';
+    const oats = findFood(['oat']);
+    if (oats) foodsMap.set(oats.id, 80);
+    if (desc.includes('yogurt')) {
+      const yogurt = findFood(['greek yogurt']);
+      if (yogurt) foodsMap.set(yogurt.id, 170);
+    }
+    if (desc.includes('banana')) {
+      const banana = findFood(['banana']);
+      if (banana) foodsMap.set(banana.id, 120);
+    }
+  }
+  // Eggs
+  else if (desc.includes('egg')) {
+    mealName = 'Eggs';
+    const eggs = findFood(['egg']);
+    if (eggs) {
+      // Parse number of eggs
+      const eggMatch = desc.match(/(\d+)\s*(eggs?|egg)/);
+      const count = eggMatch ? parseInt(eggMatch[1]) : 2;
+      foodsMap.set(eggs.id, count * eggs.servingSize);
+    }
+    if (desc.includes('bread')) {
+      const bread = findFood(['bread']);
+      if (bread) foodsMap.set(bread.id, 56); // 2 slices
+    }
+  }
+  // Protein shake
+  else if (desc.includes('shake') || desc.includes('protein')) {
+    mealName = 'Protein Shake';
+    mealType = 'post_workout';
+    const whey = findFood(['whey']);
+    if (whey) foodsMap.set(whey.id, 30); // 1 scoop
+    if (desc.includes('banana')) {
+      const banana = findFood(['banana']);
+      if (banana) foodsMap.set(banana.id, 120);
+    }
+    if (desc.includes('yogurt')) {
+      const yogurt = findFood(['greek yogurt']);
+      if (yogurt) foodsMap.set(yogurt.id, 85);
+    }
+  }
+  // Pizza
+  else if (desc.includes('pizza')) {
+    mealName = 'Pizza';
+    const pizza = findFood(['pizza']);
+    if (pizza) {
+      const sliceMatch = desc.match(/(\d+)\s*(slices?|slice)/);
+      const slices = sliceMatch ? parseInt(sliceMatch[1]) : 2;
+      foodsMap.set(pizza.id, slices * 120); // 120g per slice
+    }
+  }
+  // Generic fallback - try to match individual foods
+  else {
+    for (const food of foodItems) {
+      const foodNameLower = food.name.toLowerCase();
+      if (desc.includes(foodNameLower) && !foodsMap.has(food.id)) {
+        foodsMap.set(food.id, food.servingSize);
+      }
+    }
+  }
+
+  suggestedFoods = Array.from(foodsMap.entries()).map(([foodId, grams]) => ({ foodId, grams }));
+
+  return {
+    name: mealName,
+    mealType,
+    foods: suggestedFoods,
+    confidence: suggestedFoods.length > 0 ? 0.8 : 0.3
+  };
 };
 
 export const mealsApi = {
@@ -389,10 +613,11 @@ export const mealsApi = {
     for (const food of meal.foods) {
       const item = foodItems.find(f => f.id === food.foodId);
       if (item) {
-        totalCalories += item.calories * food.servings;
-        totalProtein += item.protein * food.servings;
-        totalCarbs += item.carbs * food.servings;
-        totalFat += item.fat * food.servings;
+        const multiplier = food.grams / 100;
+        totalCalories += item.calories * multiplier;
+        totalProtein += item.protein * multiplier;
+        totalCarbs += item.carbs * multiplier;
+        totalFat += item.fat * multiplier;
       }
     }
     const newMeal: Meal = { ...meal, id: 'meal' + Date.now(), totalCalories, totalProtein, totalCarbs, totalFat, source: meal.source || 'manual' };
@@ -458,6 +683,10 @@ export const adviceApi = {
     if (item) item.acknowledged = true;
     return item;
   }
+};
+
+export const aiMealApi = {
+  analyzeMeal: analyzeMealWithAI
 };
 
 export const dailySummaryApi = {

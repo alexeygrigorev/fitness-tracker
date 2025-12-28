@@ -57,11 +57,41 @@ export interface WorkoutProgram {
   description: string;
   durationWeeks: number;
   sessionsPerWeek: number;
-  exercises: Exercise[];
+  exercises: string[]; // Array of exercise IDs
+}
+
+// Preset Training Day (template for a workout session)
+export type PresetExerciseType = 'standalone' | 'normal' | 'dropdown' | 'superset';
+
+export interface PresetExerciseItem {
+  exerciseId: string;
+  type: 'standalone' | 'normal' | 'dropdown';
+  sets: number;
+}
+
+export interface WorkoutPresetExercise {
+  id: string; // for grouping (especially superset)
+  type: PresetExerciseType;
+  exerciseId?: string; // for non-superset exercises
+  exercises?: PresetExerciseItem[]; // for superset: list of exercises in the superset
+  sets?: number; // for non-superset exercises
+  notes?: string;
+}
+
+export type WorkoutTag = 'strength' | 'cardio' | 'mixed';
+
+export interface WorkoutPreset {
+  id: string;
+  name: string; // e.g., "Upper Body Day 1"
+  dayLabel?: string; // e.g., "Monday"
+  exercises: WorkoutPresetExercise[]; // Ordered list of planned exercises
+  notes?: string;
+  tags?: WorkoutTag[];
+  status: 'active' | 'archived';
 }
 
 // Food and Nutrition Types
-export type FoodCategory = 'carb' | 'protein' | 'fat' | 'mixed';
+export type FoodCategory = 'carb' | 'protein' | 'fat' | 'mixed' | 'beverage';
 
 export type FoodSource = 'canonical' | 'user' | 'ai_generated';
 
@@ -77,6 +107,7 @@ export interface FoodItem {
   servingSize: number;
   servingType: string;
   calories: number;
+  caloriesPerPortion?: number;
   fat: number;
   saturatedFat?: number;
   carbs: number;
@@ -88,11 +119,12 @@ export interface FoodItem {
   absorptionSpeed?: 'slow' | 'moderate' | 'fast';
   insulinResponse?: number;
   satietyScore?: number;
+  proteinQuality?: 1 | 2 | 3; // 1=low/incomplete, 2=moderate, 3=high/complete (best for muscle building)
 }
 
 export interface MealFoodItem {
   foodId: string;
-  servings: number;
+  grams: number; // Store grams directly, not portions - so changing food serving size doesn't affect templates
 }
 
 export interface Meal {
@@ -115,7 +147,6 @@ export interface MealTemplate {
   name: string;
   category: MealCategory;
   foods: MealFoodItem[];
-  tags?: string[];
 }
 
 export interface SleepEntry {

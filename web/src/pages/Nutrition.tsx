@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPen, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { foodApi, mealsApi, mealTemplatesApi } from "../lib/api";
 import Modal from "../components/Modal";
 import FoodItemForm from "../components/FoodItemForm";
@@ -43,6 +45,7 @@ export default function Nutrition() {
   const [showAIAddFood, setShowAIAddFood] = useState(false);
   const [editingFood, setEditingFood] = useState<FoodItem>();
   const [editingTemplate, setEditingTemplate] = useState<MealTemplate>();
+  const [editingMeal, setEditingMeal] = useState<Meal>();
 
   useEffect(() => {
     Promise.all([mealsApi.getAll(), foodApi.getAll(), mealTemplatesApi.getAll()]).then(([mls, fds, tmpl]) => {
@@ -67,12 +70,24 @@ export default function Nutrition() {
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
   const handleMealLogged = (meal: Meal) => {
-    setMeals(prev => [meal, ...prev]);
+    if (editingMeal) {
+      // Update existing meal
+      setMeals(prev => prev.map(m => m.id === meal.id ? meal : m));
+      setEditingMeal(undefined);
+    } else {
+      // Add new meal
+      setMeals(prev => [meal, ...prev]);
+    }
   };
 
   const handleDeleteMeal = async (id: string) => {
     await mealsApi.delete(id);
     setMeals(prev => prev.filter(m => m.id !== id));
+  };
+
+  const handleEditMeal = (meal: Meal) => {
+    setEditingMeal(meal);
+    setShowLogMeal(true);
   };
 
   const handleFoodSaved = (food: FoodItem) => {
@@ -116,6 +131,7 @@ export default function Nutrition() {
       case "protein": return "bg-red-100 text-red-700";
       case "carb": return "bg-yellow-100 text-yellow-700";
       case "fat": return "bg-green-100 text-green-700";
+      case "beverage": return "bg-blue-100 text-blue-700";
       default: return "bg-gray-100 text-gray-700";
     }
   };
@@ -267,19 +283,48 @@ export default function Nutrition() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
-                      {meal.foods.length} food items
+                      {meal.foods.map(f => {
+                        const food = foodItems.find(fi => fi.id === f.foodId);
+                        if (!food) return null;
+                        const grams = f.grams ?? ('servings' in (f as any) ? (f as any).servings * food.servingSize : 0);
+                        return (
+                          <span key={f.foodId} className="inline mr-2">
+                            {food.name} ({Math.round(grams)}g)
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                   <div className="text-right mr-4">
-                    <div className="font-medium text-gray-900">{meal.totalCalories} kcal</div>
-                    <div className="text-sm text-gray-500">{meal.totalProtein}g protein</div>
+                    <div className="font-medium text-gray-900">{Math.round(meal.totalCalories)} kcal</div>
+                    <div className="grid grid-cols-3 gap-3 text-xs text-gray-500">
+                      <div>
+                        <span className="text-blue-600 font-medium">{Math.round(meal.totalProtein)}g</span> protein
+                      </div>
+                      <div>
+                        <span className="font-medium">{Math.round(meal.totalCarbs)}g</span> carbs
+                      </div>
+                      <div>
+                        <span className="font-medium">{Math.round(meal.totalFat)}g</span> fat
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleDeleteMeal(meal.id)}
-                    className="text-red-500 hover:text-red-700 p-1"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => handleEditMeal(meal)}
+                      className="text-gray-400 hover:text-blue-600 p-1"
+                      title="Edit meal"
+                    >
+                      <FontAwesomeIcon icon={faPen} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteMeal(meal.id)}
+                      className="text-gray-400 hover:text-red-600 p-1"
+                      title="Delete meal"
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -310,11 +355,14 @@ export default function Nutrition() {
                 const totals = template.foods.reduce((acc, f) => {
                   const food = foodItems.find(fi => fi.id === f.foodId);
                   if (food) {
+                    // Handle migration from old 'servings' format to new 'grams' format
+                    const grams = f.grams ?? ('servings' in f ? (f as any).servings * food.servingSize : 0);
+                    const multiplier = grams / 100;
                     return {
-                      calories: acc.calories + food.calories * f.servings,
-                      protein: acc.protein + food.protein * f.servings,
-                      carbs: acc.carbs + food.carbs * f.servings,
-                      fat: acc.fat + food.fat * f.servings
+                      calories: acc.calories + food.calories * multiplier,
+                      protein: acc.protein + food.protein * multiplier,
+                      carbs: acc.carbs + food.carbs * multiplier,
+                      fat: acc.fat + food.fat * multiplier
                     };
                   }
                   return acc;
@@ -331,46 +379,56 @@ export default function Nutrition() {
                           </span>
                         </div>
                         <div className="text-sm text-gray-500 mt-1">
-                          {template.foods.length} food items
-                        </div>
-                        {template.tags && template.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {template.tags.map(tag => (
-                              <span
-                                key={tag}
-                                className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full"
-                              >
-                                {tag}
+                          {template.foods.map(f => {
+                            const food = foodItems.find(fi => fi.id === f.foodId);
+                            if (!food) return null;
+                            const grams = f.grams ?? ('servings' in (f as any) ? (f as any).servings * food.servingSize : 0);
+                            return (
+                              <span key={f.foodId} className="inline mr-2">
+                                {food.name} ({Math.round(grams)}g)
                               </span>
-                            ))}
-                          </div>
-                        )}
+                            );
+                          })}
+                        </div>
                       </div>
                       <div className="text-right mr-4">
-                        <div className="font-medium text-gray-900">{Math.round(totals.calories)} kcal</div>
-                        <div className="text-sm text-gray-500">{Math.round(totals.protein)}g protein</div>
+                        <div className="text-sm font-medium text-gray-900">{Math.round(totals.calories)} kcal</div>
+                        <div className="grid grid-cols-3 gap-3 text-xs text-gray-500">
+                          <div>
+                            <span className="text-blue-600 font-medium">{Math.round(totals.protein)}g</span> protein
+                          </div>
+                          <div>
+                            <span className="font-medium">{Math.round(totals.carbs)}g</span> carbs
+                          </div>
+                          <div>
+                            <span className="font-medium">{Math.round(totals.fat)}g</span> fat
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex flex-col gap-1">
+                      <div className="flex gap-1">
                         <button
                           onClick={() => setShowLogMeal(true)}
-                          className="text-blue-500 hover:text-blue-700 text-sm"
+                          className="text-gray-400 hover:text-green-600 p-1"
+                          title="Log meal from template"
                         >
-                          Log Meal
+                          <FontAwesomeIcon icon={faPlus} />
                         </button>
                         <button
                           onClick={() => {
                             setEditingTemplate(template);
                             setShowTemplateForm(true);
                           }}
-                          className="text-gray-500 hover:text-gray-700 text-sm"
+                          className="text-gray-400 hover:text-blue-600 p-1"
+                          title="Edit template"
                         >
-                          Edit
+                          <FontAwesomeIcon icon={faPen} />
                         </button>
                         <button
                           onClick={() => handleDeleteTemplate(template.id)}
-                          className="text-red-500 hover:text-red-700 text-sm"
+                          className="text-gray-400 hover:text-red-600 p-1"
+                          title="Delete template"
                         >
-                          Delete
+                          <FontAwesomeIcon icon={faTrash} />
                         </button>
                       </div>
                     </div>
@@ -421,7 +479,7 @@ export default function Nutrition() {
                         </span>
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
-                        {food.servingSize}{food.servingType} serving
+                        1 serving: {food.servingSize}g ({food.servingType}, {food.caloriesPerPortion ?? Math.round(food.calories * food.servingSize / 100)} kcal)
                       </div>
                       {food.brand && (
                         <div className="text-xs text-gray-400">{food.brand}</div>
@@ -433,41 +491,58 @@ export default function Nutrition() {
                           setEditingFood(food);
                           setShowFoodForm(true);
                         }}
-                        className="text-blue-500 hover:text-blue-700 p-1"
+                        className="text-gray-400 hover:text-blue-600 p-1"
+                        title="Edit food"
                       >
-                        Edit
+                        <FontAwesomeIcon icon={faPen} />
                       </button>
                       <button
                         onClick={() => handleDeleteFood(food.id)}
-                        className="text-red-500 hover:text-red-700 p-1"
+                        className="text-gray-400 hover:text-red-600 p-1"
+                        title="Delete food"
                       >
-                        Delete
+                        <FontAwesomeIcon icon={faTrash} />
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 gap-2 mt-3 text-center">
-                    <div>
-                      <div className="text-xs text-gray-500">Cals</div>
-                      <div className="text-sm font-medium">{food.calories}</div>
+                  <div className="mt-3 space-y-2">
+                    <div className="text-xs text-gray-500">Per 100g</div>
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      <div>
+                        <div className="text-sm font-medium">{food.calories}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-blue-600">{food.protein}g</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{food.carbs}g</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{food.fat}g</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Protein</div>
-                      <div className="text-sm font-medium text-blue-600">{food.protein}g</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Carbs</div>
-                      <div className="text-sm font-medium">{food.carbs}g</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-500">Fat</div>
-                      <div className="text-sm font-medium">{food.fat}g</div>
+                    <div className="text-xs text-gray-500 pt-1">Per serving ({food.servingSize}g)</div>
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      <div>
+                        <div className="text-sm font-medium">{food.caloriesPerPortion ?? Math.round(food.calories * food.servingSize / 100)}</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-blue-600">{Math.round(food.protein * food.servingSize / 100)}g</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{Math.round(food.carbs * food.servingSize / 100)}g</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium">{Math.round(food.fat * food.servingSize / 100)}g</div>
+                      </div>
                     </div>
                   </div>
-                  {(food.glycemicIndex !== undefined || food.absorptionSpeed || food.satietyScore) && (
+                  {(food.glycemicIndex !== undefined || food.absorptionSpeed || food.satietyScore || food.proteinQuality) && (
                     <div className="mt-2 pt-2 border-t text-xs text-gray-500 flex gap-3">
                       <span>GI: {food.glycemicIndex && food.glycemicIndex > 0 ? food.glycemicIndex : "-"}</span>
                       <span>Absorption: {food.absorptionSpeed || "-"}</span>
                       <span>Satiety: {food.satietyScore ? `${food.satietyScore}/10` : "-"}</span>
+                      <span title="Protein quality for muscle building">PQ: {food.proteinQuality ? `${'⭐'.repeat(food.proteinQuality)}` : "-"}</span>
                     </div>
                   )}
                 </div>
@@ -480,8 +555,12 @@ export default function Nutrition() {
       {showLogMeal && (
         <LogMealModal
           isOpen={showLogMeal}
-          onClose={() => setShowLogMeal(false)}
+          onClose={() => {
+            setShowLogMeal(false);
+            setEditingMeal(undefined);
+          }}
           onMealLogged={handleMealLogged}
+          editingMeal={editingMeal}
         />
       )}
 

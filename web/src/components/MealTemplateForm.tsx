@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { mealTemplatesApi } from '../lib/api';
 import FoodSelector from './FoodSelector';
 import type { MealTemplate, MealCategory } from '../lib/types';
@@ -12,8 +12,20 @@ interface MealTemplateFormProps {
 export default function MealTemplateForm({ template, onSave, onCancel }: MealTemplateFormProps) {
   const [name, setName] = useState(template?.name || '');
   const [category, setCategory] = useState<MealCategory>(template?.category || 'snack');
-  const [tags, setTags] = useState(template?.tags?.join(', ') || '');
   const [foods, setFoods] = useState(template?.foods || []);
+
+  // Reset form when template changes
+  useEffect(() => {
+    if (template) {
+      setName(template.name);
+      setCategory(template.category);
+      setFoods(template.foods || []);
+    } else {
+      setName('');
+      setCategory('snack');
+      setFoods([]);
+    }
+  }, [template?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,8 +34,7 @@ export default function MealTemplateForm({ template, onSave, onCancel }: MealTem
     const data = {
       name: name.trim(),
       category,
-      foods,
-      tags: tags.split(',').map(t => t.trim()).filter(Boolean)
+      foods
     };
 
     if (template) {
@@ -62,17 +73,6 @@ export default function MealTemplateForm({ template, onSave, onCancel }: MealTem
           <option value="post_workout">Post-Workout</option>
           <option value="beverage">Beverage</option>
         </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
-        <input
-          type="text"
-          value={tags}
-          onChange={e => setTags(e.target.value)}
-          placeholder="e.g. high protein, vegetarian, quick"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
       </div>
 
       <div>
