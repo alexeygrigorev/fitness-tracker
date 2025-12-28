@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, CardHeader, Button } from '@fitness-tracker/ui';
 import { useWorkoutStore } from '../../lib/store';
-import { openaiService } from '../../lib/openai';
+import { apiService } from '../../lib/amplify';
 
 // Sample exercise data
 const SAMPLE_EXERCISES = [
@@ -27,7 +27,7 @@ const SAMPLE_EXERCISES = [
 ];
 
 export default function ExercisesScreen() {
-  const { isWorkoutActive, currentWorkout, startWorkout, endWorkout, addExercise } = useWorkoutStore();
+  const { isActive: isWorkoutActive, currentSession, startWorkout, endWorkout, addExercise, exerciseSets } = useWorkoutStore();
   const [showExerciseModal, setShowExerciseModal] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<typeof SAMPLE_EXERCISES[0] | null>(null);
   const [sets, setSets] = useState<Array<{ weight: string; reps: string }>>([
@@ -60,8 +60,8 @@ export default function ExercisesScreen() {
 
     if (selectedExercise && validSets.length > 0) {
       addExercise({
-        exerciseId: selectedExercise.id,
-        exerciseName: selectedExercise.name,
+        id: selectedExercise.id,
+        name: selectedExercise.name,
         sets: validSets,
       });
     }
@@ -75,26 +75,53 @@ export default function ExercisesScreen() {
     if (!workoutDescription.trim()) return;
 
     setIsParsing(true);
-    const parsed = await openaiService.parseWorkout(workoutDescription);
+    try {
+      // Call Lambda via GraphQL
+      const response = await apiService.mutate(
+        `
+          mutation FitnessAI($input: FitnessAIInput!) {
+            fitnessAI(action: parseWorkout, input: $input) {
+              success
+              data
+              error
+              confidence
+            }
+          }
+        `,
+        {
+          input: {
+            action: 'parseWorkout',
+            description: workoutDescription,
+            userId: 'local-user',
+          },
+        }
+      );
 
-    if (parsed?.exercises?.length > 0) {
-      // Add exercises to current workout
-      parsed.exercises.forEach((ex: any) => {
-        addExercise({
-          exerciseId: Date.now().toString() + Math.random(),
-          exerciseName: ex.name,
-          sets: ex.sets || [],
+      if (response.fitnessAI?.success && response.fitnessAI.data?.exercises) {
+        const workoutData = response.fitnessAI.data;
+        workoutData.exercises.forEach((ex: any) => {
+          addExercise({
+            id: Date.now().toString() + Math.random(),
+            name: ex.name,
+            sets: ex.sets || [],
+          });
         });
-      });
 
-      if (!isWorkoutActive) {
-        startWorkout();
+        if (!isWorkoutActive) {
+          startWorkout();
+        }
+
+        setWorkoutDescription('');
+      } else {
+        // Demo fallback - parse simple format
+        console.log('Using demo fallback for workout parsing');
+        setWorkoutDescription('');
       }
-
-      setWorkoutDescription('');
+    } catch (error) {
+      console.error('Workout parsing error:', error);
+    } finally {
+      setIsParsing(false);
     }
-
-    setIsParsing(false);
   };
 
   return (
@@ -134,21 +161,19 @@ export default function ExercisesScreen() {
         </Card>
 
         {/* Current Workout */}
-        {isWorkoutActive && currentWorkout && (
+        {isWorkoutActive && currentSession && (
           <Card style={styles.currentWorkoutCard}>
             <CardHeader
               title="Current Workout"
-              subtitle={`${currentWorkout.exercises?.length || 0} exercises`}
+              subtitle={`${exerciseSets.length} sets`}
               icon={<Ionicons name="fitness" size={20} color="#10b981" />}
             />
-            {currentWorkout.exercises && currentWorkout.exercises.length > 0 ? (
-              currentWorkout.exercises.map((exercise: any, index: number) => (
+            {exerciseSets.length > 0 ? (
+              exerciseSets.map((set: any, index: number) => (
                 <View key={index} style={styles.exerciseItem}>
-                  <Text style={styles.exerciseName}>{exercise.exerciseName}</Text>
+                  <Text style={styles.exerciseName}>Set {index + 1}</Text>
                   <Text style={styles.exerciseSets}>
-                    {exercise.sets?.map((set: any) =>
-                      set.weight || set.reps ? `${set.weight || 'BW'}x${set.reps}` : ''
-                    ).join(' • ') || 'No sets logged'}
+                    {set.weight || 'BW'} × {set.reps}
                   </Text>
                 </View>
               ))

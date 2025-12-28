@@ -26,3 +26,12 @@ export type {
   ProgressRingProps,
   WeeklyActivityProps,
 } from './charts';
+
+export { BarcodeScanner } from './barcode-scanner';
+export type { BarcodeScannerProps } from './barcode-scanner';
+
+export { VoiceRecorder } from './voice-recorder';
+export type { VoiceRecorderProps } from './voice-recorder';
+
+export { PhotoUpload } from './photo-upload';
+export type { PhotoUploadProps } from './photo-upload';

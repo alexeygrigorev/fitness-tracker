@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,19 +6,124 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Card, CardHeader, CardMetric, Button } from '@fitness-tracker/ui';
+import { garminService } from '../../lib/garmin';
+import { useSleepStore } from '../../lib/store';
 
 export default function SleepScreen() {
   const [sleepHours, setSleepHours] = useState('8');
   const [sleepMinutes, setSleepMinutes] = useState('0');
   const [sleepQuality, setSleepQuality] = useState(3);
   const [hasLoggedToday, setHasLoggedToday] = useState(false);
+  const [isGarminConnected, setIsGarminConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [garminError, setGarminError] = useState<string | null>(null);
+  const [garminSleep, setGarminSleep] = useState<{
+    duration: number;
+    deepSleep: number;
+    lightSleep: number;
+    remSleep: number;
+    score: number;
+  } | null>(null); // Will be used to display sleep stages from Garmin
 
-  const handleLogSleep = () => {
-    setHasLoggedToday(true);
+  const { logSleep } = useSleepStore();
+
+  // Display Garmin sleep data if available (TODO: show in UI)
+  void garminSleep;
+
+  // Check Garmin connection on mount
+  useEffect(() => {
+    checkGarminConnection();
+  }, []);
+
+  const checkGarminConnection = async () => {
+    const connected = await garminService.checkConnectionStatus();
+    setIsGarminConnected(connected);
+  };
+
+  const handleConnectGarmin = async () => {
+    setIsConnecting(true);
+    setGarminError(null);
+    try {
+      const result = await garminService.connect();
+      if (result.success) {
+        setIsGarminConnected(true);
+      } else {
+        setGarminError(result.error || 'Failed to connect');
+      }
+    } catch (error) {
+      setGarminError((error as Error).message);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleSyncFromGarmin = async () => {
+    setIsSyncing(true);
+    setGarminError(null);
+    try {
+      const sleepData = await garminService.syncSleep(new Date());
+      if (sleepData) {
+        const hours = Math.floor(sleepData.sleepTimeSeconds / 3600);
+        const minutes = Math.floor((sleepData.sleepTimeSeconds % 3600) / 60);
+        setSleepHours(hours.toString());
+        setSleepMinutes(minutes.toString());
+        if (sleepData.overallSleepScore) {
+          setSleepQuality(Math.ceil(sleepData.overallSleepScore / 20));
+        }
+        setGarminSleep({
+          duration: sleepData.sleepTimeSeconds,
+          deepSleep: sleepData.deepSleepSeconds,
+          lightSleep: sleepData.lightSleepSeconds,
+          remSleep: sleepData.remSleepSeconds,
+          score: sleepData.overallSleepScore || 0,
+        });
+      }
+    } catch (error) {
+      setGarminError((error as Error).message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDisconnectGarmin = async () => {
+    setIsConnecting(true);
+    try {
+      await garminService.disconnect();
+      setIsGarminConnected(false);
+      setGarminSleep(null);
+    } catch (error) {
+      setGarminError((error as Error).message);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleLogSleep = async () => {
+    const hours = parseInt(sleepHours) || 0;
+    const minutes = parseInt(sleepMinutes) || 0;
+    const duration = hours * 60 + minutes;
+
+    // Create bedtime and wake time from duration
+    const wakeTime = new Date();
+    const bedtime = new Date(wakeTime.getTime() - duration * 60000);
+
+    try {
+      await logSleep({
+        bedtime,
+        wakeTime,
+        duration,
+        quality: sleepQuality,
+      });
+      setHasLoggedToday(true);
+    } catch (error) {
+      setGarminError((error as Error).message);
+    }
   };
 
   const getQualityLabel = (score: number) => {
@@ -39,11 +144,59 @@ export default function SleepScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Sleep</Text>
-        <TouchableOpacity style={styles.garminButton}>
-          <Ionicons name="watch" size={18} color="#6b7280" />
-          <Text style={styles.garminButtonText}>Connect Garmin</Text>
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          {isGarminConnected ? (
+            <>
+              <TouchableOpacity
+                style={[styles.garminButton, styles.connectedButton]}
+                onPress={handleSyncFromGarmin}
+                disabled={isSyncing}
+              >
+                {isSyncing ? (
+                  <ActivityIndicator size="small" color="#10b981" />
+                ) : (
+                  <>
+                    <Ionicons name="refresh" size={18} color="#10b981" />
+                    <Text style={styles.garminButtonTextConnected}>Sync</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.disconnectButton}
+                onPress={handleDisconnectGarmin}
+                disabled={isConnecting}
+              >
+                <Text style={styles.disconnectButtonText}>Disconnect</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.garminButton}
+              onPress={handleConnectGarmin}
+              disabled={isConnecting}
+            >
+              {isConnecting ? (
+                <ActivityIndicator size="small" color="#6366f1" />
+              ) : (
+                <>
+                  <Ionicons name="watch" size={18} color="#6366f1" />
+                  <Text style={styles.garminButtonText}>Connect Garmin</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
+
+      {garminError && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle" size={16} color="#ef4444" />
+          <Text style={styles.errorText}>{garminError}</Text>
+          <TouchableOpacity onPress={() => setGarminError(null)}>
+            <Ionicons name="close" size={16} color="#ef4444" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Today's Sleep Entry */}
@@ -233,6 +386,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#1f2937',
   },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
   garminButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -242,10 +400,45 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     borderRadius: 20,
   },
+  connectedButton: {
+    backgroundColor: '#d1fae5',
+  },
   garminButtonText: {
     fontSize: 13,
     color: '#6b7280',
     fontWeight: '500',
+  },
+  garminButtonTextConnected: {
+    fontSize: 13,
+    color: '#10b981',
+    fontWeight: '500',
+  },
+  disconnectButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#f3f4f6',
+  },
+  disconnectButtonText: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontWeight: '500',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 10,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#b91c1c',
   },
   scrollView: {
     flex: 1,

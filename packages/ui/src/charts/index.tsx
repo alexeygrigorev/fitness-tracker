@@ -449,7 +449,7 @@ export const WeeklyActivityChart: React.FC<WeeklyActivityProps> = ({ data, confi
   };
 
   const finalConfig = { ...defaultConfig, ...config };
-  const { width, height, padding, color } = finalConfig;
+  const { width, height, padding, color: _color } = finalConfig;
 
   const chartWidth = width - padding * 2;
   const chartHeight = height - padding * 2;

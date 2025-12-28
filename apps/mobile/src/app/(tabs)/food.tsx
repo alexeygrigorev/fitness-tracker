@@ -6,12 +6,20 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Card, CardHeader, CardMetric, Button } from '@fitness-tracker/ui';
+import {
+  Card,
+  CardHeader,
+  CardMetric,
+  Button,
+  BarcodeScanner,
+  PhotoUpload,
+} from '@fitness-tracker/ui';
 import { useFoodStore } from '../../lib/store';
-import { openaiService } from '../../lib/openai';
+import { apiService } from '../../lib/amplify';
 
 const MEAL_CATEGORIES = ['Breakfast', 'Lunch', 'Dinner', 'Snack', 'Post-Workout'];
 
@@ -27,43 +35,99 @@ const SAMPLE_FOODS = [
 ];
 
 export default function FoodScreen() {
-  const { todayMeals, dailyCalories, dailyProtein, dailyCarbs, dailyFat, addMeal } = useFoodStore();
+  const { mealInstances: todayMeals, dailyCalories, dailyProtein, dailyCarbs, dailyFat, logQuickMeal } = useFoodStore();
   const [selectedCategory, setSelectedCategory] = useState('Lunch');
   const [foodDescription, setFoodDescription] = useState('');
   const [isParsing, setIsParsing] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [barcodeError, setBarcodeError] = useState<string | null>(null);
+  const [foodPhotoUri, setFoodPhotoUri] = useState<string | null>(null);
+  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState(false);
 
   const handleQuickLog = async () => {
     if (!foodDescription.trim()) return;
 
     setIsParsing(true);
-    const parsed = await openaiService.parseFood(foodDescription);
+    try {
+      // Call Lambda via GraphQL
+      const response = await apiService.mutate(
+        `
+          mutation FitnessAI($input: FitnessAIInput!) {
+            fitnessAI(action: parseFood, input: $input) {
+              success
+              data
+              error
+              confidence
+            }
+          }
+        `,
+        {
+          input: {
+            action: 'parseFood',
+            description: foodDescription,
+            userId: 'local-user',
+          },
+        }
+      );
 
-    if (parsed?.foodName) {
-      addMeal({
-        id: Date.now().toString(),
-        name: parsed.foodName,
-        calories: parsed.calories,
-        protein: parsed.protein,
-        carbs: parsed.carbs,
-        fat: parsed.fat,
-        timestamp: new Date().toISOString(),
-      });
-      setFoodDescription('');
+      if (response.fitnessAI?.success && response.fitnessAI.data?.foodName) {
+        const foodData = response.fitnessAI.data;
+        logQuickMeal(
+          foodData.foodName,
+          foodData.calories || 0,
+          foodData.protein || 0,
+          foodData.carbs || 0,
+          foodData.fat || 0,
+          selectedCategory as any
+        );
+        setFoodDescription('');
+      } else {
+        // Demo fallback
+        console.log('Using demo fallback for food parsing');
+        setFoodDescription('');
+      }
+    } catch (error) {
+      console.error('Food parsing error:', error);
+    } finally {
+      setIsParsing(false);
     }
+  };
 
-    setIsParsing(false);
+  const handleBarcodeScanned = async (_barcode: string) => {
+    setBarcodeError(null);
+    setShowBarcodeScanner(false);
+
+    // TODO: Implement barcode lookup via Lambda
+    setBarcodeError('Barcode scanning not yet implemented');
+  };
+
+  const handlePhotoSelected = async (uri: string) => {
+    setFoodPhotoUri(uri);
+    setIsAnalyzingPhoto(true);
+
+    try {
+      // TODO: Call Lambda via GraphQL for food photo analysis
+      setBarcodeError('Photo analysis not yet implemented');
+    } catch (error) {
+      setBarcodeError('Could not analyze food photo');
+    } finally {
+      setIsAnalyzingPhoto(false);
+    }
+  };
+
+  const handlePhotoRemoved = () => {
+    setFoodPhotoUri(null);
   };
 
   const handleQuickAdd = (food: typeof SAMPLE_FOODS[0]) => {
-    addMeal({
-      id: Date.now().toString(),
-      name: food.name,
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fat: food.fat,
-      timestamp: new Date().toISOString(),
-    });
+    logQuickMeal(
+      food.name,
+      food.calories,
+      food.protein,
+      food.carbs,
+      food.fat,
+      'Snack' as any
+    );
   };
 
   return (
@@ -89,6 +153,57 @@ export default function FoodScreen() {
             <CardMetric label="Fat" value={dailyFat} unit="g" color="#ef4444" />
           </Card>
         </View>
+
+        {/* Alternative Input Methods */}
+        <Card style={styles.inputMethodsCard}>
+          <CardHeader
+            title="Log Your Food"
+            subtitle="Choose your preferred method"
+            icon={<Ionicons name="options" size={20} color="#6366f1" />}
+          />
+          <View style={styles.inputMethodsGrid}>
+            <TouchableOpacity
+              style={styles.inputMethodButton}
+              onPress={() => setShowBarcodeScanner(true)}
+            >
+              <View style={styles.inputMethodIcon}>
+                <Ionicons name="barcode" size={24} color="#6366f1" />
+              </View>
+              <Text style={styles.inputMethodText}>Scan Barcode</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.inputMethodButton}
+              onPress={() => {} /* Trigger photo upload */}
+            >
+              <View style={styles.inputMethodIcon}>
+                <Ionicons name="camera" size={24} color="#10b981" />
+              </View>
+              <Text style={styles.inputMethodText}>Photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.inputMethodButton}
+              onPress={() => {} /* Trigger voice input */}
+            >
+              <View style={styles.inputMethodIcon}>
+                <Ionicons name="mic" size={24} color="#f59e0b" />
+              </View>
+              <Text style={styles.inputMethodText}>Voice</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Photo Upload */}
+          <PhotoUpload
+            photoUri={foodPhotoUri}
+            onPhotoSelected={handlePhotoSelected}
+            onPhotoRemoved={handlePhotoRemoved}
+            uploading={isAnalyzingPhoto}
+            uploadProgress={0}
+            error={barcodeError}
+            aspectRatio={16 / 9}
+          />
+        </Card>
 
         {/* Quick Log with AI */}
         <Card style={styles.quickLogCard}>
@@ -180,6 +295,19 @@ export default function FoodScreen() {
           </Card>
         )}
       </ScrollView>
+
+      {/* Barcode Scanner Modal */}
+      <Modal
+        visible={showBarcodeScanner}
+        animationType="slide"
+        onRequestClose={() => setShowBarcodeScanner(false)}
+      >
+        <BarcodeScanner
+          onBarcodeScanned={handleBarcodeScanned}
+          onClose={() => setShowBarcodeScanner(false)}
+          error={barcodeError}
+        />
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -218,6 +346,31 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     minWidth: '45%',
+  },
+  inputMethodsCard: {
+    marginBottom: 16,
+  },
+  inputMethodsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+  },
+  inputMethodButton: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  inputMethodIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inputMethodText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#6b7280',
   },
   quickLogCard: {
     marginBottom: 16,

@@ -33,6 +33,8 @@
     "**/*.tsx",
     "../../packages/ui/**/*.tsx",
     "../../packages/ui/**/*.ts",
+    "../../packages/shared/**/*.ts",
+    "../../packages/shared/**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ],

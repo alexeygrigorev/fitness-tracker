@@ -2,6 +2,65 @@
 // Auto-generated from schema.graphql or manually written
 
 // ============================================
+// Unified AI Lambda Mutations
+// ============================================
+
+export const parseWorkout = `
+  mutation ParseWorkout($description: String!, $userId: ID!) {
+    fitnessAI(action: parseWorkout, input: { description: $description, userId: $userId }) {
+      success
+      data
+      error
+      confidence
+    }
+  }
+`;
+
+export const parseFood = `
+  mutation ParseFood($description: String!, $userId: ID!) {
+    fitnessAI(action: parseFood, input: { description: $description, userId: $userId }) {
+      success
+      data
+      error
+      confidence
+    }
+  }
+`;
+
+export const generateAdvice = `
+  mutation GenerateAdvice($trigger: String!, $userId: ID!, $userData: AWSJSON) {
+    fitnessAI(action: generateAdvice, input: { trigger: $trigger, userId: $userId, userData: $userData }) {
+      success
+      data
+      error
+      confidence
+    }
+  }
+`;
+
+export const transcribeVoice = `
+  mutation TranscribeVoice($audioUrl: String!, $userId: ID!, $language: String) {
+    fitnessAI(action: transcribeVoice, input: { audioUrl: $audioUrl, userId: $userId, language: $language }) {
+      success
+      data
+      error
+      confidence
+    }
+  }
+`;
+
+export const analyzeFoodPhoto = `
+  mutation AnalyzeFoodPhoto($photoUrl: String!, $userId: ID!) {
+    fitnessAI(action: analyzeFoodPhoto, input: { photoUrl: $photoUrl, userId: $userId }) {
+      success
+      data
+      error
+      confidence
+    }
+  }
+`;
+
+// ============================================
 // User Mutations
 // ============================================
 

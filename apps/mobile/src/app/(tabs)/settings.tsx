@@ -15,6 +15,7 @@ import { Card } from '@fitness-tracker/ui';
 import { useUserStore, useSettingsStore } from '../../lib/store';
 import { authService } from '../../lib/amplify';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../../lib/ThemeProvider';
 
 interface SettingItem {
   icon: string;
@@ -39,6 +40,7 @@ export default function SettingsScreen() {
     weeklyGoal,
     setWeeklyGoal,
   } = useSettingsStore();
+  const theme = useTheme();
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -342,26 +344,26 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Settings</Text>
+        <Text style={{ ...styles.title, color: theme.colors.text }}>Settings</Text>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Card */}
-        <Card style={styles.profileCard}>
+        <Card style={{ ...styles.profileCard, backgroundColor: theme.colors.card }}>
           <View style={styles.profileContent}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={32} color="#9ca3af" />
+            <View style={{ ...styles.avatar, backgroundColor: theme.colors.backgroundTertiary }}>
+              <Ionicons name="person" size={32} color={theme.colors.textTertiary} />
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>
+              <Text style={{ ...styles.profileName, color: theme.colors.text }}>
                 {email?.split('@')[0] || 'User'}
               </Text>
-              <Text style={styles.profileEmail}>{email || 'user@example.com'}</Text>
+              <Text style={{ ...styles.profileEmail, color: theme.colors.textSecondary }}>{email || 'user@example.com'}</Text>
             </View>
             <TouchableOpacity
-              style={styles.editProfileButton}
+              style={{ ...styles.editProfileButton, backgroundColor: theme.colors.backgroundTertiary }}
               onPress={() => Alert.alert('Coming Soon', 'Profile editing will be available soon.')}
             >
               <Ionicons name="pencil" size={18} color="#6366f1" />
@@ -371,13 +373,14 @@ export default function SettingsScreen() {
 
         {/* Settings Sections */}
         {settingsSections.map((section, sectionIndex) => (
-          <Card key={sectionIndex} style={styles.sectionCard}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
+          <Card key={sectionIndex} style={{ ...styles.sectionCard, backgroundColor: theme.colors.card }}>
+            <Text style={{ ...styles.sectionTitle, color: theme.colors.textTertiary }}>{section.title}</Text>
             {section.items.map((item, itemIndex) => (
               <TouchableOpacity
                 key={itemIndex}
                 style={[
                   styles.settingItem,
+                  { borderBottomColor: theme.colors.borderLight },
                   itemIndex === section.items.length - 1 && styles.settingItemLast,
                 ]}
                 onPress={item.onPress}
@@ -387,32 +390,32 @@ export default function SettingsScreen() {
                   <View
                     style={[
                       styles.settingIcon,
-                      item.color ? { backgroundColor: `${item.color}20` } : undefined,
+                      item.color ? { backgroundColor: `${item.color}20` } : { backgroundColor: theme.colors.backgroundTertiary },
                     ]}
                   >
                     <Ionicons
                       name={item.icon as any}
                       size={20}
-                      color={item.color || '#6b7280'}
+                      color={item.color || theme.colors.textSecondary}
                     />
                   </View>
-                  <Text style={styles.settingLabel}>{item.label}</Text>
+                  <Text style={{ ...styles.settingLabel, color: theme.colors.text }}>{item.label}</Text>
                 </View>
                 <View style={styles.settingRight}>
                   {item.type === 'switch' ? (
                     <Switch
                       value={typeof item.value === 'boolean' ? item.value : false}
                       onValueChange={item.onValueChange}
-                      trackColor={{ false: '#d1d5db', true: '#6366f1' }}
+                      trackColor={{ false: theme.colors.border, true: '#6366f1' }}
                       thumbColor="#fff"
                     />
                   ) : (
                     <>
                       {item.value && (
-                        <Text style={styles.settingValue}>{String(item.value)}</Text>
+                        <Text style={{ ...styles.settingValue, color: theme.colors.textSecondary }}>{String(item.value)}</Text>
                       )}
                       {item.onPress && (
-                        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                        <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} />
                       )}
                     </>
                   )}
@@ -423,9 +426,9 @@ export default function SettingsScreen() {
         ))}
 
         {/* Danger Zone */}
-        <Card style={styles.dangerCard}>
+        <Card style={{ ...styles.dangerCard, backgroundColor: theme.colors.card }}>
           <TouchableOpacity
-            style={[styles.dangerButton, { borderBottomWidth: 1, borderBottomColor: '#f3f4f6' }]}
+            style={[styles.dangerButton, { borderBottomColor: theme.colors.borderLight }]}
             onPress={handleLogout}
             disabled={isLoggingOut}
           >
@@ -445,7 +448,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Version Info */}
-        <Text style={styles.versionText}>Fitness Tracker v1.0.0</Text>
+        <Text style={{ ...styles.versionText, color: theme.colors.textTertiary }}>Fitness Tracker v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -454,7 +457,6 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
   },
   header: {
     padding: 20,
@@ -463,7 +465,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#1f2937',
   },
   scrollView: {
     flex: 1,
@@ -481,7 +482,6 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -492,18 +492,15 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2937',
   },
   profileEmail: {
     fontSize: 14,
-    color: '#6b7280',
     marginTop: 2,
   },
   editProfileButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -513,7 +510,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#9ca3af',
     textTransform: 'uppercase',
     marginBottom: 8,
     marginLeft: 4,
@@ -524,7 +520,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   settingItemLast: {
     borderBottomWidth: 0,
@@ -538,14 +533,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   settingLabel: {
     fontSize: 15,
-    color: '#1f2937',
   },
   settingRight: {
     flexDirection: 'row',
@@ -554,7 +547,6 @@ const styles = StyleSheet.create({
   },
   settingValue: {
     fontSize: 14,
-    color: '#6b7280',
   },
   dangerCard: {
     marginBottom: 20,
@@ -573,7 +565,6 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
-    color: '#9ca3af',
     textAlign: 'center',
     marginBottom: 20,
   },

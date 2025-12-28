@@ -111,7 +111,7 @@ class VoiceService {
           duration,
           error: null,
         });
-      }, 100);
+      }, 100) as unknown as NodeJS.Timeout;
 
       this.notifyState({
         isRecording: true,
@@ -228,12 +228,12 @@ class VoiceService {
     try {
       // Read the audio file
       const audioData = await FileSystem.readAsStringAsync(audioUri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
 
       // Determine MIME type based on file extension
-      const extension = audioUri.split('.').pop()?.toLowerCase() || 'm4a';
-      const mimeType = extension === 'wav' ? 'audio/wav' : 'audio/m4a';
+      // const extension = audioUri.split('.').pop()?.toLowerCase() || 'm4a'; // TODO: Use for content-type header
+      // const mimeType = extension === 'wav' ? 'audio/wav' : 'audio/m4a';
 
       // Call OpenAI Whisper API
       const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -250,11 +250,11 @@ class VoiceService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json() as any;
         throw new Error(error.error?.message || 'Transcription failed');
       }
 
-      const result = await response.json();
+      const result = await response.json() as any;
 
       // Clean up the audio file
       try {
@@ -324,12 +324,9 @@ class VoiceService {
     // Auto-stop after max duration
     const maxDurationTimer = setTimeout(async () => {
       if (this.recording) {
-        const { uri } = await this.stopRecording();
-        if (uri) {
-          return this.transcribe(uri);
-        }
+        await this.stopRecording();
       }
-    }, maxDuration * 1000);
+    }, maxDuration * 1000) as unknown as NodeJS.Timeout;
 
     // Wait for user to stop (this would be called by UI)
     return new Promise((resolve, reject) => {
