@@ -3,6 +3,9 @@
 apps/mobile/.env
 test-results/
 
+.turbo
+playwright-report/
+
 # Dependencies
 node_modules
 .pnp
