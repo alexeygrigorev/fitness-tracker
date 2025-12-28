@@ -15,21 +15,21 @@ export const mockExercises: Exercise[] = [
 ];
 
 export const mockFoodItems: FoodItem[] = [
-  {id:'food1',name:'Chicken Breast',category:'protein',source:'canonical',servingSize:100,servingUnit:'g',calories:165,protein:31,carbs:0,fat:3.6,fiber:0,glycemicIndex:0,absorptionSpeed:'slow',insulinResponse:10,satietyScore:8},
-  {id:'food2',name:'Brown Rice',category:'carb',source:'canonical',servingSize:100,servingUnit:'g',calories:123,protein:2.6,carbs:25.6,fat:1,fiber:1.8,glycemicIndex:68,absorptionSpeed:'moderate',insulinResponse:65,satietyScore:6},
-  {id:'food3',name:'Broccoli',category:'mixed',source:'canonical',servingSize:100,servingUnit:'g',calories:34,protein:2.8,carbs:7,fat:0.4,fiber:2.6,glycemicIndex:10,absorptionSpeed:'slow',insulinResponse:5,satietyScore:7},
-  {id:'food4',name:'Eggs',category:'protein',source:'canonical',servingSize:1,servingUnit:'large',calories:78,protein:6,carbs:0.6,fat:5,fiber:0,glycemicIndex:0,absorptionSpeed:'moderate',insulinResponse:15,satietyScore:8},
-  {id:'food5',name:'Oats',category:'carb',source:'canonical',servingSize:100,servingUnit:'g',calories:389,protein:16.9,carbs:66,fat:6.9,fiber:10.6,glycemicIndex:55,absorptionSpeed:'slow',insulinResponse:50,satietyScore:9},
-  {id:'food6',name:'Greek Yogurt',category:'protein',source:'canonical',servingSize:170,servingUnit:'g',calories:100,protein:17,carbs:6,fat:0.7,fiber:0,glycemicIndex:11,absorptionSpeed:'moderate',insulinResponse:20,satietyScore:7},
-  {id:'food7',name:'Banana',category:'carb',source:'canonical',servingSize:1,servingUnit:'medium',calories:105,protein:1.3,carbs:27,fat:0.4,fiber:3.1,glycemicIndex:51,absorptionSpeed:'fast',insulinResponse:60,satietyScore:5},
-  {id:'food8',name:'Salmon',category:'protein',source:'canonical',servingSize:100,servingUnit:'g',calories:208,protein:20,carbs:0,fat:13,fiber:0,glycemicIndex:0,absorptionSpeed:'moderate',insulinResponse:10,satietyScore:9},
-  {id:'food9',name:'Almonds',category:'fat',source:'canonical',servingSize:28,servingUnit:'g',calories:164,protein:6,carbs:6,fat:14,fiber:3.5,glycemicIndex:0,absorptionSpeed:'slow',insulinResponse:5,satietyScore:8},
-  {id:'food10',name:'Sweet Potato',category:'carb',source:'canonical',servingSize:100,servingUnit:'g',calories:86,protein:1.6,carbs:20,fat:0.1,fiber:3,glycemicIndex:45,absorptionSpeed:'moderate',insulinResponse:50,satietyScore:7},
-  {id:'food11',name:'Whey Protein',category:'protein',source:'canonical',servingSize:30,servingUnit:'g',calories:120,protein:24,carbs:3,fat:1,fiber:0,glycemicIndex:30,absorptionSpeed:'fast',insulinResponse:70,satietyScore:6},
-  {id:'food12',name:'Avocado',category:'fat',source:'canonical',servingSize:100,servingUnit:'g',calories:160,protein:2,carbs:9,fat:15,fiber:7,glycemicIndex:15,absorptionSpeed:'slow',insulinResponse:10,satietyScore:9},
-  {id:'food13',name:'White Rice',category:'carb',source:'canonical',servingSize:100,servingUnit:'g',calories:130,protein:2.7,carbs:28,fat:0.3,fiber:0.4,glycemicIndex:73,absorptionSpeed:'fast',insulinResponse:75,satietyScore:4},
-  {id:'food14',name:'Pasta',category:'carb',source:'canonical',servingSize:100,servingUnit:'g',calories:131,protein:5,carbs:25,fat:1.1,fiber:1.5,glycemicIndex:50,absorptionSpeed:'moderate',insulinResponse:55,satietyScore:5},
-  {id:'food15',name:'Olive Oil',category:'fat',source:'canonical',servingSize:15,servingUnit:'ml',calories:120,protein:0,carbs:0,fat:14,fiber:0,glycemicIndex:0,absorptionSpeed:'slow',insulinResponse:0,satietyScore:3}
+  {id:'food1',name:'Chicken Breast',category:'protein',source:'canonical',servingSize:100,servingType:'g',calories:165,protein:31,carbs:0,fat:3.6,fiber:0,glycemicIndex:0,absorptionSpeed:'slow',insulinResponse:10,satietyScore:8},
+  {id:'food2',name:'Brown Rice',category:'carb',source:'canonical',servingSize:100,servingType:'g',calories:123,protein:2.6,carbs:25.6,fat:1,fiber:1.8,glycemicIndex:68,absorptionSpeed:'moderate',insulinResponse:65,satietyScore:6},
+  {id:'food3',name:'Broccoli',category:'mixed',source:'canonical',servingSize:100,servingType:'g',calories:34,protein:2.8,carbs:7,fat:0.4,fiber:2.6,glycemicIndex:10,absorptionSpeed:'slow',insulinResponse:5,satietyScore:7},
+  {id:'food4',name:'Eggs',category:'protein',source:'canonical',servingSize:1,servingType:'large egg',calories:78,protein:6,carbs:0.6,fat:5,fiber:0,glycemicIndex:0,absorptionSpeed:'moderate',insulinResponse:15,satietyScore:8},
+  {id:'food5',name:'Oats',category:'carb',source:'canonical',servingSize:100,servingType:'g',calories:389,protein:16.9,carbs:66,fat:6.9,fiber:10.6,glycemicIndex:55,absorptionSpeed:'slow',insulinResponse:50,satietyScore:9},
+  {id:'food6',name:'Greek Yogurt',category:'protein',source:'canonical',servingSize:170,servingType:'g',calories:100,protein:17,carbs:6,fat:0.7,fiber:0,glycemicIndex:11,absorptionSpeed:'moderate',insulinResponse:20,satietyScore:7},
+  {id:'food7',name:'Banana',category:'carb',source:'canonical',servingSize:1,servingType:'medium banana',calories:105,protein:1.3,carbs:27,fat:0.4,fiber:3.1,glycemicIndex:51,absorptionSpeed:'fast',insulinResponse:60,satietyScore:5},
+  {id:'food8',name:'Salmon',category:'protein',source:'canonical',servingSize:100,servingType:'g',calories:208,protein:20,carbs:0,fat:13,fiber:0,glycemicIndex:0,absorptionSpeed:'moderate',insulinResponse:10,satietyScore:9},
+  {id:'food9',name:'Almonds',category:'fat',source:'canonical',servingSize:28,servingType:'g',calories:164,protein:6,carbs:6,fat:14,fiber:3.5,glycemicIndex:0,absorptionSpeed:'slow',insulinResponse:5,satietyScore:8},
+  {id:'food10',name:'Sweet Potato',category:'carb',source:'canonical',servingSize:100,servingType:'g',calories:86,protein:1.6,carbs:20,fat:0.1,fiber:3,glycemicIndex:45,absorptionSpeed:'moderate',insulinResponse:50,satietyScore:7},
+  {id:'food11',name:'Whey Protein',category:'protein',source:'canonical',servingSize:30,servingType:'g',calories:120,protein:24,carbs:3,fat:1,fiber:0,glycemicIndex:30,absorptionSpeed:'fast',insulinResponse:70,satietyScore:6},
+  {id:'food12',name:'Avocado',category:'fat',source:'canonical',servingSize:100,servingType:'g',calories:160,protein:2,carbs:9,fat:15,fiber:7,glycemicIndex:15,absorptionSpeed:'slow',insulinResponse:10,satietyScore:9},
+  {id:'food13',name:'White Rice',category:'carb',source:'canonical',servingSize:100,servingType:'g',calories:130,protein:2.7,carbs:28,fat:0.3,fiber:0.4,glycemicIndex:73,absorptionSpeed:'fast',insulinResponse:75,satietyScore:4},
+  {id:'food14',name:'Pasta',category:'carb',source:'canonical',servingSize:100,servingType:'g',calories:131,protein:5,carbs:25,fat:1.1,fiber:1.5,glycemicIndex:50,absorptionSpeed:'moderate',insulinResponse:55,satietyScore:5},
+  {id:'food15',name:'Olive Oil',category:'fat',source:'canonical',servingSize:15,servingType:'tablespoon',calories:120,protein:0,carbs:0,fat:14,fiber:0,glycemicIndex:0,absorptionSpeed:'slow',insulinResponse:0,satietyScore:3}
 ];
 
 export const mockMealTemplates: MealTemplate[] = [

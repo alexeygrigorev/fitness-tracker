@@ -75,7 +75,14 @@ export const foodApi = {
   update: async (id: string, updates: Partial<FoodItem>) => {
     await delay();
     const index = foodItems.findIndex(f => f.id === id);
-    if (index === -1) throw new Error('Food not found');
+    if (index === -1) {
+      // Food not in our array - this can happen after hot reload in dev
+      // Add it and then apply the update
+      const newFood: FoodItem = { ...updates } as FoodItem;
+      newFood.id = id;
+      foodItems.push(newFood);
+      return newFood;
+    }
     foodItems[index] = { ...foodItems[index], ...updates };
     return foodItems[index];
   },
@@ -85,6 +92,178 @@ export const foodApi = {
     if (index === -1) throw new Error('Food not found');
     foodItems.splice(index, 1);
     return true;
+  },
+  // AI-powered food analysis from images + description
+  // TODO: Replace with real AI API call
+  analyzeWithAI: async (params: { images: File[]; description: string }) => {
+    await delay(2000); // Simulate AI processing time
+
+    const desc = params.description.toLowerCase();
+    const fileName = params.images[0]?.name.toLowerCase() || '';
+
+    // Mock AI responses based on keywords
+    if (desc.includes('cola') || desc.includes('soda') || fileName.includes('cola')) {
+      return {
+        name: 'Cola',
+        calories: 42,
+        protein: 0,
+        carbs: 10.6,
+        fat: 0,
+        saturatedFat: 0,
+        sugar: 10.6,
+        fiber: 0,
+        servingSize: 100,
+        servingType: 'g',
+        glycemicIndex: 63,
+        absorptionSpeed: 'fast' as const,
+        insulinResponse: 78,
+        satietyScore: 2
+      };
+    }
+    if (desc.includes('chicken') || desc.includes('breast')) {
+      return {
+        name: 'Chicken Breast',
+        calories: 165,
+        protein: 31,
+        carbs: 0,
+        fat: 3.6,
+        saturatedFat: 1,
+        sugar: 0,
+        fiber: 0,
+        servingSize: 100,
+        servingType: 'g',
+        glycemicIndex: undefined,
+        absorptionSpeed: 'moderate' as const,
+        insulinResponse: 35,
+        satietyScore: 8
+      };
+    }
+    if (desc.includes('banana')) {
+      return {
+        name: 'Banana',
+        calories: 89,
+        protein: 1.1,
+        carbs: 22.8,
+        fat: 0.3,
+        saturatedFat: 0.1,
+        sugar: 12.2,
+        fiber: 2.6,
+        servingSize: 100,
+        servingType: 'item',
+        glycemicIndex: 51,
+        absorptionSpeed: 'fast' as const,
+        insulinResponse: 62,
+        satietyScore: 4
+      };
+    }
+    if (desc.includes('rice') || desc.includes('white rice')) {
+      return {
+        name: 'White Rice',
+        calories: 130,
+        protein: 2.7,
+        carbs: 28,
+        fat: 0.3,
+        saturatedFat: 0.1,
+        sugar: 0.1,
+        fiber: 0.4,
+        servingSize: 100,
+        servingType: 'item',
+        glycemicIndex: 73,
+        absorptionSpeed: 'fast' as const,
+        insulinResponse: 75,
+        satietyScore: 4
+      };
+    }
+    if (desc.includes('bread') || desc.includes('whole wheat')) {
+      return {
+        name: 'Whole Wheat Bread',
+        calories: 247,
+        protein: 13,
+        carbs: 41,
+        fat: 3.4,
+        saturatedFat: 0.7,
+        sugar: 6,
+        fiber: 7,
+        servingSize: 100,
+        servingType: 'item',
+        glycemicIndex: 53,
+        absorptionSpeed: 'moderate' as const,
+        insulinResponse: 58,
+        satietyScore: 6
+      };
+    }
+    if (desc.includes('egg')) {
+      return {
+        name: 'Egg',
+        calories: 155,
+        protein: 13,
+        carbs: 1.1,
+        fat: 11,
+        saturatedFat: 3.3,
+        sugar: 1.1,
+        fiber: 0,
+        servingSize: 100,
+        servingType: 'g',
+        glycemicIndex: undefined,
+        absorptionSpeed: 'moderate' as const,
+        insulinResponse: 30,
+        satietyScore: 8
+      };
+    }
+    if (desc.includes('salmon')) {
+      return {
+        name: 'Salmon',
+        calories: 208,
+        protein: 20,
+        carbs: 0,
+        fat: 13,
+        saturatedFat: 3.2,
+        sugar: 0,
+        fiber: 0,
+        servingSize: 100,
+        servingType: 'g',
+        glycemicIndex: undefined,
+        absorptionSpeed: 'slow' as const,
+        insulinResponse: 25,
+        satietyScore: 8
+      };
+    }
+    if (desc.includes('broccoli')) {
+      return {
+        name: 'Broccoli',
+        calories: 34,
+        protein: 2.8,
+        carbs: 7,
+        fat: 0.4,
+        saturatedFat: 0,
+        sugar: 1.5,
+        fiber: 2.6,
+        servingSize: 100,
+        servingType: 'item',
+        glycemicIndex: 10,
+        absorptionSpeed: 'slow' as const,
+        insulinResponse: 15,
+        satietyScore: 5
+      };
+    }
+
+    // Default mock response
+    return {
+      name: params.description.split(' ').slice(0, 3).join(' ') || 'Food Item',
+      calories: 100,
+      protein: 5,
+      carbs: 10,
+      fat: 3,
+      saturatedFat: 1,
+      sugar: 2,
+      fiber: 2,
+      servingSize: 100,
+      servingUnit: 'g',
+      glycemicIndex: 50,
+      absorptionSpeed: 'moderate' as const,
+      insulinResponse: 50,
+      satietyScore: 5
+    };
   }
 };
 
