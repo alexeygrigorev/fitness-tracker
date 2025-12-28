@@ -36,6 +36,7 @@ const inferMetabolism = async (name: string, fat: number, carbs: number, protein
   let absorptionSpeed: 'slow' | 'moderate' | 'fast' = 'moderate';
   let insulinResponse: number | undefined;
   let satietyScore: number | undefined;
+  let proteinQuality: 1 | 2 | 3 | undefined;
 
   // High fat foods -> slower absorption, lower GI
   if (fat > 15 || foodName.includes('oil') || foodName.includes('butter') || foodName.includes('cheese') || foodName.includes('nuts')) {
@@ -85,7 +86,18 @@ const inferMetabolism = async (name: string, fat: number, carbs: number, protein
     }
   }
 
-  return { glycemicIndex, absorptionSpeed, insulinResponse, satietyScore };
+  // Infer protein quality based on food type
+  if (foodName.includes('chicken') || foodName.includes('beef') || foodName.includes('turkey') || foodName.includes('fish') || foodName.includes('salmon') || foodName.includes('tuna') || foodName.includes('egg') || foodName.includes('whey') || foodName.includes('casein') || foodName.includes('yogurt') || foodName.includes('cheese') || foodName.includes('cottage')) {
+    proteinQuality = 3; // Complete proteins, best for muscle building
+  } else if (foodName.includes('oat') || foodName.includes('bean') || foodName.includes('lentil') || foodName.includes('quinoa') || foodName.includes('soy') || foodName.includes('nuts') || foodName.includes('almond') || foodName.includes('bread') || foodName.includes('flour')) {
+    proteinQuality = 2; // Moderate quality plant proteins
+  } else if (protein > 5) {
+    proteinQuality = 2; // Decent protein content
+  } else {
+    proteinQuality = 1; // Low/incomplete protein
+  }
+
+  return { glycemicIndex, absorptionSpeed, insulinResponse, satietyScore, proteinQuality };
 };
 
 export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormProps) {
@@ -107,6 +119,7 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
   const [absorptionSpeed, setAbsorptionSpeed] = useState<'slow' | 'moderate' | 'fast'>(food?.absorptionSpeed || 'moderate');
   const [insulinResponse, setInsulinResponse] = useState<number | undefined>(food?.insulinResponse);
   const [satietyScore, setSatietyScore] = useState<number | undefined>(food?.satietyScore);
+  const [proteinQuality, setProteinQuality] = useState<1 | 2 | 3 | undefined>(food?.proteinQuality);
   const [inferring, setInferring] = useState(false);
 
   // Auto-calculate calories when macros change
@@ -115,6 +128,9 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
       setCalories(calculateCalories(protein, carbs, fat));
     }
   }, [protein, carbs, fat, caloriesEdited]);
+
+  // Calculate calories per portion (calories per 100g * servingSize / 100)
+  const caloriesPerPortion = Math.round(calories * servingSize / 100);
 
   const handleInfer = async () => {
     if (!name.trim()) {
@@ -128,6 +144,7 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
       setAbsorptionSpeed(inferred.absorptionSpeed);
       if (inferred.insulinResponse !== undefined) setInsulinResponse(inferred.insulinResponse);
       if (inferred.satietyScore !== undefined) setSatietyScore(inferred.satietyScore);
+      if (inferred.proteinQuality !== undefined) setProteinQuality(inferred.proteinQuality);
     } finally {
       setInferring(false);
     }
@@ -143,6 +160,7 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
       servingSize,
       servingType,
       calories,
+      caloriesPerPortion,
       protein,
       carbs,
       fat,
@@ -153,6 +171,7 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
       absorptionSpeed,
       insulinResponse,
       satietyScore,
+      proteinQuality,
       source: 'user' as const
     };
 
@@ -271,10 +290,10 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
         )}
       </div>
 
-      {/* Line 5: Average Serving Size */}
+      {/* Serving Size (always in grams) and Serving Type (description) */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Serving Size</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Serving Size (g)</label>
           <input
             type="text"
             inputMode="decimal"
@@ -289,12 +308,12 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Serving Type</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Serving Description</label>
           <input
             type="text"
             value={servingType}
             onChange={e => setServingType(e.target.value)}
-            placeholder="e.g., g, scoop, piece, slice"
+            placeholder="e.g. 100g, 1 scoop, 2 slices, 4 pieces"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -373,6 +392,19 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
               onChange={e => setSatietyScore(e.target.value ? parseFloat(e.target.value) : undefined)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 mb-1">Protein Quality</label>
+            <select
+              value={proteinQuality ?? ''}
+              onChange={e => setProteinQuality(e.target.value ? parseInt(e.target.value) as 1 | 2 | 3 : undefined)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Not set</option>
+              <option value="1">1 - Low (incomplete)</option>
+              <option value="2">2 - Moderate</option>
+              <option value="3">3 - High (complete)</option>
+            </select>
           </div>
         </div>
       </div>
