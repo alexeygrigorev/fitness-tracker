@@ -6,7 +6,6 @@ export interface Exercise {
   category: 'compound' | 'isolation' | 'cardio';
   muscleGroups: MuscleGroup[];
   equipment: string[];
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
   instructions: string[];
 }
 
@@ -61,12 +60,14 @@ export interface WorkoutProgram {
 }
 
 // Preset Training Day (template for a workout session)
-export type PresetExerciseType = 'standalone' | 'normal' | 'dropdown' | 'superset';
+export type PresetExerciseType = 'normal' | 'dropdown' | 'superset';
 
 export interface PresetExerciseItem {
   exerciseId: string;
-  type: 'standalone' | 'normal' | 'dropdown';
+  type: 'normal' | 'dropdown';
   sets: number;
+  dropdowns?: number; // Only used for dropdown type - weight drops per set
+  warmup?: boolean; // Whether to include warmup sets for this exercise
 }
 
 export interface WorkoutPresetExercise {
@@ -75,7 +76,8 @@ export interface WorkoutPresetExercise {
   exerciseId?: string; // for non-superset exercises
   exercises?: PresetExerciseItem[]; // for superset: list of exercises in the superset
   sets?: number; // for non-superset exercises
-  notes?: string;
+  dropdowns?: number; // for dropdown type: weight drops per set
+  warmup?: boolean; // Whether to include warmup sets for this exercise
 }
 
 export type WorkoutTag = 'strength' | 'cardio' | 'mixed';
@@ -85,7 +87,6 @@ export interface WorkoutPreset {
   name: string; // e.g., "Upper Body Day 1"
   dayLabel?: string; // e.g., "Monday"
   exercises: WorkoutPresetExercise[]; // Ordered list of planned exercises
-  notes?: string;
   tags?: WorkoutTag[];
   status: 'active' | 'archived';
 }

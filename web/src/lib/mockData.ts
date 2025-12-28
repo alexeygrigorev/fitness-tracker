@@ -98,12 +98,11 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Upper Body A',
     dayLabel:'Monday',
     exercises:[
-      {exerciseId:'ex1', type:'normal', sets:4},
-      {exerciseId:'ex5', type:'normal', sets:4},
-      {exerciseId:'ex7', type:'normal', sets:3},
-      {exerciseId:'ex4', type:'dropdown', sets:3}
+      {id:'p1e1', exerciseId:'ex1', type:'normal', sets:4},
+      {id:'p1e2', exerciseId:'ex5', type:'normal', sets:4},
+      {id:'p1e3', exerciseId:'ex7', type:'normal', sets:3},
+      {id:'p1e4', exerciseId:'ex4', type:'dropdown', sets:3, dropdowns: 2}
     ],
-    notes:'Focus on progressive overload',
     tags:['strength'],
     status:'active'
   },
@@ -112,10 +111,9 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Lower Body A',
     dayLabel:'Tuesday',
     exercises:[
-      {exerciseId:'ex2', type:'normal', sets:5},
-      {exerciseId:'ex3', type:'normal', sets:3}
+      {id:'p2e1', exerciseId:'ex2', type:'normal', sets:5},
+      {id:'p2e2', exerciseId:'ex3', type:'normal', sets:3}
     ],
-    notes:'Squat focus - maintain form',
     tags:['strength'],
     status:'active'
   },
@@ -124,12 +122,11 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Upper Body B',
     dayLabel:'Thursday',
     exercises:[
-      {exerciseId:'ex4', type:'normal', sets:4},
-      {exerciseId:'ex6', type:'normal', sets:3},
-      {exerciseId:'ex1', type:'dropdown', sets:3},
-      {exerciseId:'ex5', type:'normal', sets:3}
+      {id:'p3e1', exerciseId:'ex4', type:'normal', sets:4},
+      {id:'p3e2', exerciseId:'ex6', type:'normal', sets:3},
+      {id:'p3e3', exerciseId:'ex1', type:'dropdown', sets:3, dropdowns: 2},
+      {id:'p3e4', exerciseId:'ex5', type:'normal', sets:3}
     ],
-    notes:'Slightly lighter than A day',
     tags:['strength'],
     status:'active'
   },
@@ -138,10 +135,9 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Lower Body B',
     dayLabel:'Friday',
     exercises:[
-      {exerciseId:'ex3', type:'normal', sets:4},
-      {exerciseId:'ex2', type:'normal', sets:4}
+      {id:'p4e1', exerciseId:'ex3', type:'normal', sets:4},
+      {id:'p4e2', exerciseId:'ex2', type:'normal', sets:4}
     ],
-    notes:'Deadlift focus',
     tags:['strength'],
     status:'active'
   },
@@ -150,11 +146,10 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Push Day',
     dayLabel:'Monday',
     exercises:[
-      {exerciseId:'ex1', type:'dropdown', sets:4},
-      {exerciseId:'ex5', type:'normal', sets:4},
-      {exerciseId:'ex7', type:'normal', sets:3}
+      {id:'p5e1', exerciseId:'ex1', type:'dropdown', sets:4, dropdowns: 2},
+      {id:'p5e2', exerciseId:'ex5', type:'normal', sets:4},
+      {id:'p5e3', exerciseId:'ex7', type:'normal', sets:3}
     ],
-    notes:'Chest, shoulders, triceps',
     tags:['strength'],
     status:'active'
   },
@@ -163,10 +158,9 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Pull Day',
     dayLabel:'Wednesday',
     exercises:[
-      {exerciseId:'ex4', type:'normal', sets:4},
-      {exerciseId:'ex6', type:'normal', sets:4}
+      {id:'p6e1', exerciseId:'ex4', type:'normal', sets:4},
+      {id:'p6e2', exerciseId:'ex6', type:'normal', sets:4}
     ],
-    notes:'Back and biceps',
     tags:['strength'],
     status:'active'
   },
@@ -175,10 +169,9 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Legs Day',
     dayLabel:'Friday',
     exercises:[
-      {exerciseId:'ex2', type:'normal', sets:5},
-      {exerciseId:'ex3', type:'dropdown', sets:3}
+      {id:'p7e1', exerciseId:'ex2', type:'normal', sets:5},
+      {id:'p7e2', exerciseId:'ex3', type:'dropdown', sets:3, dropdowns: 2}
     ],
-    notes:'Full leg workout',
     tags:['strength'],
     status:'active'
   },
@@ -187,9 +180,8 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Running Intervals',
     dayLabel:'Wednesday',
     exercises:[
-      {exerciseId:'ex8', type:'normal', sets:8, notes:'30s sprint / 90s recovery jog'}
+      {id:'p8e1', exerciseId:'ex8', type:'normal', sets:8}
     ],
-    notes:'HIIT cardio session',
     tags:['cardio'],
     status:'active'
   },
@@ -198,9 +190,8 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Running Recovery',
     dayLabel:'Sunday',
     exercises:[
-      {exerciseId:'ex9', type:'normal', sets:1, notes:'20-30 min easy conversational pace'}
+      {id:'p9e1', exerciseId:'ex9', type:'normal', sets:1}
     ],
-    notes:'Active recovery - keep it easy',
     tags:['cardio'],
     status:'active'
   },
@@ -209,9 +200,8 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Running Long',
     dayLabel:'Saturday',
     exercises:[
-      {exerciseId:'ex10', type:'normal', sets:1, notes:'45-90 min steady run'}
+      {id:'p10e1', exerciseId:'ex10', type:'normal', sets:1}
     ],
-    notes:'Long slow distance - build endurance',
     tags:['cardio'],
     status:'active'
   }
