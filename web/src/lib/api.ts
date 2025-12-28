@@ -21,7 +21,8 @@ import type {
   DailySummary,
   MealTemplate,
   MealFoodItem,
-  MealCategory
+  MealCategory,
+  Exercise
 } from './types';
 
 const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
@@ -49,6 +50,79 @@ export const exercisesApi = {
   getByMuscleGroup: async (muscleGroup: string) => {
     await delay();
     return exercises.filter(e => e.muscleGroups.includes(muscleGroup as any));
+  },
+  create: async (data: Omit<Exercise, 'id'>) => {
+    await delay();
+    const newExercise: Exercise = {
+      id: `ex-${Date.now()}`,
+      ...data
+    };
+    exercises.push(newExercise);
+    return newExercise;
+  },
+  update: async (id: string, data: Partial<Exercise>) => {
+    await delay();
+    const index = exercises.findIndex(e => e.id === id);
+    if (index === -1) throw new Error('Exercise not found');
+    exercises[index] = { ...exercises[index], ...data };
+    return exercises[index];
+  },
+  delete: async (id: string) => {
+    await delay();
+    const index = exercises.findIndex(e => e.id === id);
+    if (index === -1) throw new Error('Exercise not found');
+    exercises.splice(index, 1);
+    return id;
+  },
+  analyzeWithAI: async (input: { images?: File[]; description?: string }) => {
+    // Simulate AI analysis - in production this would call an actual AI API
+    await delay(2000);
+
+    // Mock AI response based on description or default exercise
+    const desc = input.description?.toLowerCase() || '';
+
+    // Try to match common exercises from description
+    const commonExercises = [
+      { name: 'Barbell Bench Press', category: 'compound' as const, muscleGroups: ['chest', 'triceps', 'shoulders'] as const, equipment: ['barbell', 'bench'] as const, instructions: ['Lie flat on bench', 'Grip bar wider than shoulders', 'Lower to mid-chest', 'Press up'] },
+      { name: 'Barbell Squat', category: 'compound' as const, muscleGroups: ['quads', 'glutes', 'hamstrings'] as const, equipment: ['barbell', 'rack'] as const, instructions: ['Position bar on back', 'Squat to parallel', 'Drive through heels'] },
+      { name: 'Deadlift', category: 'compound' as const, muscleGroups: ['back', 'glutes', 'hamstrings'] as const, equipment: ['barbell'] as const, instructions: ['Stand feet hip-width', 'Grip bar outside legs', 'Drive through heels'] },
+      { name: 'Pull-up', category: 'compound' as const, muscleGroups: ['back', 'biceps'] as const, equipment: ['bar'] as const, instructions: ['Hang from bar', 'Pull chin over bar', 'Lower with control'] },
+      { name: 'Push-up', category: 'compound' as const, muscleGroups: ['chest', 'triceps', 'shoulders'] as const, equipment: [] as const, instructions: ['Start in plank position', 'Lower body until chest nearly touches floor', 'Push back up'] },
+      { name: 'Dumbbell Curl', category: 'isolation' as const, muscleGroups: ['biceps'] as const, equipment: ['dumbbells'] as const, instructions: ['Stand holding dumbbells', 'Curl weights to shoulders', 'Lower with control'] },
+      { name: 'Lunge', category: 'compound' as const, muscleGroups: ['quads', 'glutes', 'hamstrings'] as const, equipment: [] as const, instructions: ['Step forward with one leg', 'Lower hips until both knees at 90°', 'Push back to start'] },
+      { name: 'Plank', category: 'isolation' as const, muscleGroups: ['abs'] as const, equipment: [] as const, instructions: ['Hold push-up position', 'Keep body straight', 'Engage core'] },
+    ];
+
+    const matched = commonExercises.find(ex =>
+      desc.includes(ex.name.toLowerCase()) ||
+      (desc.includes('bench') && ex.name.includes('Bench')) ||
+      (desc.includes('squat') && ex.name.includes('Squat')) ||
+      (desc.includes('deadlift') && ex.name.includes('Deadlift')) ||
+      (desc.includes('pull') && desc.includes('up') && ex.name.includes('Pull-up')) ||
+      (desc.includes('push') && desc.includes('up') && ex.name.includes('Push-up')) ||
+      (desc.includes('curl') && ex.name.includes('Curl')) ||
+      (desc.includes('lunge') && ex.name.includes('Lunge')) ||
+      (desc.includes('plank') && ex.name.includes('Plank'))
+    );
+
+    if (matched) {
+      return {
+        name: matched.name,
+        category: matched.category,
+        muscleGroups: matched.muscleGroups,
+        equipment: matched.equipment,
+        instructions: matched.instructions
+      };
+    }
+
+    // Default fallback exercise
+    return {
+      name: input.description?.split(' ').slice(0, 3).join(' ') || 'New Exercise',
+      category: 'compound' as const,
+      muscleGroups: ['chest'] as const,
+      equipment: ['barbell'] as const,
+      instructions: ['Stand in starting position', 'Perform the movement', 'Return to start']
+    };
   }
 };
 

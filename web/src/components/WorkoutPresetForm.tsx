@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { workoutPresetsApi } from '../lib/api';
 import ExerciseSelector from './ExerciseSelector';
 import type { WorkoutPreset, WorkoutPresetExercise, WorkoutTag } from '../lib/types';
 
-const WORKOUT_TAGS: { value: WorkoutTag; label: string; color: string }[] = [
-  { value: 'strength', label: 'Strength', color: 'bg-red-100 text-red-700' },
-  { value: 'cardio', label: 'Cardio', color: 'bg-blue-100 text-blue-700' },
-  { value: 'mixed', label: 'Mixed', color: 'bg-purple-100 text-purple-700' },
+const WORKOUT_TYPES: { value: WorkoutTag; label: string }[] = [
+  { value: 'strength', label: 'Strength' },
+  { value: 'cardio', label: 'Cardio' },
+  { value: 'mixed', label: 'Mixed' },
 ];
 
 const DAYS_OF_WEEK = [
@@ -29,21 +29,12 @@ interface WorkoutPresetFormProps {
 export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutPresetFormProps) {
   const [name, setName] = useState(preset?.name || '');
   const [dayLabel, setDayLabel] = useState(preset?.dayLabel || '');
-  const [notes, setNotes] = useState(preset?.notes || '');
-  const [tags, setTags] = useState<WorkoutTag[]>(preset?.tags || []);
+  const [workoutType, setWorkoutType] = useState<WorkoutTag | ''>(preset?.tags?.[0] || '');
   const [status] = useState<'active' | 'archived'>(preset?.status || 'active');
 
   const [exerciseList, setExerciseList] = useState<WorkoutPresetExercise[]>(
     preset?.exercises || []
   );
-
-  const toggleTag = (tag: WorkoutTag) => {
-    setTags(prev =>
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +48,7 @@ export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutP
     const baseData = {
       name: name.trim(),
       dayLabel: dayLabel.trim() || undefined,
-      notes: notes.trim() || undefined,
-      tags: tags.length > 0 ? tags : undefined,
+      tags: workoutType ? [workoutType] : undefined,
       status,
       exercises: exerciseList
     };
@@ -106,37 +96,19 @@ export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutP
         </div>
       </div>
 
-      {/* Notes */}
+      {/* Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-        <textarea
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          placeholder="Any notes for this preset..."
-          rows={2}
+        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+        <select
+          value={workoutType}
+          onChange={e => setWorkoutType(e.target.value as WorkoutTag | '')}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-
-      {/* Tags */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-        <div className="flex flex-wrap gap-2">
-          {WORKOUT_TAGS.map(tag => (
-            <button
-              key={tag.value}
-              type="button"
-              onClick={() => toggleTag(tag.value)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                tags.includes(tag.value)
-                  ? tag.color
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {tag.label}
-            </button>
+        >
+          <option value="">None</option>
+          {WORKOUT_TYPES.map(type => (
+            <option key={type.value} value={type.value}>{type.label}</option>
           ))}
-        </div>
+        </select>
       </div>
 
       {/* Exercises */}
