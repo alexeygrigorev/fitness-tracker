@@ -1,9 +1,26 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useDarkMode } from '../../lib/ThemeProvider';
 
 export default function TabLayout() {
+  const darkMode = useDarkMode();
+
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: darkMode ? '#1f2937' : '#ffffff',
+          borderTopColor: darkMode ? '#374151' : '#e5e7eb',
+        },
+        tabBarActiveTintColor: '#6366f1',
+        tabBarInactiveTintColor: darkMode ? '#9ca3af' : '#6b7280',
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{

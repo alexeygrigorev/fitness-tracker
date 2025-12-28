@@ -9,10 +9,11 @@ import {
   confirmSignUp as amplifyConfirmSignUp,
   autoSignIn as amplifyAutoSignIn,
   fetchAuthSession,
+  getCurrentUser,
   type SignInInput,
   type SignUpInput,
 } from 'aws-amplify/auth';
-import { createClient } from 'aws-amplify/api';
+import { generateClient } from 'aws-amplify/api';
 import * as mutations from './graphql/mutations';
 import * as queries from './graphql/queries';
 
@@ -41,7 +42,7 @@ const amplifyConfig = {
     GraphQL: {
       endpoint: process.env.EXPO_PUBLIC_GRAPHQL_ENDPOINT || 'http://localhost:4566/graphql',
       region: process.env.EXPO_PUBLIC_AWS_REGION || 'eu-west-1',
-      defaultAuthMode: 'userPool',
+      defaultAuthMode: 'userPool' as const,
       // Max timeout for API calls (in milliseconds)
       timeout: 30000,
     },
@@ -56,8 +57,8 @@ try {
   console.warn('Amplify configuration warning:', error);
 }
 
-// GraphQL Client
-export const graphqlClient = createClient({
+// GraphQL Client using the new API
+export const graphqlClient: ReturnType<typeof generateClient> = generateClient({
   authMode: 'userPool',
 });
 
@@ -97,14 +98,30 @@ interface SignUpResult {
   };
 }
 
-export const authService = {
+interface AuthService {
+  getCurrentSession: () => Promise<AuthSession | null>;
+  getCurrentUser: () => Promise<any>;
+  signIn: (email: string, password: string) => Promise<SignInResult>;
+  signUp: (email: string, password: string) => Promise<SignUpResult>;
+  confirmSignUp: (email: string, code: string) => Promise<any>;
+  signOut: () => Promise<void>;
+  handleAutoSignIn: () => Promise<{ success: boolean }>;
+  isAuthenticated: () => Promise<boolean>;
+  getAccessToken: () => Promise<string | null>;
+  resendSignUpCode: (email: string) => Promise<any>;
+  resetPassword: (email: string) => Promise<any>;
+  confirmResetPassword: (email: string, code: string, newPassword: string) => Promise<{ success: boolean }>;
+  updatePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean }>;
+}
+
+export const authService: AuthService = {
   /**
    * Get the current authenticated session
    */
   getCurrentSession: async (): Promise<AuthSession | null> => {
     try {
       const session = await fetchAuthSession();
-      return session;
+      return session as AuthSession;
     } catch (error) {
       console.error('Error getting session:', error);
       return null;
@@ -116,9 +133,6 @@ export const authService = {
    */
   getCurrentUser: async () => {
     try {
-      const { Amplify } = await import('aws-amplify');
-      const { fetchAuthSession, getCurrentUser } = await import('aws-amplify/auth');
-
       const session = await fetchAuthSession();
       if (!session.tokens) {
         return null;
@@ -148,9 +162,9 @@ export const authService = {
         isSignedIn: result.isSignedIn,
         nextStep: result.nextStep,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error signing in:', error);
-      throw new Error(error.message || 'Authentication failed');
+      throw new Error((error as Error).message || 'Authentication failed');
     }
   },
 
@@ -177,9 +191,9 @@ export const authService = {
         userId: result.userId,
         nextStep: result.nextStep,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error signing up:', error);
-      throw new Error(error.message || 'Sign up failed');
+      throw new Error((error as Error).message || 'Sign up failed');
     }
   },
 
@@ -197,9 +211,9 @@ export const authService = {
         isComplete: result.isSignUpComplete,
         nextStep: result.nextStep,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error confirming sign up:', error);
-      throw new Error(error.message || 'Confirmation failed');
+      throw new Error((error as Error).message || 'Confirmation failed');
     }
   },
 
@@ -262,9 +276,9 @@ export const authService = {
         username: email,
       });
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error resending code:', error);
-      throw new Error(error.message || 'Failed to resend code');
+      throw new Error((error as Error).message || 'Failed to resend code');
     }
   },
 
@@ -278,9 +292,9 @@ export const authService = {
         username: email,
       });
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error initiating password reset:', error);
-      throw new Error(error.message || 'Failed to initiate password reset');
+      throw new Error((error as Error).message || 'Failed to initiate password reset');
     }
   },
 
@@ -296,9 +310,9 @@ export const authService = {
         newPassword,
       });
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error confirming password reset:', error);
-      throw new Error(error.message || 'Failed to reset password');
+      throw new Error((error as Error).message || 'Failed to reset password');
     }
   },
 
@@ -310,9 +324,9 @@ export const authService = {
       const { updatePassword } = await import('aws-amplify/auth');
       await updatePassword({ oldPassword, newPassword });
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating password:', error);
-      throw new Error(error.message || 'Failed to update password');
+      throw new Error((error as Error).message || 'Failed to update password');
     }
   },
 };
@@ -327,9 +341,8 @@ export const apiService = {
    */
   query: async <T = any>(query: string, variables?: Record<string, any>): Promise<T> => {
     try {
-      const { graphqlOperation } = await import('aws-amplify/api');
-      const result = await graphqlOperation(graphqlClient, query, variables);
-      return result as T;
+      const result = await graphqlClient.graphql<any>({ query: query as any, variables: variables || {} });
+      return result.data as T;
     } catch (error) {
       console.error('GraphQL query error:', error);
       throw error;
@@ -341,9 +354,8 @@ export const apiService = {
    */
   mutate: async <T = any>(mutation: string, variables?: Record<string, any>): Promise<T> => {
     try {
-      const { graphqlOperation } = await import('aws-amplify/api');
-      const result = await graphqlOperation(graphqlClient, mutation, variables);
-      return result as T;
+      const result = await graphqlClient.graphql<any>({ query: mutation as any, variables: variables || {} });
+      return result.data as T;
     } catch (error) {
       console.error('GraphQL mutation error:', error);
       throw error;

@@ -17,6 +17,26 @@ export interface FoodAnalysisResult {
   detectedItems: string[];
 }
 
+export interface FoodAnalysisResultWithFoods {
+  foodName: string;
+  portionSize: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  category: 'PROTEIN' | 'CARB' | 'FAT' | 'MIXED';
+  confidence: number;
+  detectedItems: string[];
+  foods?: Array<{
+    name: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }>;
+}
+
 export interface ImageUploadResult {
   uri: string;
   width: number;
@@ -69,7 +89,7 @@ class FoodPhotoService {
         uri: asset.uri,
         width: asset.width || 0,
         height: asset.height || 0,
-        size: fileInfo.size ? Number(fileInfo.size) : 0,
+        size: (fileInfo as any).size ? Number((fileInfo as any).size) : 0,
       };
     } catch (error) {
       console.error('Error picking from library:', error);
@@ -105,7 +125,7 @@ class FoodPhotoService {
         uri: asset.uri,
         width: asset.width || 0,
         height: asset.height || 0,
-        size: fileInfo.size ? Number(fileInfo.size) : 0,
+        size: (fileInfo as any).size ? Number((fileInfo as any).size) : 0,
       };
     } catch (error) {
       console.error('Error taking photo:', error);
@@ -119,7 +139,7 @@ class FoodPhotoService {
   async compressImage(uri: string, maxSizeMB: number = 5): Promise<string> {
     try {
       const fileInfo = await FileSystem.getInfoAsync(uri);
-      const fileSize = fileInfo.size ? Number(fileInfo.size) : 0;
+      const fileSize = (fileInfo as any).size ? Number((fileInfo as any).size) : 0;
       const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
       if (fileSize <= maxSizeBytes) {
@@ -141,7 +161,7 @@ class FoodPhotoService {
   async imageToBase64(uri: string): Promise<string> {
     try {
       const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64',
       });
       return base64;
     } catch (error) {
@@ -154,6 +174,13 @@ class FoodPhotoService {
    * Analyze food photo using OpenAI Vision API
    */
   async analyzeFoodPhoto(imageUri: string): Promise<FoodAnalysisResult> {
+    return this.analyzePhoto(imageUri);
+  }
+
+  /**
+   * Alias for analyzeFoodPhoto for compatibility
+   */
+  async analyzePhoto(imageUri: string): Promise<FoodAnalysisResultWithFoods> {
     try {
       // Compress image if needed
       const compressedUri = await this.compressImage(imageUri, 5);
@@ -216,12 +243,12 @@ Respond in JSON format:
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json() as any;
         throw new Error(error.error?.message || 'Food analysis failed');
       }
 
-      const result = await response.json();
-      const analysis = JSON.parse(result.choices[0].message.content || '{}');
+      const result = await response.json() as any;
+      const analysis = JSON.parse(result.choices?.[0]?.message?.content || '{}');
 
       return {
         foodName: analysis.foodName || 'Unknown Food',
@@ -234,6 +261,13 @@ Respond in JSON format:
         category: analysis.category || 'MIXED',
         confidence: analysis.confidence || 0.7,
         detectedItems: analysis.detectedItems || [],
+        foods: analysis.foods || [{
+          name: analysis.foodName || 'Unknown Food',
+          calories: analysis.calories || 0,
+          protein: analysis.protein || 0,
+          carbs: analysis.carbs || 0,
+          fat: analysis.fat || 0,
+        }],
       };
     } catch (error) {
       console.error('Error analyzing food photo:', error);
@@ -245,7 +279,7 @@ Respond in JSON format:
    * Upload image to S3 (for storage and future reference)
    */
   async uploadToS3(
-    uri: string,
+    _uri: string,
     userId: string,
     fileName?: string
   ): Promise<string | null> {

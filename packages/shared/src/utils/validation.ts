@@ -148,7 +148,7 @@ export const goalSchema = z.object({
 });
 
 // Types
-export type UserProfile = z.infer<typeof userProfileSchema>;
+export type UserProfileInput = z.infer<typeof userProfileSchema>;
 export type ExerciseInput = z.infer<typeof exerciseSchema>;
 export type WorkoutSessionInput = z.infer<typeof workoutSessionSchema>;
 export type ExerciseSetInput = z.infer<typeof exerciseSetSchema>;

@@ -1,5 +1,7 @@
 .env
+.env.backup
 apps/mobile/.env
+test-results/
 
 # Dependencies
 node_modules

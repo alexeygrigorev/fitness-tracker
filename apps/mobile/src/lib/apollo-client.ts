@@ -1,21 +1,68 @@
-// Mock Apollo Client - replace with actual AppSync implementation when backend is deployed
-// For now, this provides the same interface without requiring AWS packages
+// Apollo Client configuration for AWS AppSync
+// Supports both local development and production AWS deployments
 
 import {
   ApolloClient,
   InMemoryCache,
   createHttpLink,
   ApolloLink,
+  from,
+  Operation,
+  NextLink,
+  Observable,
 } from '@apollo/client';
 import { onError } from '@apollo/client/link/error';
 import { RetryLink } from '@apollo/client/link/retry';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
+// GraphQL endpoint - from environment or default to LocalStack for local dev
 const graphqlEndpoint =
-  'http://localhost:4566/graphql';
+  process.env.EXPO_PUBLIC_GRAPHQL_ENDPOINT || 'http://localhost:4566/graphql';
 
 // HTTP link
 const httpLink = createHttpLink({
   uri: graphqlEndpoint,
+});
+
+// Auth link for AppSync
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  if (process.env.EXPO_PUBLIC_DEMO_MODE === 'true') {
+    // Demo mode - use API key if available, otherwise no auth
+    return process.env.EXPO_PUBLIC_API_KEY
+      ? { 'x-api-key': process.env.EXPO_PUBLIC_API_KEY }
+      : {};
+  }
+
+  try {
+    const session = await fetchAuthSession();
+    const token = session.tokens?.accessToken?.toString();
+
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+  } catch (error) {
+    console.warn('Failed to get auth session:', error);
+  }
+
+  return {};
+};
+
+// Custom auth link
+const authLink = new ApolloLink((operation: Operation, forward: NextLink) => {
+  return new Observable((observer) => {
+    getAuthHeaders().then((headers) => {
+      operation.setContext({
+        headers: {
+          ...operation.getContext().headers,
+          ...headers,
+        },
+      });
+      const forward$ = forward(operation);
+      return forward$.subscribe(observer);
+    }).catch((error) => {
+      observer.error(error);
+    });
+  });
 });
 
 // Error handling link
@@ -43,15 +90,18 @@ const retryLink = new RetryLink({
   attempts: {
     max: 5,
     retryIf: (error) => {
-      return !!error && error.statusCode !== 401;
+      if (!error) return false;
+      // Don't retry on authentication errors
+      return error.statusCode !== 401;
     },
   },
 });
 
-// Simple link without auth for now
-const link = ApolloLink.from([
+// Create the link chain
+const link = from([
   retryLink,
   errorLink,
+  authLink,
   httpLink,
 ]);
 

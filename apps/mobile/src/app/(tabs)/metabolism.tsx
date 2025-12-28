@@ -18,8 +18,8 @@ import {
 
 export default function MetabolismScreen() {
   const { current, contributingFactors, isLoading, calculateMetabolicState } = useMetabolismStore();
-  const { todayMeals, dailyCarbs } = useFoodStore();
-  const { isWorkoutActive, recentWorkouts } = useWorkoutStore();
+  const { mealInstances: todayMeals, dailyCarbs } = useFoodStore();
+  const { isActive: isWorkoutActive, sessionHistory: recentWorkouts } = useWorkoutStore();
   const { lastNight } = useSleepStore();
 
   const [refreshing, setRefreshing] = useState(false);
@@ -113,8 +113,13 @@ export default function MetabolismScreen() {
     const lastMeal = todayMeals[todayMeals.length - 1];
     const hoursAgo = Math.floor((Date.now() - new Date(lastMeal.timestamp).getTime()) / (1000 * 60 * 60));
 
+    // Derive meal name from ingredients
+    const mealName = lastMeal.ingredients.length > 0
+      ? lastMeal.ingredients.map(i => i.foodItem?.name || 'Food').join(', ')
+      : 'Meal';
+
     if (hoursAgo < 1) return 'Just now';
-    if (hoursAgo < 24) return `${hoursAgo}h ago (${lastMeal.name})`;
+    if (hoursAgo < 24) return `${hoursAgo}h ago (${mealName})`;
     return 'Yesterday';
   };
 
