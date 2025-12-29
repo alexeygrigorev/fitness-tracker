@@ -223,6 +223,10 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
         items[itemIndex] = { ...items[itemIndex], warmup: value };
       } else {
         items[itemIndex] = { ...items[itemIndex], [field]: value };
+        // Initialize dropdowns with default value when changing to dropdown type
+        if (field === 'type' && value === 'dropdown' && !items[itemIndex].dropdowns) {
+          items[itemIndex] = { ...items[itemIndex], dropdowns: 2 };
+        }
       }
       updated[supersetIndex] = { ...superset, exercises: items };
       onChange(updated);
@@ -304,7 +308,9 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
         id: `${superset.id}-${i}`,
         type: ex.type,
         exerciseId: ex.exerciseId,
-        sets: ex.sets
+        sets: ex.sets,
+        dropdowns: ex.dropdowns,
+        warmup: ex.warmup
       }));
       onChange([...updated.slice(0, index), ...individualExercises, ...updated.slice(index)]);
     }
@@ -578,6 +584,10 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                   convertToSuperset(index);
                 } else {
                   updateExercise(index, 'type', newType);
+                  // Initialize dropdowns with default value when changing to dropdown type
+                  if (newType === 'dropdown' && !ex.dropdowns) {
+                    updateExercise(index, 'dropdowns', 2);
+                  }
                 }
               };
 

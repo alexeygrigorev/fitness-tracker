@@ -98,10 +98,10 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Upper Body A',
     dayLabel:'Monday',
     exercises:[
-      {id:'p1e1', exerciseId:'ex1', type:'normal', sets:4, warmup:false},
+      {id:'p1e1', exerciseId:'ex1', type:'dropdown', sets:3, dropdowns: 2, warmup:true},
       {id:'p1e2', exerciseId:'ex5', type:'normal', sets:4, warmup:false},
       {id:'p1e3', exerciseId:'ex7', type:'normal', sets:3, warmup:false},
-      {id:'p1e4', exerciseId:'ex4', type:'dropdown', sets:3, dropdowns: 2, warmup:false}
+      {id:'p1e4', exerciseId:'ex4', type:'normal', sets:4, warmup:false}
     ],
     tags:['strength'],
     status:'active'
