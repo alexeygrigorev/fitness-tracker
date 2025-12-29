@@ -1,0 +1,10 @@
+
+> web@0.0.0 dev
+> vite --port 4174 --strictPort
+
+[31merror when starting dev server:
+Error: Port 4174 is already in use
+    at Server.onError$1 (file:///C:/Users/alexe/git/fitness-tracker/web/node_modules/vite/dist/node/chunks/config.js:14932:28)
+    at Server.emit (node:events:524:28)
+    at emitErrorNT (node:net:1973:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)[39m

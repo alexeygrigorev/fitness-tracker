@@ -83,24 +83,28 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Metabolism Status</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <div className="text-sm text-gray-500">Energy Availability</div>
-            <div className="font-medium capitalize">{summary.metabolism.energyAvailability.replace('_', ' ')}</div>
+        {!summary.metabolism ? (
+          <p className="text-gray-500">No metabolism data available</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <div className="text-sm text-gray-500">Energy Availability</div>
+              <div className="font-medium capitalize">{summary.metabolism.energyAvailability.replace('_', ' ')}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Glycogen Status</div>
+              <div className="font-medium capitalize">{summary.metabolism.glycogenStatus}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Insulin Activity</div>
+              <div className="font-medium capitalize">{summary.metabolism.insulinActivity}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Recovery Status</div>
+              <div className="font-medium capitalize">{summary.metabolism.recoveryStatus}</div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm text-gray-500">Glycogen Status</div>
-            <div className="font-medium capitalize">{summary.metabolism.glycogenStatus}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">Insulin Activity</div>
-            <div className="font-medium capitalize">{summary.metabolism.insulinActivity}</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">Recovery Status</div>
-            <div className="font-medium capitalize">{summary.metabolism.recoveryStatus}</div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

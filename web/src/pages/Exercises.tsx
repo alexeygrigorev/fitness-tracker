@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faTrash, faChevronLeft, faChevronRight, faPlus, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { exercisesApi, workoutsApi, workoutPresetsApi } from '../lib/api';
@@ -46,7 +47,30 @@ const tabLabels: Record<Tab, string> = {
 };
 
 export default function Exercises() {
-  const [activeTab, setActiveTab] = useState<Tab>('workouts');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Derive active tab from URL path
+  const getTabFromPath = (): Tab => {
+    const path = location.pathname;
+    if (path === '/workouts/presets') return 'presets';
+    if (path === '/workouts/library') return 'library';
+    return 'workouts'; // default for /workouts
+  };
+
+  const [activeTab, setActiveTab] = useState<Tab>(getTabFromPath());
+
+  // Sync tab with URL changes
+  useEffect(() => {
+    setActiveTab(getTabFromPath());
+  }, [location.pathname]);
+
+  const handleTabChange = (tab: Tab) => {
+    const path = tab === 'workouts' ? '/workouts'
+                 : tab === 'presets' ? '/workouts/presets'
+                 : '/workouts/library';
+    navigate(path);
+  };
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [presets, setPresets] = useState<WorkoutPreset[]>([]);
@@ -65,6 +89,7 @@ export default function Exercises() {
 
   // Active workout mode
   const [activePreset, setActivePreset] = useState<WorkoutPreset | null>(null);
+  const [resumingWorkout, setResumingWorkout] = useState<WorkoutSession | undefined>(undefined);
   const [hasRestoredWorkout, setHasRestoredWorkout] = useState(false);
 
   // Restore active workout from localStorage on mount
@@ -163,19 +188,40 @@ export default function Exercises() {
   const handleWorkoutComplete = (workout: WorkoutSession) => {
     setWorkouts(prev => [workout, ...prev]);
     setActivePreset(null);
+    setResumingWorkout(undefined);
   };
 
   const startWorkout = (preset: WorkoutPreset) => {
     setActivePreset(preset);
+    setResumingWorkout(undefined);
   };
 
   const cancelWorkout = () => {
     setActivePreset(null);
+    setResumingWorkout(undefined);
   };
 
   const handleEditWorkout = (workout: WorkoutSession) => {
-    // For now, just view the workout - editing not implemented in active workout mode
-    console.log('Edit workout:', workout);
+    // Resume the workout - create a temporary preset from the workout's exercises
+    const exerciseIds = [...new Set(workout.sets.map(s => s.exerciseId))];
+    const presetExercises = exerciseIds.map(exerciseId => ({
+      id: `resume-${workout.id}-${exerciseId}`,
+      exerciseId,
+      type: 'normal' as const,
+      sets: workout.sets.filter(s => s.exerciseId === exerciseId).length,
+      warmup: workout.sets.some(s => s.exerciseId === exerciseId && s.setType === 'warmup')
+    }));
+
+    const resumePreset: WorkoutPreset = {
+      id: `resume-${workout.id}`,
+      name: workout.name,
+      exercises: presetExercises,
+      status: 'active',
+      tags: []
+    };
+
+    setActivePreset(resumePreset);
+    setResumingWorkout(workout);
   };
 
   const handlePresetSaved = (preset: WorkoutPreset) => {
@@ -322,7 +368,7 @@ export default function Exercises() {
           {(['workouts', 'presets', 'library'] as Tab[]).map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className={
                 'py-2 px-1 border-b-2 font-medium text-sm ' +
                 (activeTab === tab
@@ -346,6 +392,7 @@ export default function Exercises() {
                 preset={activePreset}
                 onComplete={handleWorkoutComplete}
                 onCancel={cancelWorkout}
+                resumingWorkout={resumingWorkout}
               />
             </div>
           )}
@@ -508,8 +555,8 @@ export default function Exercises() {
                     <div className="flex-1">
                       <div className="font-medium text-gray-900">{workout.name}</div>
                       <div className="text-sm text-gray-500">
-                        {workout.startedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {workout.endedAt && ` - ${workout.endedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                        {new Date(workout.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {workout.endedAt && ` - ${new Date(workout.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                       </div>
                       <div className="text-sm text-gray-500 mt-1">{workout.sets.length} sets</div>
                     </div>
@@ -522,10 +569,10 @@ export default function Exercises() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleEditWorkout(workout)}
-                        className="text-gray-400 hover:text-blue-600 p-1"
-                        title="Edit"
+                        className="text-gray-400 hover:text-green-600 p-1"
+                        title="Resume"
                       >
-                        <FontAwesomeIcon icon={faPen} />
+                        <FontAwesomeIcon icon={faPlay} />
                       </button>
                       <button
                         onClick={() => handleDeleteWorkout(workout.id)}
@@ -691,7 +738,12 @@ export default function Exercises() {
                   }`}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900">{exercise.name}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{exercise.name}</span>
+                      {exercise.bodyweight && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">BW</span>
+                      )}
+                    </div>
                     <div className="text-sm text-gray-500 capitalize">{exercise.category}</div>
                     <div className="text-xs text-gray-400">{exercise.muscleGroups.join(', ')}</div>
                   </div>
@@ -742,9 +794,16 @@ export default function Exercises() {
             </div>
             {selectedExercise ? (
               <div className="space-y-4">
-                <div>
-                  <div className="text-sm text-gray-500">Category</div>
-                  <div className="capitalize">{selectedExercise.category}</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div>
+                    <div className="text-sm text-gray-500">Category</div>
+                    <div className="capitalize">{selectedExercise.category}</div>
+                  </div>
+                  {selectedExercise.bodyweight && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs">
+                      Bodyweight
+                    </span>
+                  )}
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Muscle Groups</div>
@@ -752,7 +811,7 @@ export default function Exercises() {
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Equipment</div>
-                  <div>{selectedExercise.equipment.join(', ') || 'Bodyweight'}</div>
+                  <div>{selectedExercise.equipment.join(', ') || 'None'}</div>
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Instructions</div>

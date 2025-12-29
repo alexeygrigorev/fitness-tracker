@@ -7,6 +7,7 @@ export interface Exercise {
   muscleGroups: MuscleGroup[];
   equipment: string[];
   instructions: string[];
+  bodyweight?: boolean; // True for exercises like pullups, pushups, dips
 }
 
 export type MuscleGroup =
