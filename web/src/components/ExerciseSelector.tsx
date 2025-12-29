@@ -34,7 +34,7 @@ const isBodyweight = (exercise: Exercise) => {
 };
 
 // Reusable Exercise Picker Component
-interface ExercisePickerProps {
+export interface ExercisePickerProps {
   exercises: Exercise[];
   filteredExercises: Exercise[];
   search: string;
@@ -47,7 +47,7 @@ interface ExercisePickerProps {
   title?: string;
 }
 
-function ExercisePicker({
+export function ExercisePicker({
   filteredExercises,
   search,
   onSearchChange,
@@ -191,7 +191,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
       type: 'normal',
       exerciseId: exercise.id,
       sets: 3,
-      warmup: true,
+      warmup: false,
     };
     onChange([...selectedExercises, newExercise]);
   };
@@ -254,7 +254,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
         ...superset,
         exercises: [
           ...superset.exercises,
-          { exerciseId: exercise.id, type: 'normal', sets: 3, warmup: true }
+          { exerciseId: exercise.id, type: 'normal', sets: 3, warmup: false }
         ]
       };
       onChange(updated);

@@ -1,35 +1,17 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheck, faPlus, faClock, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { workoutsApi, exercisesApi } from '../lib/api';
+import { ExercisePicker } from './ExerciseSelector';
+import SetRow, { type SetForm } from './SetRow';
+import { WarmupSetItem, NormalSetItem, BodyweightSetItem, DropdownSetItem, createSetItem } from '../lib/setItems';
+import type { SetItem } from '../lib/setItems';
 import type { WorkoutPreset, WorkoutSession, Exercise, WorkoutSet } from '../lib/types';
 
 interface ActiveWorkoutProps {
   preset: WorkoutPreset;
   onComplete: (workout: WorkoutSession) => void;
   onCancel: () => void;
-}
-
-interface SetRow {
-  id: string;
-  exerciseId: string;
-  exerciseName: string;
-  exercise: Exercise;
-  setNumber: number;
-  setType: 'normal' | 'warmup' | 'drop' | 'failure';
-  weight?: number;
-  reps: number;
-  completed: boolean;
-  completedAt?: Date;
-  isBodyweight: boolean;
-  suggestedWeight?: number;
-  isExtra?: boolean;
-  isSuperset?: boolean;
-}
-
-interface SetForm {
-  weight?: number;
-  reps: number;
 }
 
 const isBodyweight = (exercise: Exercise) => {
@@ -42,7 +24,7 @@ const ACTIVE_WORKOUT_STORAGE_KEY = 'activeWorkout';
 
 interface StoredWorkoutState {
   preset: WorkoutPreset;
-  setRows: SetRow[];
+  setRows: any[]; // Plain objects for serialization
   startTime: string;
   workoutSessionId: string | null;
   lastUsed: Record<string, { weight?: number; reps: number }>;
@@ -50,7 +32,7 @@ interface StoredWorkoutState {
 
 export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWorkoutProps) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [setRows, setSetRows] = useState<SetRow[]>([]);
+  const [setRows, setSetRows] = useState<SetItem[]>([]);
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [setForm, setSetForm] = useState<SetForm>({ reps: 10 });
   const [showAddExercise, setShowAddExercise] = useState(false);
@@ -64,9 +46,42 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
   // Remember last weight/reps for each exercise
   const [lastUsed, setLastUsed] = useState<Record<string, { weight?: number; reps: number }>>({});
 
+  // Exercise picker state
+  const [exerciseSearch, setExerciseSearch] = useState('');
+  const [exerciseFilterCategory, setExerciseFilterCategory] = useState<string>('all');
+  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
+
   useEffect(() => {
     exercisesApi.getAll().then(setExercises);
   }, []);
+
+  // Filter exercises based on search and category
+  useEffect(() => {
+    let filtered = exercises;
+
+    if (exerciseSearch) {
+      filtered = filtered.filter(ex =>
+        ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()) ||
+        ex.muscleGroups.some(mg => mg.toLowerCase().includes(exerciseSearch.toLowerCase()))
+      );
+    }
+
+    if (exerciseFilterCategory !== 'all') {
+      if (exerciseFilterCategory === 'upper') {
+        filtered = filtered.filter(ex =>
+          ex.muscleGroups.some(mg => ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'traps', 'lats', 'forearms'].includes(mg))
+        );
+      } else if (exerciseFilterCategory === 'lower') {
+        filtered = filtered.filter(ex =>
+          ex.muscleGroups.some(mg => ['quads', 'hamstrings', 'glutes', 'calves', 'abs', 'obliques'].includes(mg))
+        );
+      } else {
+        filtered = filtered.filter(ex => ex.category === exerciseFilterCategory);
+      }
+    }
+
+    setFilteredExercises(filtered);
+  }, [exercises, exerciseSearch, exerciseFilterCategory]);
 
   // Restore workout state from localStorage on mount (only once)
   useEffect(() => {
@@ -82,12 +97,17 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
         const isSameDay = storedDate.toDateString() === today.toDateString();
 
         if (isSameDay && state.preset.id === preset.id) {
-          // Restore the state
-          setSetRows(state.setRows.map(row => ({
-            ...row,
-            completedAt: row.completedAt ? new Date(row.completedAt) : undefined,
-            exercise: exercises.find(e => e.id === row.exerciseId) || row.exercise
-          })));
+          // Restore the state - convert plain objects back to SetItem instances
+          const restoredItems = state.setRows.map(row => {
+            const exercise = exercises.find(e => e.id === row.exerciseId) || row.exercise;
+            const plainRow = {
+              ...row,
+              completedAt: row.completedAt ? new Date(row.completedAt) : undefined,
+              exercise
+            };
+            return createSetItem(plainRow);
+          });
+          setSetRows(restoredItems);
           setStartTime(new Date(state.startTime));
           setWorkoutSessionId(state.workoutSessionId);
           setLastUsed(state.lastUsed);
@@ -191,7 +211,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
       return;
     }
 
-    const rows: SetRow[] = [];
+    const items: SetItem[] = [];
 
     preset.exercises.forEach(presetEx => {
       // Handle superset - round robin order
@@ -206,6 +226,26 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
         const numberOfSets = supersetExercises[0]?.sets || 3;
         let baseWeight = 60;
 
+        // Add warmup sets for each exercise in superset (if enabled)
+        supersetExercises.forEach((supEx) => {
+          if (supEx.warmup && !isBodyweight(supEx.exercise!)) {
+            const warmupWeight = Math.floor(baseWeight * 0.5);
+            items.push(new WarmupSetItem({
+              id: `warmup-superset-${presetEx.id}-${supEx.exerciseId}`,
+              exerciseId: supEx.exercise!.id,
+              exerciseName: supEx.exercise!.name,
+              exercise: supEx.exercise!,
+              setNumber: 0,
+              weight: warmupWeight,
+              reps: 10,
+              completed: false,
+              isBodyweight: false,
+              suggestedWeight: warmupWeight,
+              isSuperset: true
+            }));
+          }
+        });
+
         // Round robin: for each set number, create a row for each exercise in superset
         for (let setNum = 0; setNum < numberOfSets; setNum++) {
           supersetExercises.forEach((supEx) => {
@@ -213,20 +253,33 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
             const bodyweight = isBodyweight(exercise);
             const weight = bodyweight ? undefined : baseWeight;
 
-            rows.push({
-              id: `superset-${presetEx.id}-${supEx.exerciseId}-${setNum}`,
-              exerciseId: exercise.id,
-              exerciseName: exercise.name,
-              exercise,
-              setNumber: setNum + 1,
-              setType: (supEx.type === 'dropdown' ? 'drop' : supEx.type || 'normal') as 'normal' | 'warmup' | 'drop' | 'failure',
-              weight,
-              reps: 10,
-              completed: false,
-              isBodyweight: bodyweight,
-              suggestedWeight: weight,
-              isSuperset: true
-            });
+            if (bodyweight) {
+              items.push(new BodyweightSetItem({
+                id: `superset-${presetEx.id}-${supEx.exerciseId}-${setNum}`,
+                exerciseId: exercise.id,
+                exerciseName: exercise.name,
+                exercise,
+                setNumber: setNum + 1,
+                reps: 10,
+                completed: false,
+                isBodyweight: true,
+                isSuperset: true
+              }));
+            } else {
+              items.push(new NormalSetItem({
+                id: `superset-${presetEx.id}-${supEx.exerciseId}-${setNum}`,
+                exerciseId: exercise.id,
+                exerciseName: exercise.name,
+                exercise,
+                setNumber: setNum + 1,
+                weight,
+                reps: 10,
+                completed: false,
+                isBodyweight: false,
+                suggestedWeight: weight,
+                isSuperset: true
+              }));
+            }
           });
         }
         return;
@@ -240,43 +293,91 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
       const numberOfSets = presetEx.sets || 3;
       let baseWeight = 60;
 
-      for (let i = 0; i < numberOfSets; i++) {
-        let weight: number | undefined;
-        let setType: 'normal' | 'warmup' | 'drop' | 'failure' = 'normal';
-
-        if (presetEx.type === 'dropdown' && presetEx.dropdowns && !bodyweight) {
-          weight = baseWeight - (i * presetEx.dropdowns * 2.5);
-          setType = i === 0 ? 'normal' : 'drop';
-        } else if (!bodyweight) {
-          weight = baseWeight;
-        }
-
-        rows.push({
-          id: `set-${presetEx.id}-${i}`,
+      // Add warmup set first (if enabled and not bodyweight)
+      if (presetEx.warmup && !bodyweight) {
+        const warmupWeight = Math.floor(baseWeight * 0.5);
+        items.push(new WarmupSetItem({
+          id: `warmup-${presetEx.id}`,
           exerciseId: exercise.id,
           exerciseName: exercise.name,
           exercise,
-          setNumber: i + 1,
-          setType,
-          weight,
+          setNumber: 0,
+          weight: warmupWeight,
           reps: 10,
           completed: false,
-          isBodyweight: bodyweight,
-          suggestedWeight: weight
-        });
+          isBodyweight: false,
+          suggestedWeight: warmupWeight
+        }));
+      }
+
+      if (presetEx.type === 'dropdown' && presetEx.dropdowns && !bodyweight) {
+        // For dropdown sets: create ONE item with working set + drops internally
+        const drops: Array<{ weight: number; reps: number; completed: boolean }> = [];
+        for (let d = 1; d <= presetEx.dropdowns; d++) {
+          const dropWeight = baseWeight - (d * 2.5);
+          drops.push({ weight: dropWeight, reps: 10, completed: false });
+        }
+
+        items.push(new DropdownSetItem({
+          id: `dropdown-${presetEx.id}`,
+          exerciseId: exercise.id,
+          exerciseName: exercise.name,
+          exercise,
+          setNumber: 1,
+          weight: baseWeight,
+          reps: 10,
+          completed: false,
+          isBodyweight: false,
+          suggestedWeight: baseWeight,
+          workingWeight: baseWeight,
+          workingReps: 10,
+          workingCompleted: false,
+          drops
+        }));
+      } else {
+        // Normal sets or bodyweight sets
+        for (let i = 0; i < numberOfSets; i++) {
+          const weight = bodyweight ? undefined : baseWeight;
+
+          if (bodyweight) {
+            items.push(new BodyweightSetItem({
+              id: `set-${presetEx.id}-${i}`,
+              exerciseId: exercise.id,
+              exerciseName: exercise.name,
+              exercise,
+              setNumber: i + 1,
+              reps: 10,
+              completed: false,
+              isBodyweight: true
+            }));
+          } else {
+            items.push(new NormalSetItem({
+              id: `set-${presetEx.id}-${i}`,
+              exerciseId: exercise.id,
+              exerciseName: exercise.name,
+              exercise,
+              setNumber: i + 1,
+              weight,
+              reps: 10,
+              completed: false,
+              isBodyweight: false,
+              suggestedWeight: weight
+            }));
+          }
+        }
       }
     });
 
-    setSetRows(rows);
+    setSetRows(items);
   };
 
-  const openSetForm = (setRow: SetRow) => {
-    setEditingSetId(setRow.id);
+  const openSetForm = (item: SetItem) => {
+    setEditingSetId(item.id);
     // Use last used weight/reps for this exercise, or fall back to current values
-    const lastForExercise = lastUsed[setRow.exerciseId];
+    const lastForExercise = lastUsed[item.exerciseId];
     setSetForm({
-      weight: lastForExercise?.weight ?? (setRow.weight ?? setRow.suggestedWeight),
-      reps: lastForExercise?.reps ?? (setRow.reps || 10)
+      weight: lastForExercise?.weight ?? ('weight' in item ? item.weight : item.suggestedWeight),
+      reps: lastForExercise?.reps ?? ('reps' in item ? item.reps : 10)
     });
   };
 
@@ -288,23 +389,77 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
   const submitSet = () => {
     if (!editingSetId) return;
 
-    setSetRows(prev => prev.map(row => {
-      if (row.id === editingSetId) {
+    setSetRows(prev => prev.map(item => {
+      // Handle DropdownSetItem - update the working set or a drop
+      if (item.setType === 'dropdown') {
+        const ddItem = item as DropdownSetItem;
+
+        // Check if editing the working set
+        if (ddItem.id === editingSetId || editingSetId.includes('working')) {
+          // Update working set
+          setLastUsed(prevLast => ({
+            ...prevLast,
+            [item.exerciseId]: { weight: setForm.weight, reps: setForm.reps }
+          }));
+
+          return ddItem.withChanges({
+            workingWeight: setForm.weight,
+            workingReps: setForm.reps,
+            workingCompleted: true,
+            completedAt: new Date()
+          });
+        }
+
+        // Check if editing a drop set
+        const dropIndex = ddItem.drops.findIndex((_, idx) =>
+          `${ddItem.id}-drop-${idx + 1}` === editingSetId || editingSetId.includes(`drop-`)
+        );
+
+        if (dropIndex >= 0) {
+          setLastUsed(prevLast => ({
+            ...prevLast,
+            [item.exerciseId]: { weight: setForm.weight, reps: setForm.reps }
+          }));
+
+          const newDrops = [...ddItem.drops];
+          newDrops[dropIndex] = {
+            ...newDrops[dropIndex],
+            weight: setForm.weight || newDrops[dropIndex].weight,
+            reps: setForm.reps,
+            completed: true
+          };
+
+          return ddItem.withChanges({ drops: newDrops });
+        }
+
+        return item;
+      }
+
+      // Handle regular set items
+      if (item.id === editingSetId) {
         // Remember this weight/reps for future sets of the same exercise
         setLastUsed(prevLast => ({
           ...prevLast,
-          [row.exerciseId]: { weight: setForm.weight, reps: setForm.reps }
+          [item.exerciseId]: { weight: setForm.weight, reps: setForm.reps }
         }));
 
-        return {
-          ...row,
-          weight: setForm.weight,
-          reps: setForm.reps,
-          completed: true,
-          completedAt: new Date()
-        };
+        // Update the item with completed status
+        if ('weight' in item && 'reps' in item) {
+          return item.withChanges({
+            weight: setForm.weight,
+            reps: setForm.reps,
+            completed: true,
+            completedAt: new Date()
+          });
+        } else if (item.setType === 'warmup') {
+          // Warmup items just get marked complete
+          return item.withChanges({
+            completed: true,
+            completedAt: new Date()
+          });
+        }
       }
-      return row;
+      return item;
     }));
 
     closeSetForm();
@@ -312,18 +467,42 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
 
   const uncompleteSet = (setId: string) => {
     if (confirm('Uncomplete this set?')) {
-      setSetRows(prev => prev.map(row => {
-        if (row.id === setId) {
-          return { ...row, completed: false, completedAt: undefined };
+      setSetRows(prev => prev.map(item => {
+        // Handle DropdownSetItem - update the sub-item (working or drop)
+        if (item instanceof DropdownSetItem) {
+          if (item.workingSet.id === setId || item.dropSets.some(d => d.id === setId)) {
+            return item.updateSubSet(setId, {
+              completed: false,
+              completedAt: undefined
+            });
+          }
+          return item;
         }
-        return row;
+
+        // Handle regular set items
+        if (item.id === setId) {
+          return item.withChanges({
+            completed: false,
+            completedAt: undefined
+          });
+        }
+        return item;
       }));
     }
   };
 
   const deleteSet = (setId: string) => {
     if (confirm('Delete this set?')) {
-      setSetRows(prev => prev.filter(row => row.id !== setId));
+      setSetRows(prev => prev.filter(item => {
+        // Handle DropdownSetItem - check if it's the dropdown or any of its sub-items
+        if (item instanceof DropdownSetItem) {
+          // If deleting the dropdown itself or any of its sub-items, remove the whole dropdown
+          return item.id !== setId &&
+                 item.workingSet.id !== setId &&
+                 !item.dropSets.some(d => d.id === setId);
+        }
+        return item.id !== setId;
+      }));
     }
   };
 
@@ -338,19 +517,18 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
     const lastForExercise = lastUsed[exerciseId];
     const lastSet = existingSetsForExercise[existingSetsForExercise.length - 1];
 
-    setSetRows(prev => [...prev, {
+    setSetRows(prev => [...prev, new NormalSetItem({
       id: `extra-${Date.now()}`,
       exerciseId,
       exerciseName,
       exercise,
       setNumber: nextSetNumber,
-      setType: 'normal',
-      weight: lastForExercise?.weight ?? (lastSet?.weight),
-      reps: lastForExercise?.reps ?? (lastSet?.reps || 10),
+      weight: lastForExercise?.weight ?? ('weight' in lastSet ? lastSet.weight : undefined),
+      reps: lastForExercise?.reps ?? ('reps' in lastSet ? lastSet.reps : 10),
       completed: false,
       isBodyweight: bodyweight,
       isExtra: true
-    }]);
+    })]);
   };
 
   // Add a completely new exercise
@@ -360,53 +538,104 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
 
     const bodyweight = isBodyweight(exercise);
 
-    setSetRows(prev => [...prev, {
+    setSetRows(prev => [...prev, new NormalSetItem({
       id: `new-${Date.now()}`,
       exerciseId: exercise.id,
       exerciseName: exercise.name,
       exercise,
       setNumber: 1,
-      setType: 'normal',
       weight: bodyweight ? undefined : 60,
       reps: 10,
       completed: false,
       isBodyweight: bodyweight,
       isExtra: true
-    }]);
+    })]);
 
     setShowAddExercise(false);
+    setExerciseSearch('');
+    setExerciseFilterCategory('all');
   };
 
   const calculateTotalVolume = () => {
-    return setRows.reduce((sum, row) => {
-      if (row.completed && row.weight) {
-        return sum + (row.weight * row.reps);
+    return setRows.reduce((sum, item) => {
+      if (item.setType === 'dropdown') {
+        // For dropdown sets, sum the volume of working set + completed drops
+        const ddItem = item as DropdownSetItem;
+        if (ddItem.workingCompleted && ddItem.workingWeight) {
+          sum += ddItem.workingWeight * ddItem.workingReps;
+        }
+        ddItem.drops.forEach(drop => {
+          if (drop.completed && drop.weight) {
+            sum += drop.weight * drop.reps;
+          }
+        });
+      } else if (item.completed && item.weight) {
+        sum += item.weight * item.reps;
       }
       return sum;
     }, 0);
   };
 
   const calculateCompletedSets = () => {
-    return setRows.filter(r => r.completed).length;
+    return setRows.reduce((count, item) => {
+      if (item.setType === 'dropdown') {
+        return count + (item as DropdownSetItem).completedCount;
+      }
+      return count + (item.completed ? 1 : 0);
+    }, 0);
   };
 
   const calculateTotalSets = () => {
-    return setRows.length;
+    return setRows.reduce((count, item) => {
+      if (item.setType === 'dropdown') {
+        return count + (item as DropdownSetItem).totalSets;
+      }
+      return count + 1;
+    }, 0);
   };
 
   const handleFinishWorkout = async () => {
     setLoading(true);
     try {
-      const workoutSets: WorkoutSet[] = setRows
-        .filter(row => row.completed)
-        .map(row => ({
-          id: row.id,
-          exerciseId: row.exerciseId,
-          setType: row.setType,
-          weight: row.weight,
-          reps: row.reps,
-          loggedAt: row.completedAt || startTime
-        }));
+      // Convert SetItem[] to WorkoutSet[]
+      const workoutSets: WorkoutSet[] = [];
+      setRows.forEach(item => {
+        if (item instanceof DropdownSetItem) {
+          // Add working set if completed
+          if (item.workingSet.completed) {
+            workoutSets.push({
+              id: item.workingSet.id,
+              exerciseId: item.workingSet.exerciseId,
+              setType: item.workingSet.setType,
+              weight: item.workingSet.weight,
+              reps: item.workingSet.reps,
+              loggedAt: item.workingSet.completedAt || startTime
+            });
+          }
+          // Add completed drop sets
+          item.dropSets.forEach(drop => {
+            if (drop.completed) {
+              workoutSets.push({
+                id: drop.id,
+                exerciseId: drop.exerciseId,
+                setType: drop.setType,
+                weight: drop.weight,
+                reps: drop.reps,
+                loggedAt: drop.completedAt || startTime
+              });
+            }
+          });
+        } else if (item.completed && 'weight' in item) {
+          workoutSets.push({
+            id: item.id,
+            exerciseId: item.exerciseId,
+            setType: item.setType,
+            weight: item.weight,
+            reps: item.reps,
+            loggedAt: item.completedAt || startTime
+          });
+        }
+      });
 
       let workout: WorkoutSession;
 
@@ -446,11 +675,27 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
   };
 
   const isFreestyle = preset.id === 'freestyle' || preset.exercises.length === 0;
-  const completedSets = setRows.filter(r => r.completed);
-  const incompleteSets = setRows.filter(r => !r.completed);
+
+  // Helper to check if an item or its sub-items are completed/incomplete
+  const isItemCompleted = (item: SetItem): boolean => {
+    if (item.setType === 'dropdown') {
+      return (item as DropdownSetItem).allCompleted;
+    }
+    return item.completed;
+  };
+
+  const isItemIncomplete = (item: SetItem): boolean => {
+    if (item.setType === 'dropdown') {
+      return !(item as DropdownSetItem).allCompleted;
+    }
+    return !item.completed;
+  };
+
+  const completedSets = setRows.filter(r => isItemCompleted(r));
+  const incompleteSets = setRows.filter(r => isItemIncomplete(r));
 
   // Show completed sets based on showAllCompleted, incomplete based on showAllIncomplete
-  const visibleSetRows = [
+  const visibleSetRows: SetItem[] = [
     // Completed sets - all or just last 2
     ...(showAllCompleted ? completedSets : completedSets.slice(-2)),
     // Incomplete sets - all or just next 3
@@ -487,11 +732,6 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
     );
   }
 
-  // Exercise picker for adding new exercises
-  const availableExercises = exercises.filter(e =>
-    !setRows.some(row => row.exerciseId === e.id)
-  );
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -524,167 +764,24 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
         </button>
       )}
 
-      {/* Set Rows - Flat list for round-robin superset support */}
+      {/* Set Rows - using shared SetRow component */}
       <div className="space-y-2">
-        {visibleSetRows.map((row) => {
-          const isEditing = editingSetId === row.id;
+        {visibleSetRows.map((item) => {
+          const isEditing = editingSetId === item.id;
 
           return (
-            <div
-              key={row.id}
-              className={`border rounded-lg transition-all ${
-                row.completed
-                  ? 'border-green-300 bg-green-50'
-                  : isEditing
-                    ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                    : 'border-gray-200 bg-white hover:border-blue-300 cursor-pointer'
-              }`}
-            >
-              {isEditing ? (
-                // Edit Form
-                <div className="p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-gray-900">{row.exerciseName}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Set {row.setNumber}</span>
-                    {row.isExtra && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">Extra</span>
-                    )}
-                    {row.isSuperset && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">Superset</span>
-                    )}
-                  </div>
-
-                  <div
-                    className="flex items-center gap-2"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') submitSet();
-                      if (e.key === 'Escape') closeSetForm();
-                    }}
-                  >
-                    {!row.isBodyweight && (
-                      <>
-                        <input
-                          type="number"
-                          value={setForm.weight ?? ''}
-                          onChange={(e) => setSetForm(prev => ({ ...prev, weight: parseFloat(e.target.value) || undefined }))}
-                          placeholder="kg"
-                          className="w-16 px-2 py-1.5 text-sm border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          autoFocus
-                        />
-                        <span className="text-gray-400 text-xs">kg</span>
-                        <span className="text-gray-400 text-xs">×</span>
-                      </>
-                    )}
-
-                    <input
-                      type="number"
-                      value={setForm.reps}
-                      onChange={(e) => setSetForm(prev => ({ ...prev, reps: parseInt(e.target.value) || 0 }))}
-                      placeholder="reps"
-                      className="w-14 px-2 py-1.5 text-sm border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <span className="text-gray-400 text-xs">reps</span>
-
-                    <button
-                      onClick={submitSet}
-                      className="px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
-                    >
-                      ✓
-                    </button>
-
-                    <button
-                      onClick={closeSetForm}
-                      className="px-2 py-1.5 text-gray-500 hover:text-gray-700 transition-colors text-sm"
-                    >
-                      ✕
-                    </button>
-
-                    {row.isExtra && (
-                      <button
-                        onClick={() => deleteSet(row.id)}
-                        className="px-2 py-1.5 text-red-500 hover:text-red-700 transition-colors text-sm ml-2"
-                        title="Delete set"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    )}
-                  </div>
-
-                  {row.suggestedWeight !== undefined && !row.isBodyweight && !row.completed && (
-                    <div className="text-xs text-gray-400 mt-1">
-                      Suggested: {row.suggestedWeight} kg
-                    </div>
-                  )}
-                </div>
-              ) : (
-                // Display Row
-                <button
-                  onClick={() => !row.completed && openSetForm(row)}
-                  className="w-full p-3 flex items-center justify-between text-left"
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    {/* Status Circle */}
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm ${
-                      row.completed
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 text-gray-500'
-                    }`}>
-                      {row.completed ? (
-                        <FontAwesomeIcon icon={faCheck} className="text-sm" />
-                      ) : (
-                        <span>{row.setNumber}</span>
-                      )}
-                    </div>
-
-                    {/* Exercise Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-gray-900">{row.exerciseName}</span>
-                        {row.isSuperset && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">Superset</span>
-                        )}
-                        {row.isExtra && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">Extra</span>
-                        )}
-                        {row.isBodyweight && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">BW</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500">Set {row.setNumber}</div>
-                    </div>
-
-                    {/* Completed Values */}
-                    {row.completed && (
-                      <div className="flex items-center gap-3 text-sm">
-                        {!row.isBodyweight && (
-                          <span className="font-medium text-gray-900">{row.weight} kg</span>
-                        )}
-                        <span className="text-gray-600">{row.reps} reps</span>
-                        {row.completedAt && (
-                          <span className="text-gray-400 flex items-center gap-1" title="Completed at">
-                            <FontAwesomeIcon icon={faClock} className="text-xs" />
-                            {row.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Action Button */}
-                    {!row.completed ? (
-                      <span className="text-sm text-gray-400 italic">Click to fill</span>
-                    ) : (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); uncompleteSet(row.id); }}
-                        className="px-2 py-1 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                        title="Uncomplete this set"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                </button>
-              )}
-            </div>
+            <SetRow
+              key={item.id}
+              item={item}
+              isEditing={isEditing}
+              setForm={setForm}
+              onOpenSetForm={() => openSetForm(item)}
+              onSubmitSet={submitSet}
+              onCloseSetForm={closeSetForm}
+              onUncompleteSet={() => uncompleteSet(item.id)}
+              onDeleteSet={() => deleteSet(item.id)}
+              onSetFormChange={setSetForm}
+            />
           );
         })}
       </div>
@@ -712,13 +809,13 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
             onClick={() => addExtraSet(exerciseId, info.name)}
             className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors flex items-center gap-1"
           >
-            <FontAwesomeIcon icon={faPlus} className="text-xs" /> + Set for {info.name}
+            <FontAwesomeIcon icon={faPlus} className="text-xs" /> Set for {info.name}
           </button>
         ))}
       </div>
 
       {/* Add Exercise Button */}
-      {availableExercises.length > 0 && (
+      {exercises.length > 0 && (
         <div className="space-y-2">
           <button
             onClick={() => setShowAddExercise(!showAddExercise)}
@@ -730,29 +827,21 @@ export default function ActiveWorkout({ preset, onComplete, onCancel }: ActiveWo
 
           {/* Exercise Picker - shown below button when adding */}
           {showAddExercise && (
-            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-medium text-gray-900">Add Exercise</span>
-                <button
-                  onClick={() => setShowAddExercise(false)}
-                  className="text-gray-400 hover:text-gray-600 text-xl"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-48 overflow-y-auto">
-                {availableExercises.map(exercise => (
-                  <button
-                    key={exercise.id}
-                    onClick={() => addNewExercise(exercise.id)}
-                    className="text-left p-2 bg-white border border-gray-200 rounded hover:bg-blue-100 hover:border-blue-300 transition-colors"
-                  >
-                    <div className="text-sm font-medium text-gray-900 truncate">{exercise.name}</div>
-                    <div className="text-xs text-gray-500">{exercise.category}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <ExercisePicker
+              exercises={exercises}
+              filteredExercises={filteredExercises}
+              search={exerciseSearch}
+              onSearchChange={setExerciseSearch}
+              filterCategory={exerciseFilterCategory}
+              onFilterChange={setExerciseFilterCategory}
+              onExerciseClick={(exercise) => addNewExercise(exercise.id)}
+              onClose={() => {
+                setShowAddExercise(false);
+                setExerciseSearch('');
+                setExerciseFilterCategory('all');
+              }}
+              excludedIds={setRows.map(row => row.exerciseId)}
+            />
           )}
         </div>
       )}
