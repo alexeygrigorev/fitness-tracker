@@ -8,14 +8,16 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "cd ../tests && npm test",
-    "test:watch": "cd ../tests && npm run test:watch",
-    "test:ui": "cd ../tests && npm run test:ui"
+    "test": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --run",
+    "test:watch": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --watch",
+    "test:ui": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --ui",
+    "test:coverage": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --coverage"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@fortawesome/react-fontawesome": "^3.1.1",
     "@tailwindcss/postcss": "^4.1.18",
+    "playwright": "^1.57.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.11.0"
@@ -25,10 +27,11 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^24.10.1",
+    "@types/node": "^24.10.4",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^4.0.16",
     "@vitest/ui": "^4.0.16",
     "autoprefixer": "^10.4.23",
     "eslint": "^9.39.1",

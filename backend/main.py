@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import auth, health
-from app.api.v1.workouts import exercises, sessions, presets
+from app.api.v1 import auth, health, ai
+from app.api.v1.workouts import exercises, sessions, presets, calculations, active_state
+from app.api.v1.food import foods, meals, meal_templates, calculations as food_calculations
 from app.core.config import settings
 from app.core.database import engine
 from app.models import User
@@ -19,14 +20,7 @@ User.metadata.create_all(bind=engine)
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5174",
-    ],
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,6 +36,17 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(exercises.router, prefix="/api/v1/workouts/exercises", tags=["exercises"])
 app.include_router(sessions.router, prefix="/api/v1/workouts/sessions", tags=["workout sessions"])
 app.include_router(presets.router, prefix="/api/v1/workouts/presets", tags=["workout presets"])
+app.include_router(calculations.router, prefix="/api/v1/workouts/calculations", tags=["workout calculations"])
+app.include_router(active_state.router, prefix="/api/v1/workouts/active-state", tags=["active workout state"])
+
+# Food and nutrition routes
+app.include_router(foods.router, prefix="/api/v1/food/foods", tags=["foods"])
+app.include_router(meals.router, prefix="/api/v1/food/meals", tags=["meals"])
+app.include_router(meal_templates.router, prefix="/api/v1/food/templates", tags=["meal templates"])
+app.include_router(food_calculations.router, prefix="/api/v1/food/calculations", tags=["food calculations"])
+
+# AI analysis routes
+app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai analysis"])
 
 
 @app.get("/")
