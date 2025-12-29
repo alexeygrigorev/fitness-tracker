@@ -1,15 +1,3 @@
-import {
-  mockExercises,
-  mockFoodItems,
-  mockWorkoutSessions,
-  mockWorkoutPrograms,
-  mockWorkoutPresets,
-  mockMeals,
-  mockSleepEntries,
-  mockMetabolismStates,
-  mockAdvice,
-  mockMealTemplates
-} from './mockData';
 import type {
   FoodItem,
   WorkoutSession,
@@ -20,763 +8,276 @@ import type {
   WorkoutSet,
   DailySummary,
   MealTemplate,
-  MealFoodItem,
-  MealCategory,
   Exercise
 } from './types';
 
-const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8001';
 
-let exercises = [...mockExercises];
-let foodItems = [...mockFoodItems] as FoodItem[];
-let workoutSessions = [...mockWorkoutSessions] as WorkoutSession[];
-let workoutPrograms = [...mockWorkoutPrograms];
-let workoutPresets = [...mockWorkoutPresets];
-let meals = [...mockMeals] as Meal[];
-let sleepEntries = [...mockSleepEntries] as SleepEntry[];
-let metabolismStates = [...mockMetabolismStates];
-let advice = [...mockAdvice];
-let mealTemplates = [...mockMealTemplates] as MealTemplate[];
+async function getHeaders(): Promise<HeadersInit> {
+  const token = localStorage.getItem('token');
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
+async function handleResponse(response: Response) {
+  if (response.status === 401) {
+    // Token expired or invalid - clear auth and redirect to login
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(error.detail || `HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+// Exercises API
 export const exercisesApi = {
   getAll: async () => {
-    await delay();
-    return [...exercises];
+    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
   },
   getById: async (id: string) => {
-    await delay();
-    return exercises.find(e => e.id === id);
-  },
-  getByMuscleGroup: async (muscleGroup: string) => {
-    await delay();
-    return exercises.filter(e => e.muscleGroups.includes(muscleGroup as any));
+    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises/${id}`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
   },
   create: async (data: Omit<Exercise, 'id'>) => {
-    await delay();
-    const newExercise: Exercise = {
-      id: `ex-${Date.now()}`,
-      ...data
-    };
-    exercises.push(newExercise);
-    return newExercise;
+    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
   },
   update: async (id: string, data: Partial<Exercise>) => {
-    await delay();
-    const index = exercises.findIndex(e => e.id === id);
-    if (index === -1) throw new Error('Exercise not found');
-    exercises[index] = { ...exercises[index], ...data };
-    return exercises[index];
+    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises/${id}`, {
+      method: 'PUT',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
   },
   delete: async (id: string) => {
-    await delay();
-    const index = exercises.findIndex(e => e.id === id);
-    if (index === -1) throw new Error('Exercise not found');
-    exercises.splice(index, 1);
-    return id;
+    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises/${id}`, {
+      method: 'DELETE',
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
   },
   analyzeWithAI: async (input: { images?: File[]; description?: string }) => {
-    // Simulate AI analysis - in production this would call an actual AI API
-    await delay(2000);
-
-    // Mock AI response based on description or default exercise
-    const desc = input.description?.toLowerCase() || '';
-
-    // Try to match common exercises from description
-    const commonExercises = [
-      { name: 'Barbell Bench Press', category: 'compound' as const, muscleGroups: ['chest', 'triceps', 'shoulders'] as const, equipment: ['barbell', 'bench'] as const, instructions: ['Lie flat on bench', 'Grip bar wider than shoulders', 'Lower to mid-chest', 'Press up'] },
-      { name: 'Barbell Squat', category: 'compound' as const, muscleGroups: ['quads', 'glutes', 'hamstrings'] as const, equipment: ['barbell', 'rack'] as const, instructions: ['Position bar on back', 'Squat to parallel', 'Drive through heels'] },
-      { name: 'Deadlift', category: 'compound' as const, muscleGroups: ['back', 'glutes', 'hamstrings'] as const, equipment: ['barbell'] as const, instructions: ['Stand feet hip-width', 'Grip bar outside legs', 'Drive through heels'] },
-      { name: 'Pull-up', category: 'compound' as const, muscleGroups: ['back', 'biceps'] as const, equipment: ['bar'] as const, instructions: ['Hang from bar', 'Pull chin over bar', 'Lower with control'] },
-      { name: 'Push-up', category: 'compound' as const, muscleGroups: ['chest', 'triceps', 'shoulders'] as const, equipment: [] as const, instructions: ['Start in plank position', 'Lower body until chest nearly touches floor', 'Push back up'] },
-      { name: 'Dumbbell Curl', category: 'isolation' as const, muscleGroups: ['biceps'] as const, equipment: ['dumbbells'] as const, instructions: ['Stand holding dumbbells', 'Curl weights to shoulders', 'Lower with control'] },
-      { name: 'Lunge', category: 'compound' as const, muscleGroups: ['quads', 'glutes', 'hamstrings'] as const, equipment: [] as const, instructions: ['Step forward with one leg', 'Lower hips until both knees at 90°', 'Push back to start'] },
-      { name: 'Plank', category: 'isolation' as const, muscleGroups: ['abs'] as const, equipment: [] as const, instructions: ['Hold push-up position', 'Keep body straight', 'Engage core'] },
-    ];
-
-    const matched = commonExercises.find(ex =>
-      desc.includes(ex.name.toLowerCase()) ||
-      (desc.includes('bench') && ex.name.includes('Bench')) ||
-      (desc.includes('squat') && ex.name.includes('Squat')) ||
-      (desc.includes('deadlift') && ex.name.includes('Deadlift')) ||
-      (desc.includes('pull') && desc.includes('up') && ex.name.includes('Pull-up')) ||
-      (desc.includes('push') && desc.includes('up') && ex.name.includes('Push-up')) ||
-      (desc.includes('curl') && ex.name.includes('Curl')) ||
-      (desc.includes('lunge') && ex.name.includes('Lunge')) ||
-      (desc.includes('plank') && ex.name.includes('Plank'))
-    );
-
-    if (matched) {
-      return {
-        name: matched.name,
-        category: matched.category,
-        muscleGroups: matched.muscleGroups,
-        equipment: matched.equipment,
-        instructions: matched.instructions
-      };
-    }
-
-    // Default fallback exercise
+    // For now, mock this - could be connected to an AI service later
     return {
       name: input.description?.split(' ').slice(0, 3).join(' ') || 'New Exercise',
       category: 'compound' as const,
       muscleGroups: ['chest'] as const,
       equipment: ['barbell'] as const,
-      instructions: ['Stand in starting position', 'Perform the movement', 'Return to start']
+      instructions: ['Perform the exercise with proper form', 'Keep core engaged', 'Breathe steadily']
     };
   }
 };
 
-export const foodApi = {
+// Workouts API
+export const workoutsApi = {
   getAll: async () => {
-    await delay();
-    return [...foodItems];
+    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
   },
   getById: async (id: string) => {
-    await delay();
-    return foodItems.find(f => f.id === id);
+    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions/${id}`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
   },
-  search: async (query: string) => {
-    await delay(100);
-    const q = query.toLowerCase();
-    return foodItems.filter(f =>
-      f.name.toLowerCase().includes(q) ||
-      (f.brand && f.brand.toLowerCase().includes(q))
-    );
+  create: async (session: Omit<WorkoutSession, 'id'>) => {
+    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(session),
+    });
+    return handleResponse(response);
   },
-  getByCategory: async (category: string) => {
-    await delay();
-    return foodItems.filter(f => f.category === category);
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions/${id}`, {
+      method: 'DELETE',
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
   },
+  update: async (id: string, updates: Partial<WorkoutSession>) => {
+    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions/${id}`, {
+      method: 'PATCH',
+      headers: await getHeaders(),
+      body: JSON.stringify(updates),
+    });
+    return handleResponse(response);
+  }
+};
+
+// Workout Presets API
+export const workoutPresetsApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE}/api/v1/workouts/presets`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+  getById: async (id: string) => {
+    const response = await fetch(`${API_BASE}/api/v1/workouts/presets/${id}`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+  create: async (preset: Omit<WorkoutPreset, 'id'>) => {
+    const response = await fetch(`${API_BASE}/api/v1/workouts/presets`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(preset),
+    });
+    return handleResponse(response);
+  },
+  update: async (id: string, updates: Partial<WorkoutPreset>) => {
+    const response = await fetch(`${API_BASE}/api/v1/workouts/presets/${id}`, {
+      method: 'PATCH',
+      headers: await getHeaders(),
+      body: JSON.stringify(updates),
+    });
+    return handleResponse(response);
+  },
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE}/api/v1/workouts/presets/${id}`, {
+      method: 'DELETE',
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  }
+};
+
+// Food API (backend doesn't have food endpoints yet - return empty arrays)
+export const foodApi = {
+  getAll: async () => [],
+  getById: async (id: string) => null,
+  search: async (query: string) => [],
   create: async (food: Omit<FoodItem, 'id'>) => {
-    await delay();
     const newFood: FoodItem = { ...food, id: 'food' + Date.now(), source: food.source || 'user' };
-    foodItems.push(newFood);
     return newFood;
   },
   update: async (id: string, updates: Partial<FoodItem>) => {
-    await delay();
-    const index = foodItems.findIndex(f => f.id === id);
-    if (index === -1) {
-      // Food not in our array - this can happen after hot reload in dev
-      // Add it and then apply the update
-      const newFood: FoodItem = { ...updates } as FoodItem;
-      newFood.id = id;
-      foodItems.push(newFood);
-      return newFood;
-    }
-    foodItems[index] = { ...foodItems[index], ...updates };
-    return foodItems[index];
+    return { ...updates, id } as FoodItem;
   },
-  delete: async (id: string) => {
-    await delay();
-    const index = foodItems.findIndex(f => f.id === id);
-    if (index === -1) throw new Error('Food not found');
-    foodItems.splice(index, 1);
-    return true;
-  },
-  // AI-powered food analysis from images + description
-  // TODO: Replace with real AI API call
-  analyzeWithAI: async (params: { images: File[]; description: string }) => {
-    await delay(2000); // Simulate AI processing time
-
-    const desc = params.description.toLowerCase();
-    const fileName = params.images[0]?.name.toLowerCase() || '';
-
-    // Mock AI responses based on keywords
-    if (desc.includes('cola') || desc.includes('soda') || fileName.includes('cola')) {
-      return {
-        name: 'Cola',
-        calories: 42,
-        protein: 0,
-        carbs: 10.6,
-        fat: 0,
-        saturatedFat: 0,
-        sugar: 10.6,
-        fiber: 0,
-        servingSize: 100,
-        servingType: 'g',
-        glycemicIndex: 63,
-        absorptionSpeed: 'fast' as const,
-        insulinResponse: 78,
-        satietyScore: 2
-      };
-    }
-    if (desc.includes('chicken') || desc.includes('breast')) {
-      return {
-        name: 'Chicken Breast',
-        calories: 165,
-        protein: 31,
-        carbs: 0,
-        fat: 3.6,
-        saturatedFat: 1,
-        sugar: 0,
-        fiber: 0,
-        servingSize: 100,
-        servingType: 'g',
-        glycemicIndex: undefined,
-        absorptionSpeed: 'moderate' as const,
-        insulinResponse: 35,
-        satietyScore: 8
-      };
-    }
-    if (desc.includes('banana')) {
-      return {
-        name: 'Banana',
-        calories: 89,
-        protein: 1.1,
-        carbs: 22.8,
-        fat: 0.3,
-        saturatedFat: 0.1,
-        sugar: 12.2,
-        fiber: 2.6,
-        servingSize: 100,
-        servingType: 'item',
-        glycemicIndex: 51,
-        absorptionSpeed: 'fast' as const,
-        insulinResponse: 62,
-        satietyScore: 4
-      };
-    }
-    if (desc.includes('rice') || desc.includes('white rice')) {
-      return {
-        name: 'White Rice',
-        calories: 130,
-        protein: 2.7,
-        carbs: 28,
-        fat: 0.3,
-        saturatedFat: 0.1,
-        sugar: 0.1,
-        fiber: 0.4,
-        servingSize: 100,
-        servingType: 'item',
-        glycemicIndex: 73,
-        absorptionSpeed: 'fast' as const,
-        insulinResponse: 75,
-        satietyScore: 4
-      };
-    }
-    if (desc.includes('bread') || desc.includes('whole wheat')) {
-      return {
-        name: 'Whole Wheat Bread',
-        calories: 247,
-        protein: 13,
-        carbs: 41,
-        fat: 3.4,
-        saturatedFat: 0.7,
-        sugar: 6,
-        fiber: 7,
-        servingSize: 100,
-        servingType: 'item',
-        glycemicIndex: 53,
-        absorptionSpeed: 'moderate' as const,
-        insulinResponse: 58,
-        satietyScore: 6
-      };
-    }
-    if (desc.includes('egg')) {
-      return {
-        name: 'Egg',
-        calories: 155,
-        protein: 13,
-        carbs: 1.1,
-        fat: 11,
-        saturatedFat: 3.3,
-        sugar: 1.1,
-        fiber: 0,
-        servingSize: 100,
-        servingType: 'g',
-        glycemicIndex: undefined,
-        absorptionSpeed: 'moderate' as const,
-        insulinResponse: 30,
-        satietyScore: 8
-      };
-    }
-    if (desc.includes('salmon')) {
-      return {
-        name: 'Salmon',
-        calories: 208,
-        protein: 20,
-        carbs: 0,
-        fat: 13,
-        saturatedFat: 3.2,
-        sugar: 0,
-        fiber: 0,
-        servingSize: 100,
-        servingType: 'g',
-        glycemicIndex: undefined,
-        absorptionSpeed: 'slow' as const,
-        insulinResponse: 25,
-        satietyScore: 8
-      };
-    }
-    if (desc.includes('broccoli')) {
-      return {
-        name: 'Broccoli',
-        calories: 34,
-        protein: 2.8,
-        carbs: 7,
-        fat: 0.4,
-        saturatedFat: 0,
-        sugar: 1.5,
-        fiber: 2.6,
-        servingSize: 100,
-        servingType: 'item',
-        glycemicIndex: 10,
-        absorptionSpeed: 'slow' as const,
-        insulinResponse: 15,
-        satietyScore: 5
-      };
-    }
-
-    // Default mock response
-    return {
-      name: params.description.split(' ').slice(0, 3).join(' ') || 'Food Item',
-      calories: 100,
-      protein: 5,
-      carbs: 10,
-      fat: 3,
-      saturatedFat: 1,
-      sugar: 2,
-      fiber: 2,
-      servingSize: 100,
-      servingUnit: 'g',
-      glycemicIndex: 50,
-      absorptionSpeed: 'moderate' as const,
-      insulinResponse: 50,
-      satietyScore: 5
-    };
-  }
+  delete: async (id: string) => true,
+  analyzeWithAI: async (params: { images: File[]; description: string }) => ({
+    name: params.description.split(' ').slice(0, 3).join(' ') || 'Food Item',
+    calories: 100,
+    protein: 5,
+    carbs: 10,
+    fat: 3,
+    saturatedFat: 1,
+    sugar: 2,
+    fiber: 2,
+    servingSize: 100,
+    servingType: 'g',
+    glycemicIndex: 50,
+    absorptionSpeed: 'moderate' as const,
+    insulinResponse: 50,
+    satietyScore: 5
+  })
 };
 
+// Meal Templates API (not implemented in backend yet)
 export const mealTemplatesApi = {
-  getAll: async () => {
-    await delay();
-    return [...mealTemplates];
-  },
-  getById: async (id: string) => {
-    await delay();
-    return mealTemplates.find(t => t.id === id);
-  },
-  getByCategory: async (category: string) => {
-    await delay();
-    return mealTemplates.filter(t => t.category === category);
-  },
-  create: async (template: Omit<MealTemplate, 'id'>) => {
-    await delay();
-    const newTemplate: MealTemplate = { ...template, id: 'mt' + Date.now() };
-    mealTemplates.push(newTemplate);
-    return newTemplate;
-  },
-  update: async (id: string, updates: Partial<MealTemplate>) => {
-    await delay();
-    const index = mealTemplates.findIndex(t => t.id === id);
-    if (index === -1) throw new Error('Template not found');
-    mealTemplates[index] = { ...mealTemplates[index], ...updates };
-    return mealTemplates[index];
-  },
-  delete: async (id: string) => {
-    await delay();
-    const index = mealTemplates.findIndex(t => t.id === id);
-    if (index === -1) throw new Error('Template not found');
-    mealTemplates.splice(index, 1);
-    return true;
-  },
-  calculateNutrition: async (foods: MealFoodItem[]) => {
-    await delay(100);
+  getAll: async () => [],
+  getById: async (id: string) => null,
+  create: async (template: Omit<MealTemplate, 'id'>) => ({ ...template, id: 'mt' + Date.now() } as MealTemplate),
+  update: async (id: string, updates: Partial<MealTemplate>) => ({ ...updates, id } as MealTemplate),
+  delete: async (id: string) => true,
+  calculateNutrition: async (foods: any[]) => {
     let totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
     for (const item of foods) {
-      const food = foodItems.find(f => f.id === item.foodId);
-      if (food) {
-        const multiplier = item.grams / 100;
-        totalCalories += food.calories * multiplier;
-        totalProtein += food.protein * multiplier;
-        totalCarbs += food.carbs * multiplier;
-        totalFat += food.fat * multiplier;
-      }
+      const multiplier = item.grams / 100;
+      totalCalories += (item.calories || 0) * multiplier;
+      totalProtein += (item.protein || 0) * multiplier;
+      totalCarbs += (item.carbs || 0) * multiplier;
+      totalFat += (item.fat || 0) * multiplier;
     }
     return { totalCalories, totalProtein, totalCarbs, totalFat };
   }
 };
 
-export const workoutsApi = {
-  getAll: async () => {
-    await delay();
-    return [...workoutSessions];
-  },
-  getById: async (id: string) => {
-    await delay();
-    return workoutSessions.find(w => w.id === id);
-  },
-  getRecent: async (days = 7) => {
-    await delay();
-    const cutoff = new Date(Date.now() - days * 86400000);
-    return workoutSessions.filter(w => w.startedAt >= cutoff);
-  },
-  create: async (session: Omit<WorkoutSession, 'id'>) => {
-    await delay();
-    const newSession: WorkoutSession = { ...session, id: 'ws' + Date.now() };
-    workoutSessions.push(newSession);
-    return newSession;
-  },
-  addSet: async (sessionId: string, set: Omit<WorkoutSet, 'id'>) => {
-    await delay();
-    const session = workoutSessions.find(w => w.id === sessionId);
-    if (!session) throw new Error('Session not found');
-    const newSet: WorkoutSet = { ...set, id: 'set' + Date.now() };
-    session.sets.push(newSet);
-    return newSet;
-  },
-  endSession: async (sessionId: string, notes?: string) => {
-    await delay();
-    const session = workoutSessions.find(w => w.id === sessionId);
-    if (!session) throw new Error('Session not found');
-    session.endedAt = new Date();
-    session.notes = notes;
-    let totalVolume = 0;
-    for (const set of session.sets) {
-      const weight = set.weight || 0;
-      totalVolume += weight * set.reps;
-    }
-    session.totalVolume = totalVolume;
-    const setsWithRpe = session.sets.filter(s => s.rpe);
-    const avgRpe = setsWithRpe.length > 0
-      ? setsWithRpe.reduce((sum, s) => sum + (s.rpe || 0), 0) / setsWithRpe.length
-      : 7;
-    session.estimatedRecovery = Math.round(24 + (totalVolume / 1000) * 12 + (avgRpe - 5) * 6);
-    return session;
-  },
-  delete: async (id: string) => {
-    await delay();
-    const index = workoutSessions.findIndex(w => w.id === id);
-    if (index === -1) throw new Error('Workout not found');
-    workoutSessions.splice(index, 1);
-    return true;
-  },
-  update: async (id: string, updates: Partial<WorkoutSession>) => {
-    await delay();
-    const index = workoutSessions.findIndex(w => w.id === id);
-    if (index === -1) throw new Error('Workout not found');
-    workoutSessions[index] = { ...workoutSessions[index], ...updates };
-    return workoutSessions[index];
-  }
-};
-
-export const workoutProgramsApi = {
-  getAll: async () => {
-    await delay();
-    return [...workoutPrograms];
-  },
-  getById: async (id: string) => {
-    await delay();
-    return workoutPrograms.find(p => p.id === id);
-  },
-  create: async (program: Omit<WorkoutProgram, 'id'>) => {
-    await delay();
-    const newProgram: WorkoutProgram = { ...program, id: 'wp' + Date.now() };
-    workoutPrograms.push(newProgram);
-    return newProgram;
-  },
-  update: async (id: string, updates: Partial<WorkoutProgram>) => {
-    await delay();
-    const index = workoutPrograms.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Program not found');
-    workoutPrograms[index] = { ...workoutPrograms[index], ...updates };
-    return workoutPrograms[index];
-  },
-  delete: async (id: string) => {
-    await delay();
-    const index = workoutPrograms.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Program not found');
-    workoutPrograms.splice(index, 1);
-    return true;
-  }
-};
-
-export const workoutPresetsApi = {
-  getAll: async () => {
-    await delay();
-    return [...workoutPresets];
-  },
-  getById: async (id: string) => {
-    await delay();
-    return workoutPresets.find(p => p.id === id);
-  },
-  getActive: async () => {
-    await delay();
-    return workoutPresets.filter(p => p.status === 'active');
-  },
-  create: async (preset: Omit<WorkoutPreset, 'id'>) => {
-    await delay();
-    const newPreset: WorkoutPreset = { ...preset, id: 'preset' + Date.now() };
-    workoutPresets.push(newPreset);
-    return newPreset;
-  },
-  update: async (id: string, updates: Partial<WorkoutPreset>) => {
-    await delay();
-    const index = workoutPresets.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Preset not found');
-    workoutPresets[index] = { ...workoutPresets[index], ...updates };
-    return workoutPresets[index];
-  },
-  delete: async (id: string) => {
-    await delay();
-    const index = workoutPresets.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Preset not found');
-    workoutPresets.splice(index, 1);
-    return true;
-  }
-};
-
-// AI-powered meal analysis from description
-// Parses a meal description and suggests meal with foods and amounts
-// TODO: Replace with real AI API call
-export const analyzeMealWithAI = async (description: string) => {
-  await delay(2000); // Simulate AI processing time
-
-  const desc = description.toLowerCase();
-  let mealName = description.split(' ').slice(0, 4).join(' ') || 'Custom Meal';
-  let mealType: MealCategory = 'snack';
-  let suggestedFoods: Array<{ foodId: string; grams: number }> = [];
-
-  // Detect meal type from time keywords
-  if (desc.includes('breakfast') || desc.includes('morning')) {
-    mealType = 'breakfast';
-  } else if (desc.includes('lunch') || desc.includes('afternoon')) {
-    mealType = 'lunch';
-  } else if (desc.includes('dinner') || desc.includes('evening')) {
-    mealType = 'dinner';
-  } else if (desc.includes('post-workout') || desc.includes('after workout') || desc.includes('gym')) {
-    mealType = 'post_workout';
-  }
-
-  // Parse foods from description
-  const foodsMap: Map<string, number> = new Map();
-
-  // Helper to find food by keywords
-  const findFood = (keywords: string[]): FoodItem | undefined => {
-    for (const food of foodItems) {
-      const foodNameLower = food.name.toLowerCase();
-      if (keywords.some(k => foodNameLower.includes(k))) {
-        return food;
-      }
-    }
-    return undefined;
-  };
-
-  // Chicken with rice (common meal)
-  if (desc.includes('chicken') && (desc.includes('rice') || desc.includes('breast'))) {
-    mealName = 'Chicken with Rice';
-    const chicken = findFood(['chicken', 'breast']);
-    const rice = findFood(['rice']);
-    if (chicken) foodsMap.set(chicken.id, 150); // 150g chicken
-    if (rice) foodsMap.set(rice.id, 150); // 150g rice
-    if (desc.includes('broccoli')) {
-      const broccoli = findFood(['broccoli']);
-      if (broccoli) foodsMap.set(broccoli.id, 100);
-    }
-  }
-  // Salmon with sweet potato
-  else if (desc.includes('salmon')) {
-    mealName = 'Salmon Dinner';
-    const salmon = findFood(['salmon']);
-    if (salmon) foodsMap.set(salmon.id, 150);
-    if (desc.includes('potato')) {
-      const potato = findFood(['sweet potato']);
-      if (potato) foodsMap.set(potato.id, 200);
-    }
-    if (desc.includes('broccoli')) {
-      const broccoli = findFood(['broccoli']);
-      if (broccoli) foodsMap.set(broccoli.id, 100);
-    }
-  }
-  // Oatmeal/porridge
-  else if (desc.includes('oat') || desc.includes('porridge')) {
-    mealName = 'Overnight Oats';
-    mealType = 'breakfast';
-    const oats = findFood(['oat']);
-    if (oats) foodsMap.set(oats.id, 80);
-    if (desc.includes('yogurt')) {
-      const yogurt = findFood(['greek yogurt']);
-      if (yogurt) foodsMap.set(yogurt.id, 170);
-    }
-    if (desc.includes('banana')) {
-      const banana = findFood(['banana']);
-      if (banana) foodsMap.set(banana.id, 120);
-    }
-  }
-  // Eggs
-  else if (desc.includes('egg')) {
-    mealName = 'Eggs';
-    const eggs = findFood(['egg']);
-    if (eggs) {
-      // Parse number of eggs
-      const eggMatch = desc.match(/(\d+)\s*(eggs?|egg)/);
-      const count = eggMatch ? parseInt(eggMatch[1]) : 2;
-      foodsMap.set(eggs.id, count * eggs.servingSize);
-    }
-    if (desc.includes('bread')) {
-      const bread = findFood(['bread']);
-      if (bread) foodsMap.set(bread.id, 56); // 2 slices
-    }
-  }
-  // Protein shake
-  else if (desc.includes('shake') || desc.includes('protein')) {
-    mealName = 'Protein Shake';
-    mealType = 'post_workout';
-    const whey = findFood(['whey']);
-    if (whey) foodsMap.set(whey.id, 30); // 1 scoop
-    if (desc.includes('banana')) {
-      const banana = findFood(['banana']);
-      if (banana) foodsMap.set(banana.id, 120);
-    }
-    if (desc.includes('yogurt')) {
-      const yogurt = findFood(['greek yogurt']);
-      if (yogurt) foodsMap.set(yogurt.id, 85);
-    }
-  }
-  // Pizza
-  else if (desc.includes('pizza')) {
-    mealName = 'Pizza';
-    const pizza = findFood(['pizza']);
-    if (pizza) {
-      const sliceMatch = desc.match(/(\d+)\s*(slices?|slice)/);
-      const slices = sliceMatch ? parseInt(sliceMatch[1]) : 2;
-      foodsMap.set(pizza.id, slices * 120); // 120g per slice
-    }
-  }
-  // Generic fallback - try to match individual foods
-  else {
-    for (const food of foodItems) {
-      const foodNameLower = food.name.toLowerCase();
-      if (desc.includes(foodNameLower) && !foodsMap.has(food.id)) {
-        foodsMap.set(food.id, food.servingSize);
-      }
-    }
-  }
-
-  suggestedFoods = Array.from(foodsMap.entries()).map(([foodId, grams]) => ({ foodId, grams }));
-
-  return {
-    name: mealName,
-    mealType,
-    foods: suggestedFoods,
-    confidence: suggestedFoods.length > 0 ? 0.8 : 0.3
-  };
-};
-
+// Meals API (not implemented in backend yet)
 export const mealsApi = {
-  getAll: async () => {
-    await delay();
-    return [...meals];
-  },
-  getById: async (id: string) => {
-    await delay();
-    return meals.find(m => m.id === id);
-  },
-  getByDate: async (date: Date) => {
-    await delay();
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setHours(23, 59, 59, 999);
-    return meals.filter(m => m.loggedAt >= startOfDay && m.loggedAt <= endOfDay);
-  },
-  create: async (meal: Omit<Meal, 'id' | 'totalCalories' | 'totalProtein' | 'totalCarbs' | 'totalFat'>) => {
-    await delay();
-    let totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFat = 0;
-    for (const food of meal.foods) {
-      const item = foodItems.find(f => f.id === food.foodId);
-      if (item) {
-        const multiplier = food.grams / 100;
-        totalCalories += item.calories * multiplier;
-        totalProtein += item.protein * multiplier;
-        totalCarbs += item.carbs * multiplier;
-        totalFat += item.fat * multiplier;
-      }
-    }
-    const newMeal: Meal = { ...meal, id: 'meal' + Date.now(), totalCalories, totalProtein, totalCarbs, totalFat, source: meal.source || 'manual' };
-    meals.push(newMeal);
-    return newMeal;
-  },
-  update: async (id: string, updates: Partial<Meal>) => {
-    await delay();
-    const index = meals.findIndex(m => m.id === id);
-    if (index === -1) throw new Error('Meal not found');
-    meals[index] = { ...meals[index], ...updates };
-    return meals[index];
-  },
-  delete: async (id: string) => {
-    await delay();
-    const index = meals.findIndex(m => m.id === id);
-    if (index === -1) throw new Error('Meal not found');
-    meals.splice(index, 1);
-    return true;
-  }
+  getAll: async () => [],
+  getById: async (id: string) => null,
+  getByDate: async (date: Date) => [],
+  create: async (meal: any) => ({ ...meal, id: 'meal' + Date.now() } as Meal),
+  update: async (id: string, updates: Partial<Meal>) => ({ ...updates, id } as Meal),
+  delete: async (id: string) => true
 };
 
+// Sleep API (not implemented in backend yet)
 export const sleepApi = {
-  getAll: async () => {
-    await delay();
-    return [...sleepEntries];
-  },
-  getLatest: async () => {
-    await delay();
-    return [...sleepEntries].sort((a, b) => b.bedTime.getTime() - a.bedTime.getTime())[0];
-  },
-  create: async (entry: Omit<SleepEntry, 'id'>) => {
-    await delay();
-    const newEntry: SleepEntry = { ...entry, id: 'sleep' + Date.now() };
-    sleepEntries.push(newEntry);
-    return newEntry;
-  }
+  getAll: async () => [],
+  getLatest: async () => null,
+  create: async (entry: any) => ({ ...entry, id: 'sleep' + Date.now() })
 };
 
+// Metabolism API (not implemented in backend yet)
 export const metabolismApi = {
-  getCurrent: async () => {
-    await delay();
-    return [...metabolismStates].sort((a, b) => b.date.getTime() - a.date.getTime())[0];
-  },
-  getByDate: async (date: Date) => {
-    await delay();
-    return metabolismStates.find(m => m.date.toDateString() === date.toDateString());
-  }
+  getCurrent: async () => null,
+  getByDate: async (date: Date) => null
 };
 
-export const adviceApi = {
-  getAll: async () => {
-    await delay();
-    return [...advice];
-  },
-  getActive: async () => {
-    await delay();
-    return advice.filter(a => !a.acknowledged);
-  },
-  acknowledge: async (id: string) => {
-    await delay();
-    const item = advice.find(a => a.id === id);
-    if (item) item.acknowledged = true;
-    return item;
-  }
+// Workout Programs API (not implemented in backend yet)
+export const workoutProgramsApi = {
+  getAll: async () => [],
+  getById: async (id: string) => null,
+  create: async (program: Omit<WorkoutProgram, 'id'>) => ({ ...program, id: 'wp' + Date.now() } as WorkoutProgram),
+  update: async (id: string, updates: Partial<WorkoutProgram>) => ({ ...updates, id } as WorkoutProgram),
+  delete: async (id: string) => true
 };
+
+// Advice API (not implemented in backend yet)
+export const adviceApi = {
+  getAll: async () => [],
+  getActive: async () => [],
+  acknowledge: async (id: string) => ({ id, acknowledged: true })
+};
+
+// AI Meal Analysis (not implemented in backend yet)
+export const analyzeMealWithAI = async (description: string) => ({
+  name: description.split(' ').slice(0, 4).join(' ') || 'Custom Meal',
+  mealType: 'snack' as const,
+  foods: [],
+  confidence: 0.5
+});
 
 export const aiMealApi = {
   analyzeMeal: analyzeMealWithAI
 };
 
+// Daily Summary (not implemented in backend yet)
 export const dailySummaryApi = {
-  getSummary: async (date: Date): Promise<DailySummary> => {
-    await delay();
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setHours(23, 59, 59, 999);
-    const daysWorkouts = workoutSessions.filter(w => w.startedAt >= startOfDay && w.startedAt <= endOfDay);
-    const daysMeals = meals.filter(m => m.loggedAt >= startOfDay && m.loggedAt <= endOfDay);
-    const daysSleep = sleepEntries.find(s => s.bedTime >= startOfDay && s.bedTime <= endOfDay);
-    const metabolism = await metabolismApi.getByDate(date) || metabolismStates[0];
-    const totalCalories = daysMeals.reduce((sum, m) => sum + m.totalCalories, 0);
-    const totalProtein = daysMeals.reduce((sum, m) => sum + m.totalProtein, 0);
-    const totalVolume = daysWorkouts.reduce((sum, w) => sum + (w.totalVolume || 0), 0);
-    return { date, workouts: daysWorkouts, meals: daysMeals, sleep: daysSleep, metabolism, totalCalories, totalProtein, totalVolume };
-  }
+  getSummary: async (date: Date): Promise<DailySummary> => ({
+    date,
+    workouts: [],
+    meals: [],
+    sleep: undefined,
+    metabolism: null,
+    totalCalories: 0,
+    totalProtein: 0,
+    totalVolume: 0
+  })
 };

@@ -1,0 +1,15 @@
+{
+  "name": "fitness-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "cd tests && npm test",
+    "test:api": "cd tests && npm run test:api",
+    "test:watch": "cd tests && npm run test:watch",
+    "test:ui": "cd tests && npm run test:ui",
+    "test:e2e": "cd tests && npm run test:e2e",
+    "web:dev": "cd web && npm run dev",
+    "web:build": "cd web && npm run build",
+    "backend:serve": "cd backend && uv run uvicorn main:app --reload --port 8000"
+  }
+}

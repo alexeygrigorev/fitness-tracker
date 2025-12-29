@@ -127,9 +127,14 @@ export function ExercisePicker({
                 }`}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{exercise.name}</div>
+                  <div className="font-medium truncate flex items-center gap-2">
+                    {exercise.name}
+                    {exercise.bodyweight && (
+                      <span className="text-xs px-1 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0">BW</span>
+                    )}
+                  </div>
                   <div className="text-xs text-gray-500 truncate">
-                    {exercise.muscleGroups.join(', ')} • {exercise.equipment.join(', ') || 'Bodyweight'}
+                    {exercise.muscleGroups.join(', ')} • {exercise.equipment.join(', ') || 'None'}
                   </div>
                 </div>
                 <span className={`text-xs px-1.5 py-0.5 rounded ml-2 ${CATEGORY_COLORS[exercise.category] || 'bg-gray-100 text-gray-700'}`}>
@@ -418,7 +423,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                         const exercise = getExercise(item.exerciseId);
                         if (!exercise) return null;
 
-                        const bodyweight = isBodyweight(exercise);
+                        const bodyweight = exercise.bodyweight || isBodyweight(exercise);
                         const availableTypes = SUPERSET_EXERCISE_TYPES.filter(t =>
                           bodyweight ? t.value !== 'dropdown' : true
                         );
@@ -574,7 +579,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
               const exercise = ex.exerciseId ? getExercise(ex.exerciseId) : null;
               if (!exercise) return null;
 
-              const bodyweight = isBodyweight(exercise);
+              const bodyweight = exercise.bodyweight || isBodyweight(exercise);
               const availableTypes = SINGLE_EXERCISE_TYPES.filter(t =>
                 bodyweight ? t.value !== 'dropdown' : true // No dropdown for bodyweight
               );

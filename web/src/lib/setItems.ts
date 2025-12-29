@@ -1,39 +1,27 @@
-import type { Exercise } from './types';
+import type { Exercise, WorkoutSet } from './types';
+import type { SetData, SetFormData, LastUsedData } from './setItemTypes';
+export type { SetFormData, LastUsedData, SetData } from './setItemTypes';
 
-export interface SetData {
-  id: string;
-  exerciseId: string;
-  exerciseName: string;
-  exercise: Exercise;
-  setNumber: number;
-  completed: boolean;
-  completedAt?: Date;
-  isBodyweight: boolean;
-  suggestedWeight?: number;
-  isExtra?: boolean;
-  isSuperset?: boolean;
-}
-
-// Base class for all set items
 export abstract class BaseSetItem implements SetData {
-  id: string;
-  exerciseId: string;
-  exerciseName: string;
-  exercise: Exercise;
-  setNumber: number;
-  completed: boolean;
+  id!: string;
+  exerciseId!: string;
+  exerciseName!: string;
+  exercise!: Exercise;
+  setNumber!: number;
+  completed!: boolean;
   completedAt?: Date;
-  isBodyweight: boolean;
+  isBodyweight!: boolean;
   suggestedWeight?: number;
   isExtra?: boolean;
   isSuperset?: boolean;
+  originalIndex?: number;
+  originalWorkoutSetId?: string;
+  alreadySaved?: boolean;
 
-  // Properties that subclasses must define
   abstract weight?: number;
   abstract reps: number;
   abstract setType: 'normal' | 'warmup' | 'dropdown' | 'bodyweight';
 
-  // Display properties - can be overridden by subclasses
   get badgeLabel(): string {
     return '';
   }
@@ -58,13 +46,70 @@ export abstract class BaseSetItem implements SetData {
     return `${this.setNumber}`;
   }
 
-  // Clone with new values
+  getInitialForm(lastUsed?: LastUsedData): SetFormData {
+    return {
+      weight: lastUsed?.weight ?? this.weight ?? this.suggestedWeight,
+      reps: lastUsed?.reps ?? this.reps ?? 10
+    };
+  }
+
+  getCompletedDisplay(): Array<{ text: string; className?: string } | { isTimestamp: true; time: Date }> {
+    const display: Array<{ text: string; className?: string } | { isTimestamp: true; time: Date }> = [];
+    if (!this.isBodyweight && this.weight) {
+      display.push({ text: `${this.weight} kg`, className: 'font-medium text-gray-900' });
+    }
+    display.push({ text: `${this.reps} reps`, className: 'text-gray-600' });
+    if (this.completedAt) {
+      display.push({ isTimestamp: true, time: this.completedAt });
+    }
+    return display;
+  }
+
+  get isFullyCompleted(): boolean {
+    return this.completed;
+  }
+
+  markCompleted(): this {
+    return this.withChanges({ completed: true, completedAt: new Date() } as any);
+  }
+
+  applyFormAndComplete(form: SetFormData): this {
+    return this.markCompleted().withChanges({
+      weight: form.weight,
+      reps: form.reps,
+      alreadySaved: undefined
+    } as any);
+  }
+
+  getLastUsedData(form: SetFormData): LastUsedData {
+    return {
+      weight: form.weight,
+      reps: form.reps
+    };
+  }
+
+  markUncompleted(): this {
+    return this.withChanges({ completed: false, completedAt: undefined } as any);
+  }
+
+  toWorkoutSets(startTime: Date): WorkoutSet[] {
+    if (this.alreadySaved) return [];
+    if (!this.completed) return [];
+    return [{
+      id: this.originalWorkoutSetId || this.id,
+      exerciseId: this.exerciseId,
+      setType: this.setType === 'warmup' ? 'warmup' : 'normal',
+      weight: this.weight,
+      reps: this.reps,
+      loggedAt: this.completedAt || startTime
+    }];
+  }
+
   withChanges(changes: Partial<this>): this {
     const Constructor = this.constructor as new (data: any) => this;
     return new Constructor({ ...this, ...changes });
   }
 
-  // Convert to plain object for serialization
   toPlain(): any {
     return {
       id: this.id,
@@ -80,15 +125,17 @@ export abstract class BaseSetItem implements SetData {
       isBodyweight: this.isBodyweight,
       suggestedWeight: this.suggestedWeight,
       isExtra: this.isExtra,
-      isSuperset: this.isSuperset
+      isSuperset: this.isSuperset,
+      originalIndex: this.originalIndex,
+      originalWorkoutSetId: this.originalWorkoutSetId,
+      alreadySaved: this.alreadySaved
     };
   }
 }
 
-// Warmup set - just click to complete, no weight/reps inputs
 export class WarmupSetItem extends BaseSetItem {
   weight?: number;
-  reps: number;
+  reps!: number;
   setType = 'warmup' as const;
 
   constructor(data: SetData & { weight?: number; reps: number }) {
@@ -113,7 +160,12 @@ export class WarmupSetItem extends BaseSetItem {
   }
 
   override get showCompletedData(): boolean {
-    return false;
+    return true;
+  }
+
+  override getCompletedDisplay(): Array<{ text: string; className?: string } | { isTimestamp: true; time: Date }> {
+    if (!this.completedAt) return [];
+    return [{ isTimestamp: true, time: this.completedAt }];
   }
 
   override get setDisplayLabel(): string {
@@ -121,11 +173,10 @@ export class WarmupSetItem extends BaseSetItem {
   }
 }
 
-// Normal working set (with weight)
 export class NormalSetItem extends BaseSetItem {
   weight?: number;
-  reps: number;
- setType = 'normal' as const;
+  reps!: number;
+  setType = 'normal' as const;
 
   constructor(data: SetData & { weight?: number; reps: number }) {
     super();
@@ -141,10 +192,9 @@ export class NormalSetItem extends BaseSetItem {
   }
 }
 
-// Bodyweight set - no weight, just reps
 export class BodyweightSetItem extends BaseSetItem {
-  weight?: number; // Not used for bodyweight, but required by base class
-  reps: number;
+  weight?: number;
+  reps!: number;
   setType = 'bodyweight' as const;
   override isBodyweight = true;
 
@@ -164,16 +214,21 @@ export class BodyweightSetItem extends BaseSetItem {
   override get showWeightInput(): boolean {
     return false;
   }
+
+  override getCompletedDisplay(): Array<{ text: string; className?: string } | { isTimestamp: true; time: Date }> {
+    const display: Array<{ text: string; className?: string } | { isTimestamp: true; time: Date }> = [];
+    display.push({ text: `${this.reps} reps`, className: 'text-gray-600' });
+    if (this.completedAt) {
+      display.push({ isTimestamp: true, time: this.completedAt });
+    }
+    return display;
+  }
 }
 
-// Dropdown set - ONE item that contains multiple sub-sets (rows)
-// Each sub-set has its own weight/reps. Completing the dropdown completes all sub-sets.
 export class DropdownSetItem extends BaseSetItem {
   weight?: number;
-  reps: number; // Not used directly, each sub-set has its own reps
+  reps!: number;
   setType = 'dropdown' as const;
-
-  // Sub-sets: working set + drops, each with weight/reps
   subSets: Array<{ weight: number; reps: number; completed: boolean; completedAt?: Date }>;
 
   constructor(data: SetData & {
@@ -183,8 +238,10 @@ export class DropdownSetItem extends BaseSetItem {
   }) {
     super();
     Object.assign(this, data);
-    this.isBodyweight = false; // Dropdown sets always have weight
+    this.isBodyweight = false;
     this.subSets = data.subSets || [];
+    this.weight = this.subSets[0]?.weight;
+    this.reps = this.subSets[0]?.reps || 10;
   }
 
   override get badgeLabel(): string {
@@ -195,24 +252,104 @@ export class DropdownSetItem extends BaseSetItem {
     return 'bg-purple-100 text-purple-700';
   }
 
-  // Total number of sub-sets
   get totalSubSets(): number {
     return this.subSets.length;
   }
 
-  // How many sub-sets are completed
   get completedSubSets(): number {
     return this.subSets.filter(s => s.completed).length;
   }
 
-  // All sub-sets completed
   get allSubSetsCompleted(): boolean {
     return this.subSets.every(s => s.completed);
   }
 
-  // For display - show the currently relevant data
+  override get isFullyCompleted(): boolean {
+    return this.allSubSetsCompleted;
+  }
+
+  override markCompleted(): this {
+    const now = new Date();
+    const completedSubSets = this.subSets.map(subSet => ({
+      ...subSet,
+      completed: true,
+      completedAt: now
+    }));
+    return this.withChanges({ subSets: completedSubSets, completed: true, completedAt: now } as any);
+  }
+
+  override markUncompleted(): this {
+    const uncompletedSubSets = this.subSets.map(subSet => ({
+      ...subSet,
+      completed: false,
+      completedAt: undefined
+    }));
+    return this.withChanges({ subSets: uncompletedSubSets, completed: false, completedAt: undefined } as any);
+  }
+
+  override applyFormAndComplete(form: SetFormData): this {
+    const now = new Date();
+    const subSetsToUse = form.subSets || this.subSets;
+    const updatedSubSets = subSetsToUse.map((subSet, idx) => ({
+      ...subSet,
+      weight: idx === 0 ? (form.weight ?? subSet.weight) : subSet.weight,
+      reps: form.reps,
+      completed: true,
+      completedAt: now
+    }));
+    return this.withChanges({ subSets: updatedSubSets, completed: true, completedAt: now, alreadySaved: undefined } as any);
+  }
+
+  override getLastUsedData(form: SetFormData): LastUsedData {
+    return {
+      weight: form.weight,
+      reps: form.reps,
+      subSets: (form.subSets || this.subSets).map(s => ({ weight: s.weight, reps: s.reps }))
+    };
+  }
+
+  override getCompletedDisplay(): Array<{ text: string; className?: string } | { isTimestamp: true; time: Date }> {
+    const display: Array<{ text: string; className?: string } | { isTimestamp: true; time: Date }> = [];
+    this.subSets.forEach(subSet => {
+      display.push({ text: `${subSet.weight}kg x ${subSet.reps}`, className: 'text-gray-600' });
+    });
+    if (this.completedAt) {
+      display.push({ isTimestamp: true, time: this.completedAt });
+    }
+    return display;
+  }
+
   override get showCompletedData(): boolean {
     return this.subSets.some(s => s.completed);
+  }
+
+  override getInitialForm(lastUsed?: LastUsedData): SetFormData {
+    let subSetsToUse = this.subSets;
+    if (lastUsed?.subSets && lastUsed.subSets.length === this.subSets.length) {
+      const savedSubSets = lastUsed.subSets;
+      subSetsToUse = this.subSets.map((subSet, idx) => ({
+        ...subSet,
+        weight: savedSubSets[idx]?.weight ?? subSet.weight,
+        reps: savedSubSets[idx]?.reps ?? subSet.reps
+      }));
+    }
+    return {
+      weight: lastUsed?.weight ?? subSetsToUse[0]?.weight,
+      reps: lastUsed?.reps ?? subSetsToUse[0]?.reps ?? 10,
+      subSets: subSetsToUse
+    };
+  }
+
+  override toWorkoutSets(startTime: Date): WorkoutSet[] {
+    if (!this.completed) return [];
+    return [{
+      id: this.originalWorkoutSetId || this.id,
+      exerciseId: this.exerciseId,
+      setType: 'normal',
+      weight: this.subSets[0]?.weight,
+      reps: this.subSets[0]?.reps || 10,
+      loggedAt: this.completedAt || startTime
+    }];
   }
 
   override toPlain(): any {
@@ -223,10 +360,8 @@ export class DropdownSetItem extends BaseSetItem {
   }
 }
 
-// Type union for all set item types
 export type SetItem = WarmupSetItem | NormalSetItem | BodyweightSetItem | DropdownSetItem;
 
-// Factory function to create the right SetItem type from plain data
 export function createSetItem(data: any): SetItem {
   if (data.setType === 'warmup') return new WarmupSetItem(data);
   if (data.setType === 'bodyweight') return new BodyweightSetItem(data);
@@ -234,7 +369,6 @@ export function createSetItem(data: any): SetItem {
   return new NormalSetItem(data);
 }
 
-// Convert plain array to SetItem array
 export function createSetItems(dataArray: any[]): SetItem[] {
   return dataArray.map(createSetItem);
 }

@@ -23,6 +23,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
   const [equipmentInput, setEquipmentInput] = useState('');
   const [instructions, setInstructions] = useState<string[]>(exercise?.instructions || []);
   const [instructionInput, setInstructionInput] = useState('');
+  const [bodyweight, setBodyweight] = useState(exercise?.bodyweight || false);
 
   // AI auto-fill state
   const [aiDescription, setAiDescription] = useState('');
@@ -97,7 +98,8 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
       category,
       muscleGroups,
       equipment,
-      instructions
+      instructions,
+      bodyweight
     };
 
     if (exercise) {
@@ -228,6 +230,20 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
           ))}
         </div>
         <p className="text-xs text-gray-500 mt-1">Leave empty for bodyweight exercises</p>
+      </div>
+
+      {/* Bodyweight Checkbox */}
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="bodyweight"
+          checked={bodyweight}
+          onChange={e => setBodyweight(e.target.checked)}
+          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        />
+        <label htmlFor="bodyweight" className="text-sm font-medium text-gray-700">
+          Bodyweight exercise (e.g., pull-ups, dips, push-ups)
+        </label>
       </div>
 
       {/* Instructions */}
