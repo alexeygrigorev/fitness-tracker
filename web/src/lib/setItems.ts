@@ -55,7 +55,7 @@ export abstract class BaseSetItem implements SetData {
   }
 
   get setDisplayLabel(): string {
-    return `Set ${this.setNumber}`;
+    return `${this.setNumber}`;
   }
 
   // Clone with new values
@@ -125,7 +125,7 @@ export class WarmupSetItem extends BaseSetItem {
 export class NormalSetItem extends BaseSetItem {
   weight?: number;
   reps: number;
-  setType = 'normal' as const;
+ setType = 'normal' as const;
 
   constructor(data: SetData & { weight?: number; reps: number }) {
     super();
@@ -166,35 +166,25 @@ export class BodyweightSetItem extends BaseSetItem {
   }
 }
 
-// Dropdown set - ONE item that contains working set + multiple drops internally
+// Dropdown set - ONE item that contains multiple sub-sets (rows)
+// Each sub-set has its own weight/reps. Completing the dropdown completes all sub-sets.
 export class DropdownSetItem extends BaseSetItem {
   weight?: number;
-  reps: number;
+  reps: number; // Not used directly, each sub-set has its own reps
   setType = 'dropdown' as const;
 
-  // Working set data
-  workingWeight?: number;
-  workingReps: number;
-  workingCompleted: boolean;
-
-  // Drops data (internal to this item)
-  drops: Array<{ weight: number; reps: number; completed: boolean }>;
+  // Sub-sets: working set + drops, each with weight/reps
+  subSets: Array<{ weight: number; reps: number; completed: boolean; completedAt?: Date }>;
 
   constructor(data: SetData & {
     weight?: number;
     reps: number;
-    workingWeight?: number;
-    workingReps: number;
-    workingCompleted: boolean;
-    drops: Array<{ weight: number; reps: number; completed: boolean }>;
+    subSets: Array<{ weight: number; reps: number; completed: boolean; completedAt?: Date }>;
   }) {
     super();
     Object.assign(this, data);
     this.isBodyweight = false; // Dropdown sets always have weight
-    this.workingWeight = data.workingWeight ?? data.weight;
-    this.workingReps = data.workingReps ?? data.reps;
-    this.workingCompleted = data.workingCompleted ?? false;
-    this.drops = data.drops || [];
+    this.subSets = data.subSets || [];
   }
 
   override get badgeLabel(): string {
@@ -205,34 +195,30 @@ export class DropdownSetItem extends BaseSetItem {
     return 'bg-purple-100 text-purple-700';
   }
 
-  // Total sets (working + drops)
-  get totalSets(): number {
-    return 1 + this.drops.length;
+  // Total number of sub-sets
+  get totalSubSets(): number {
+    return this.subSets.length;
   }
 
-  // How many are completed
-  get completedCount(): number {
-    let count = this.workingCompleted ? 1 : 0;
-    count += this.drops.filter(d => d.completed).length;
-    return count;
+  // How many sub-sets are completed
+  get completedSubSets(): number {
+    return this.subSets.filter(s => s.completed).length;
   }
 
-  get allCompleted(): boolean {
-    return this.completedCount === this.totalSets;
+  // All sub-sets completed
+  get allSubSetsCompleted(): boolean {
+    return this.subSets.every(s => s.completed);
   }
 
   // For display - show the currently relevant data
   override get showCompletedData(): boolean {
-    return this.workingCompleted || this.drops.some(d => d.completed);
+    return this.subSets.some(s => s.completed);
   }
 
   override toPlain(): any {
     return {
       ...super.toPlain(),
-      workingWeight: this.workingWeight,
-      workingReps: this.workingReps,
-      workingCompleted: this.workingCompleted,
-      drops: this.drops
+      subSets: this.subSets
     };
   }
 }
