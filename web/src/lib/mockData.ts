@@ -4,16 +4,16 @@ const d = Date.now();
 const day = 86400000;
 
 export const mockExercises: Exercise[] = [
-  {id:'ex1',name:'Barbell Bench Press',category:'compound',muscleGroups:['chest','triceps','shoulders'],equipment:['barbell','bench'],difficulty:'intermediate',instructions:['Lie flat on bench','Grip bar wider than shoulders','Lower to mid-chest','Press up']},
-  {id:'ex2',name:'Barbell Squat',category:'compound',muscleGroups:['quads','glutes','hamstrings'],equipment:['barbell','rack'],difficulty:'intermediate',instructions:['Position bar on back','Squat to parallel','Drive through heels']},
-  {id:'ex3',name:'Deadlift',category:'compound',muscleGroups:['back','glutes','hamstrings'],equipment:['barbell'],difficulty:'advanced',instructions:['Stand feet hip-width','Grip bar outside legs','Drive through heels']},
-  {id:'ex4',name:'Pull-up',category:'compound',muscleGroups:['back','biceps'],equipment:['bar'],difficulty:'intermediate',instructions:['Hang from bar','Pull chin over bar','Lower with control']},
-  {id:'ex5',name:'Overhead Press',category:'compound',muscleGroups:['shoulders','triceps'],equipment:['barbell','rack'],difficulty:'intermediate',instructions:['Press bar overhead','Lower to shoulders']},
-  {id:'ex6',name:'Dumbbell Curl',category:'isolation',muscleGroups:['biceps'],equipment:['dumbbells'],difficulty:'beginner',instructions:['Curl dumbbell to shoulder','Lower with control']},
-  {id:'ex7',name:'Tricep Pushdown',category:'isolation',muscleGroups:['triceps'],equipment:['cable'],difficulty:'beginner',instructions:['Push cable down','Return slowly']},
-  {id:'ex8',name:'Running Intervals',category:'cardio',muscleGroups:['quads','hamstrings','calves'],equipment:[],difficulty:'intermediate',instructions:['Warm up with light jog','Alternate 30s sprint with 90s jog','Cool down with light jog']},
-  {id:'ex9',name:'Running Recovery',category:'cardio',muscleGroups:['quads','hamstrings','calves'],equipment:[],difficulty:'beginner',instructions:['Keep easy conversational pace','Focus on staying relaxed','Use for active recovery']},
-  {id:'ex10',name:'Running Long',category:'cardio',muscleGroups:['quads','hamstrings','calves'],equipment:[],difficulty:'intermediate',instructions:['Maintain steady pace','Stay hydrated','Focus on breathing']}
+  {id:'ex1',name:'Barbell Bench Press',category:'compound',muscleGroups:['chest','triceps','shoulders'],equipment:['barbell','bench'],instructions:['Lie flat on bench','Grip bar wider than shoulders','Lower to mid-chest','Press up']},
+  {id:'ex2',name:'Barbell Squat',category:'compound',muscleGroups:['quads','glutes','hamstrings'],equipment:['barbell','rack'],instructions:['Position bar on back','Squat to parallel','Drive through heels']},
+  {id:'ex3',name:'Deadlift',category:'compound',muscleGroups:['back','glutes','hamstrings'],equipment:['barbell'],instructions:['Stand feet hip-width','Grip bar outside legs','Drive through heels']},
+  {id:'ex4',name:'Pull-up',category:'compound',muscleGroups:['back','biceps'],equipment:['bar'],instructions:['Hang from bar','Pull chin over bar','Lower with control']},
+  {id:'ex5',name:'Overhead Press',category:'compound',muscleGroups:['shoulders','triceps'],equipment:['barbell','rack'],instructions:['Press bar overhead','Lower to shoulders']},
+  {id:'ex6',name:'Dumbbell Curl',category:'isolation',muscleGroups:['biceps'],equipment:['dumbbells'],instructions:['Curl dumbbell to shoulder','Lower with control']},
+  {id:'ex7',name:'Tricep Pushdown',category:'isolation',muscleGroups:['triceps'],equipment:['cable'],instructions:['Push cable down','Return slowly']},
+  {id:'ex8',name:'Running Intervals',category:'cardio',muscleGroups:['quads','hamstrings','calves'],equipment:[],instructions:['Warm up with light jog','Alternate 30s sprint with 90s jog','Cool down with light jog']},
+  {id:'ex9',name:'Running Recovery',category:'cardio',muscleGroups:['quads','hamstrings','calves'],equipment:[],instructions:['Keep easy conversational pace','Focus on staying relaxed','Use for active recovery']},
+  {id:'ex10',name:'Running Long',category:'cardio',muscleGroups:['quads','hamstrings','calves'],equipment:[],instructions:['Maintain steady pace','Stay hydrated','Focus on breathing']}
 ];
 
 export const mockFoodItems: FoodItem[] = [
@@ -98,10 +98,10 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Upper Body A',
     dayLabel:'Monday',
     exercises:[
-      {id:'p1e1', exerciseId:'ex1', type:'normal', sets:4},
-      {id:'p1e2', exerciseId:'ex5', type:'normal', sets:4},
-      {id:'p1e3', exerciseId:'ex7', type:'normal', sets:3},
-      {id:'p1e4', exerciseId:'ex4', type:'dropdown', sets:3, dropdowns: 2}
+      {id:'p1e1', exerciseId:'ex1', type:'normal', sets:4, warmup:false},
+      {id:'p1e2', exerciseId:'ex5', type:'normal', sets:4, warmup:false},
+      {id:'p1e3', exerciseId:'ex7', type:'normal', sets:3, warmup:false},
+      {id:'p1e4', exerciseId:'ex4', type:'dropdown', sets:3, dropdowns: 2, warmup:false}
     ],
     tags:['strength'],
     status:'active'
@@ -111,8 +111,8 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Lower Body A',
     dayLabel:'Tuesday',
     exercises:[
-      {id:'p2e1', exerciseId:'ex2', type:'normal', sets:5},
-      {id:'p2e2', exerciseId:'ex3', type:'normal', sets:3}
+      {id:'p2e1', exerciseId:'ex2', type:'normal', sets:5, warmup:false},
+      {id:'p2e2', exerciseId:'ex3', type:'normal', sets:3, warmup:false}
     ],
     tags:['strength'],
     status:'active'
@@ -122,10 +122,10 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Upper Body B',
     dayLabel:'Thursday',
     exercises:[
-      {id:'p3e1', exerciseId:'ex4', type:'normal', sets:4},
-      {id:'p3e2', exerciseId:'ex6', type:'normal', sets:3},
-      {id:'p3e3', exerciseId:'ex1', type:'dropdown', sets:3, dropdowns: 2},
-      {id:'p3e4', exerciseId:'ex5', type:'normal', sets:3}
+      {id:'p3e1', exerciseId:'ex4', type:'normal', sets:4, warmup:false},
+      {id:'p3e2', exerciseId:'ex6', type:'normal', sets:3, warmup:false},
+      {id:'p3e3', exerciseId:'ex1', type:'dropdown', sets:3, dropdowns: 2, warmup:false},
+      {id:'p3e4', exerciseId:'ex5', type:'normal', sets:3, warmup:false}
     ],
     tags:['strength'],
     status:'active'
@@ -135,8 +135,8 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Lower Body B',
     dayLabel:'Friday',
     exercises:[
-      {id:'p4e1', exerciseId:'ex3', type:'normal', sets:4},
-      {id:'p4e2', exerciseId:'ex2', type:'normal', sets:4}
+      {id:'p4e1', exerciseId:'ex3', type:'normal', sets:4, warmup:false},
+      {id:'p4e2', exerciseId:'ex2', type:'normal', sets:4, warmup:false}
     ],
     tags:['strength'],
     status:'active'
@@ -146,9 +146,9 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Push Day',
     dayLabel:'Monday',
     exercises:[
-      {id:'p5e1', exerciseId:'ex1', type:'dropdown', sets:4, dropdowns: 2},
-      {id:'p5e2', exerciseId:'ex5', type:'normal', sets:4},
-      {id:'p5e3', exerciseId:'ex7', type:'normal', sets:3}
+      {id:'p5e1', exerciseId:'ex1', type:'dropdown', sets:4, dropdowns: 2, warmup:false},
+      {id:'p5e2', exerciseId:'ex5', type:'normal', sets:4, warmup:false},
+      {id:'p5e3', exerciseId:'ex7', type:'normal', sets:3, warmup:false}
     ],
     tags:['strength'],
     status:'active'
@@ -158,8 +158,8 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Pull Day',
     dayLabel:'Wednesday',
     exercises:[
-      {id:'p6e1', exerciseId:'ex4', type:'normal', sets:4},
-      {id:'p6e2', exerciseId:'ex6', type:'normal', sets:4}
+      {id:'p6e1', exerciseId:'ex4', type:'normal', sets:4, warmup:false},
+      {id:'p6e2', exerciseId:'ex6', type:'normal', sets:4, warmup:false}
     ],
     tags:['strength'],
     status:'active'
@@ -169,8 +169,8 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Legs Day',
     dayLabel:'Friday',
     exercises:[
-      {id:'p7e1', exerciseId:'ex2', type:'normal', sets:5},
-      {id:'p7e2', exerciseId:'ex3', type:'dropdown', sets:3, dropdowns: 2}
+      {id:'p7e1', exerciseId:'ex2', type:'normal', sets:5, warmup:false},
+      {id:'p7e2', exerciseId:'ex3', type:'dropdown', sets:3, dropdowns: 2, warmup:false}
     ],
     tags:['strength'],
     status:'active'
@@ -180,7 +180,7 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Running Intervals',
     dayLabel:'Wednesday',
     exercises:[
-      {id:'p8e1', exerciseId:'ex8', type:'normal', sets:8}
+      {id:'p8e1', exerciseId:'ex8', type:'normal', sets:8, warmup:false}
     ],
     tags:['cardio'],
     status:'active'
@@ -190,7 +190,7 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Running Recovery',
     dayLabel:'Sunday',
     exercises:[
-      {id:'p9e1', exerciseId:'ex9', type:'normal', sets:1}
+      {id:'p9e1', exerciseId:'ex9', type:'normal', sets:1, warmup:false}
     ],
     tags:['cardio'],
     status:'active'
@@ -200,7 +200,7 @@ export const mockWorkoutPresets: WorkoutPreset[] = [
     name:'Running Long',
     dayLabel:'Saturday',
     exercises:[
-      {id:'p10e1', exerciseId:'ex10', type:'normal', sets:1}
+      {id:'p10e1', exerciseId:'ex10', type:'normal', sets:1, warmup:false}
     ],
     tags:['cardio'],
     status:'active'
