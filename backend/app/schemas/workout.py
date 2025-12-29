@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Union
 from datetime import datetime
 
 
@@ -46,6 +46,7 @@ class WorkoutPresetExercise(BaseModel):
     reps: Optional[int] = None
     dropdowns: Optional[int] = None
     exercises: Optional[List["WorkoutPresetExercise"]] = None  # For superset
+    warmup: Optional[bool] = False  # Whether to add warmup sets
 
 
 class WorkoutPreset(BaseModel):
@@ -57,3 +58,84 @@ class WorkoutPreset(BaseModel):
     dayLabel: Optional[str] = None  # Day of week label
 
     model_config = {"from_attributes": True}
+
+
+# Active workout state persistence
+class ActiveWorkoutState(BaseModel):
+    """State for an active workout being tracked"""
+    preset: WorkoutPreset
+    setRows: List[dict] = Field(default_factory=list, description="Serialized set items")
+    startTime: datetime
+    workoutSessionId: Optional[str] = None
+    lastUsed: dict = Field(default_factory=dict, description="Last used weight/reps per exercise")
+
+    model_config = {"from_attributes": True}
+
+
+class ActiveWorkoutUpdate(BaseModel):
+    """Update active workout state"""
+    preset: Optional[WorkoutPreset] = None
+    setRows: Optional[List[dict]] = None
+    startTime: Optional[datetime] = None
+    workoutSessionId: Optional[str] = None
+    lastUsed: Optional[dict] = None
+
+
+class CalculateVolumeRequest(BaseModel):
+    """Request to calculate total volume from sets"""
+    sets: List[WorkoutSet]
+
+
+class CalculateVolumeResponse(BaseModel):
+    """Response with calculated volume"""
+    totalVolume: float
+    completedSets: int
+    totalSets: int
+
+
+class BuildWorkoutFromPresetRequest(BaseModel):
+    """Request to build set rows from a preset"""
+    preset: WorkoutPreset
+    exercises: List[dict] = Field(default_factory=list, description="Available exercises with id, name, bodyweight, equipment")
+
+
+class SetRowItem(BaseModel):
+    """A single set row item (can be normal, warmup, bodyweight, or dropdown)"""
+    id: str
+    exerciseId: str
+    exerciseName: str
+    setNumber: int
+    setType: Literal["normal", "warmup", "bodyweight", "dropdown"]
+    weight: Optional[float] = None
+    reps: int
+    completed: bool = False
+    isBodyweight: bool = False
+    suggestedWeight: Optional[float] = None
+    isExtra: bool = False
+    isSuperset: bool = False
+    originalIndex: Optional[int] = None
+    # For dropdown sets
+    subSets: Optional[List[dict]] = None  # List of {weight, reps, completed, completedAt}
+
+    model_config = {"from_attributes": True}
+
+
+class BuildWorkoutResponse(BaseModel):
+    """Response with built set rows"""
+    setRows: List[SetRowItem]
+
+
+class AnalyzeExerciseRequest(BaseModel):
+    """Request to analyze an exercise from description or images"""
+    description: str
+
+
+class AnalyzeExerciseResponse(BaseModel):
+    """Response with analyzed exercise data"""
+    name: str
+    category: Literal["compound", "isolation", "cardio"]
+    muscleGroups: List[str]
+    equipment: List[str]
+    instructions: List[str]
+    bodyweight: Optional[bool] = False
+    confidence: float = Field(default=0.5, ge=0, le=1)

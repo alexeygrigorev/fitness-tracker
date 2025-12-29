@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { dailySummaryApi } from '../lib/api';
-import type { DailySummary } from '../lib/types';
+import { dailySummaryApi } from '../api';
+import type { DailySummary } from '../types';
 
 export default function Dashboard() {
   const [summary, setSummary] = useState<DailySummary | null>(null);

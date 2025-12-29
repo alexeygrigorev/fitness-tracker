@@ -4,10 +4,11 @@ from typing import List, Literal, Optional
 
 class ExerciseBase(BaseModel):
     name: str
-    category: Literal["compound", "isolation"]
+    category: Literal["compound", "isolation", "cardio"]
     muscleGroups: List[str]
     equipment: List[str]
-    instructions: str
+    instructions: List[str]
+    bodyweight: Optional[bool] = False
 
 
 class ExerciseCreate(ExerciseBase):
@@ -16,10 +17,11 @@ class ExerciseCreate(ExerciseBase):
 
 class ExerciseUpdate(BaseModel):
     name: Optional[str] = None
-    category: Optional[Literal["compound", "isolation"]] = None
+    category: Optional[Literal["compound", "isolation", "cardio"]] = None
     muscleGroups: Optional[List[str]] = None
     equipment: Optional[List[str]] = None
-    instructions: Optional[str] = None
+    instructions: Optional[List[str]] = None
+    bodyweight: Optional[bool] = None
 
 
 class Exercise(ExerciseBase):

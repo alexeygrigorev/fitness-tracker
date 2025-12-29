@@ -9,6 +9,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './tests/setup.ts',
     css: true,
+    // Use single thread to avoid OOM
+    pool: 'threads',
+    singleThread: true,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json'],

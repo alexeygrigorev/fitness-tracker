@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheck, faClock, faTrash } from '@fortawesome/free-solid-svg-icons';
-import type { SetItem } from '../lib/setItems';
-import { DropdownSetItem } from '../lib/setItems';
+import type { SetItem } from '../workout/setItems';
+import { DropdownSetItem } from '../workout/setItems';
 
 export interface SetForm {
   weight?: number;

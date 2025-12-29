@@ -10,6 +10,8 @@
     "test:e2e": "vitest run e2e",
     "test:e2e:watch": "vitest e2e",
     "test:api": "vitest run api-connectivity",
+    "test:api:full": "run-api-tests.bat",
+    "test:e2e:full": "run-e2e.bat",
     "test:coverage": "vitest --coverage",
     "install:browsers": "playwright install chromium"
   },

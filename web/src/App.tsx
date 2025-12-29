@@ -1,17 +1,17 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartBar, faDumbbell, faAppleWhole, faBed, faBolt, faUser, faWeightScale, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import { Link, NavLink, useLocation, Routes, Route } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from '@/auth/AuthContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
-import Exercises from './pages/Exercises';
-import Nutrition from './pages/Nutrition';
-import Sleep from './pages/Sleep';
-import Metabolism from './pages/Metabolism';
+import ExercisesPage from '@/workout/ExercisesPage';
+import NutritionPage from '@/food/NutritionPage';
+import SleepPage from '@/health/SleepPage';
+import MetabolismPage from '@/health/MetabolismPage';
 import Profile from './pages/Profile';
 import Weight from './pages/Weight';
-import Login from './pages/Login';
-import Register from './pages/Register';
+import LoginPage from '@/auth/LoginPage';
+import RegisterPage from '@/auth/RegisterPage';
 
 type Tab = 'dashboard' | 'exercises' | 'nutrition' | 'sleep' | 'metabolism' | 'profile' | 'weight';
 
@@ -28,14 +28,21 @@ const tabs = [
 function App() {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const currentTab = (location.pathname.slice(1) || 'dashboard') as Tab;
+  // Map pathname to Tab - /workouts maps to 'exercises'
+  const getPathTab = (): Tab => {
+    const path = location.pathname;
+    if (path === '/' || path === '') return 'dashboard';
+    if (path.startsWith('/workouts')) return 'exercises';
+    return path.slice(1) as Tab;
+  };
+  const currentTab = getPathTab();
 
   // Auth pages (login/register) have their own layout
   if (location.pathname === '/login' || location.pathname === '/register') {
     return (
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Routes>
     );
   }
@@ -60,15 +67,15 @@ function App() {
                     <NavLink
                       key={tab.id}
                       to={path}
-                    className={({ isActive }) =>
-                      isActive
-                        ? 'px-3 py-2 rounded-md text-sm font-medium transition-colors bg-blue-100 text-blue-700'
-                        : 'px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100'
-                    }
-                  >
-                    <FontAwesomeIcon icon={tab.icon} className="mr-1" />
-                    {tab.label}
-                  </NavLink>
+                      className={({ isActive }) =>
+                        isActive
+                          ? 'px-3 py-2 rounded-md text-sm font-medium transition-colors bg-blue-100 text-blue-700'
+                          : 'px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100'
+                      }
+                    >
+                      <FontAwesomeIcon icon={tab.icon} className="mr-1" />
+                      {tab.label}
+                    </NavLink>
                   );
                 })}
               </nav>
@@ -90,10 +97,10 @@ function App() {
       <main className="max-w-6xl mx-auto px-4 py-6">
         <ProtectedRoute>
           {currentTab === 'dashboard' && <Dashboard />}
-          {(currentTab === 'workouts' || currentTab.startsWith('workouts/')) && <Exercises />}
-          {currentTab === 'nutrition' && <Nutrition />}
-          {currentTab === 'sleep' && <Sleep />}
-          {currentTab === 'metabolism' && <Metabolism />}
+          {(currentTab === 'exercises' || currentTab.startsWith('exercises/')) && <ExercisesPage />}
+          {currentTab === 'nutrition' && <NutritionPage />}
+          {currentTab === 'sleep' && <SleepPage />}
+          {currentTab === 'metabolism' && <MetabolismPage />}
           {currentTab === 'weight' && <Weight />}
           {currentTab === 'profile' && <Profile />}
         </ProtectedRoute>

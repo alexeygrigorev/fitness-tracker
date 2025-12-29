@@ -15,7 +15,7 @@ MOCK_EXERCISES: List[Exercise] = [
         category="compound",
         muscleGroups=["chest", "triceps", "shoulders"],
         equipment=["barbell", "bench"],
-        instructions="Lie on bench, grip bar, lower to chest, press up."
+        instructions=["Lie on bench", "Grip bar", "Lower to chest", "Press up"]
     ),
     Exercise(
         id="ex-2",
@@ -23,7 +23,7 @@ MOCK_EXERCISES: List[Exercise] = [
         category="compound",
         muscleGroups=["quads", "glutes", "hamstrings"],
         equipment=["barbell", "rack"],
-        instructions="Stand with bar on shoulders, squat down, stand up."
+        instructions=["Stand with bar on shoulders", "Squat down", "Stand up"]
     ),
     Exercise(
         id="ex-3",
@@ -31,7 +31,7 @@ MOCK_EXERCISES: List[Exercise] = [
         category="compound",
         muscleGroups=["back", "glutes", "hamstrings"],
         equipment=["barbell"],
-        instructions="Stand with bar in front, bend at hips, grip bar, stand up straight."
+        instructions=["Stand with bar in front", "Bend at hips", "Grip bar", "Stand up straight"]
     ),
     Exercise(
         id="ex-4",
@@ -39,7 +39,7 @@ MOCK_EXERCISES: List[Exercise] = [
         category="compound",
         muscleGroups=["back", "biceps"],
         equipment=["bar"],
-        instructions="Hang from bar, pull yourself up until chin passes bar."
+        instructions=["Hang from bar", "Pull yourself up until chin passes bar"]
     ),
     Exercise(
         id="ex-5",
@@ -47,7 +47,7 @@ MOCK_EXERCISES: List[Exercise] = [
         category="compound",
         muscleGroups=["shoulders", "triceps"],
         equipment=["barbell", "rack"],
-        instructions="Stand with bar at shoulders, press overhead until arms are extended."
+        instructions=["Stand with bar at shoulders", "Press overhead until arms are extended"]
     ),
     Exercise(
         id="ex-6",
@@ -55,7 +55,7 @@ MOCK_EXERCISES: List[Exercise] = [
         category="isolation",
         muscleGroups=["biceps"],
         equipment=["dumbbells"],
-        instructions="Hold dumbbells at sides, curl up, lower slowly."
+        instructions=["Hold dumbbells at sides", "Curl up", "Lower slowly"]
     ),
     Exercise(
         id="bw-1",
@@ -63,7 +63,7 @@ MOCK_EXERCISES: List[Exercise] = [
         category="compound",
         muscleGroups=["chest", "triceps"],
         equipment=[],
-        instructions="Start in plank position, lower chest to floor, push back up."
+        instructions=["Start in plank position", "Lower chest to floor", "Push back up"]
     ),
 ]
 
