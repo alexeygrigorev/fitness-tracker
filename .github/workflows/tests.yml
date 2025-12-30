@@ -48,10 +48,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run schema integration tests
+      - name: Run integration tests
         run: |
-          docker compose -f docker-compose.test.yml --profile schema up --abort-on-container-exit --build
-
-      - name: Run e2e tests
-        run: |
-          docker compose -f docker-compose.test.yml --profile e2e up --abort-on-container-exit --build
+          docker compose -f docker-compose.test.yml --profile tests up --abort-on-container-exit --build
