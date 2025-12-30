@@ -56,7 +56,7 @@ class WorkoutPresetExerciseAdmin(admin.ModelAdmin):
 
 @admin.register(WorkoutSession)
 class WorkoutSessionAdmin(admin.ModelAdmin):
-    list_display = ["id", "name", "user", "date"]
+    list_display = ["id", "name", "user", "created_at"]
 
 
 @admin.register(WorkoutSet)

@@ -20,12 +20,10 @@ def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], ses
 
     for preset_ex in preset_exercises:
         if preset_ex.type == "superset":
-            superset_items = preset_ex.superset_exercises
-            if not superset_items:
+            if not preset_ex.superset_exercises:
                 continue
-
-            first_item = superset_items[0]
-            number_of_sets = first_item.sets
+            
+            superset_items = list(preset_ex.superset_exercises)
 
             # Warmup sets
             for sup_item in superset_items:
@@ -33,7 +31,7 @@ def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], ses
                     exercise = sup_item.exercise
                     bodyweight = exercise.is_bodyweight
                     set_type = "bodyweight" if bodyweight else "normal"
-                    weight = None if bodyweight else int(base_weight * 0.5)
+                    weight = None  # Warmup sets have no weight
 
                     sets.append(WorkoutSet(
                         session=session,
@@ -47,6 +45,8 @@ def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], ses
                     set_order += 1
 
             # Round robin sets
+            number_of_sets = preset_ex.sets
+
             for _ in range(number_of_sets):
                 for sup_item in superset_items:
                     exercise = sup_item.exercise
@@ -73,7 +73,7 @@ def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], ses
             # Warmup
             if preset_ex.include_warmup:
                 set_type = "bodyweight" if bodyweight else "normal"
-                weight = None if bodyweight else int(base_weight * 0.5)
+                weight = None  # Warmup sets have no weight
 
                 sets.append(WorkoutSet(
                     session=session,
