@@ -115,18 +115,13 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
             user=request.user,
             preset=preset,
             name=preset.name,
-            notes=preset.notes,
-            date=datetime.now()
+            notes=preset.notes
         )
 
         # Prefetch and convert to list
         preset_exercises = list(preset.exercises.prefetch_related(
-            Prefetch("superset_exercises__exercise")
+            "superset_exercises__exercise"
         ).order_by("order"))
-
-        # Attach superset_exercises as list
-        for pe in preset_exercises:
-            pe.superset_exercises = list(pe.superset_exercises.all().order_by("order"))
 
         # Generate WorkoutSet instances (unsaved)
         sets = generate_sets_from_preset(preset_exercises, session)
