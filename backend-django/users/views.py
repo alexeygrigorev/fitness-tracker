@@ -2,7 +2,13 @@ from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
+from drf_spectacular.utils import extend_schema
 from .models import User
+from .serializers import (
+    UserRegistrationRequestSerializer,
+    UserRegistrationResponseSerializer,
+    UserProfileResponseSerializer
+)
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -18,6 +24,11 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         return response
 
 
+@extend_schema(
+    request=UserRegistrationRequestSerializer,
+    responses={201: UserRegistrationResponseSerializer},
+    description="Register a new user account"
+)
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def register(request):
@@ -42,6 +53,10 @@ def register(request):
     }, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(
+    responses={200: UserProfileResponseSerializer},
+    description="Get current user profile information"
+)
 @api_view(['GET'])
 def me(request):
     return Response({'id': request.user.id, 'username': request.user.username, 'email': request.user.email})

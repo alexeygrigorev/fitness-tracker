@@ -1,6 +1,7 @@
 *.db
 __pycache__/
 .venv
+venv/
 .pytest_cache/
 *.sqlite3
 db.sqlite3

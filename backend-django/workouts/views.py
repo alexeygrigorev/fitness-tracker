@@ -4,11 +4,17 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from datetime import datetime
 from django.db.models import Prefetch, Q
+from drf_spectacular.utils import extend_schema
 from .models import (
     Exercise, WorkoutSession, WorkoutSet, WorkoutPreset,
     WorkoutPresetExercise, WorkoutPlan, WorkoutPlanPreset, SupersetExerciseItem
 )
 from .services import generate_sets_from_preset
+from .serializers import (
+    ExerciseSerializer, WorkoutSetSerializer, WorkoutSessionSerializer,
+    WorkoutPresetSerializer, WorkoutPlanSerializer,
+    VolumeCalculationRequestSerializer, VolumeCalculationResponseSerializer
+)
 
 
 def model_to_dict(instance):
@@ -17,6 +23,7 @@ def model_to_dict(instance):
 
 class ExerciseViewSet(viewsets.ModelViewSet):
     queryset = Exercise.objects.all()
+    serializer_class = ExerciseSerializer
 
     def get_permissions(self):
         if self.action in ["list", "retrieve"]:
@@ -64,6 +71,8 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 
 class WorkoutSetViewSet(viewsets.ModelViewSet):
     """ViewSet for managing individual workout sets (marking complete, updating weight/reps)."""
+    serializer_class = WorkoutSetSerializer
+    
     def get_queryset(self):
         return WorkoutSet.objects.filter(session__user=self.request.user)
 
@@ -89,6 +98,8 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
 
 
 class WorkoutSessionViewSet(viewsets.ModelViewSet):
+    serializer_class = WorkoutSessionSerializer
+    
     def get_queryset(self):
         return WorkoutSession.objects.filter(user=self.request.user)
 
@@ -127,6 +138,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
 
 class WorkoutPresetViewSet(viewsets.ModelViewSet):
+    serializer_class = WorkoutPresetSerializer
+    
     def get_queryset(self):
         # For list action, only return user's own presets
         if self.action == "list":
@@ -273,6 +286,11 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         }, status=201)
 
 
+@extend_schema(
+    request=VolumeCalculationRequestSerializer,
+    responses={200: VolumeCalculationResponseSerializer},
+    description="Calculate total workout volume from a list of sets"
+)
 @api_view(["POST"])
 def calculate_volume(request):
     sets = request.data.get("sets", [])
@@ -298,6 +316,8 @@ def calculate_volume(request):
 
 class WorkoutPlanViewSet(viewsets.ModelViewSet):
     """ViewSet for workout plans - users can create plans and 'use' them to copy presets."""
+    serializer_class = WorkoutPlanSerializer
+    
     def get_queryset(self):
         # For list action, only return user's own plans
         if self.action == "list":
