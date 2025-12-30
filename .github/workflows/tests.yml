@@ -1,4 +1,4 @@
-name: Backend Tests
+name: Tests
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  backend-tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -40,3 +40,18 @@ jobs:
         working-directory: backend-django
         run: |
           uv run pytest -v
+
+  integration-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run schema integration tests
+        run: |
+          docker compose -f docker-compose.test.yml --profile schema up --abort-on-container-exit --build
+
+      - name: Run e2e tests
+        run: |
+          docker compose -f docker-compose.test.yml --profile e2e up --abort-on-container-exit --build

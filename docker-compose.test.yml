@@ -1,13 +1,14 @@
 # Generic Docker Compose for Integration Tests
 #
 # Usage:
-#   docker compose -f docker-compose.test.yml up --build           # Run all tests
-#   docker compose -f docker-compose.test.yml --profile schema up  # Run schema tests only
-#   docker compose -f docker-compose.test.yml --profile e2e up     # Run e2e tests only (future)
+#   docker compose -f docker-compose.test.yml --profile schema up   # Run schema tests
+#   docker compose -f docker-compose.test.yml --profile e2e up     # Run e2e tests
+#   docker compose -f docker-compose.test.yml --profile tests up    # Run all tests
 #
-# From backend-django Makefile:
-#   make test-integration        # Run all tests
-#   make test-integration-schema # Run schema tests only
+# From backend-django:
+#   make test-schema    # Schema tests only
+#   make test-e2e       # E2E tests only
+#   make test-integration # All integration tests
 
 services:
   # ============================================
@@ -27,12 +28,43 @@ services:
       - ALLOWED_HOSTS=*
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
-      interval: 3s
-      timeout: 3s
-      retries: 15
-      start_period: 60s
+      interval: 2s
+      timeout: 2s
+      retries: 20
+      start_period: 40s
     networks:
       - test-network
+
+  # ============================================
+  # E2E Tests (Playwright)
+  # Tests API endpoints - no frontend needed
+  # ============================================
+  e2e-test:
+    image: mcr.microsoft.com/playwright:v1.49.0-jammy
+    container_name: fitness-e2e-test
+    working_dir: /app
+    volumes:
+      - ./web:/app
+    environment:
+      - VITE_API_URL=http://backend:8000
+      - CI=true
+    depends_on:
+      backend:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo '🧪 Fitness Tracker - E2E API Tests' &&
+        echo '===================================' &&
+        echo '' &&
+        npm install &&
+        npx playwright install --with-deps chromium &&
+        npm run test:e2e
+      "
+    networks:
+      - test-network
+    profiles:
+      - e2e
+      - tests
 
   # ============================================
   # Schema Integration Tests
@@ -62,38 +94,6 @@ services:
       - test-network
     profiles:
       - schema
-      - tests
-
-  # ============================================
-  # E2E Tests (Playwright) - Placeholder for future
-  # ============================================
-  e2e-test:
-    image: mcr.microsoft.com/playwright:v1.49.0-jammy
-    container_name: fitness-e2e-test
-    working_dir: /app
-    volumes:
-      - ./web:/app
-      - /app/playwright-report
-      - /app/test-results
-    environment:
-      - VITE_API_URL=http://backend:8000
-      - CI=true
-    depends_on:
-      backend:
-        condition: service_healthy
-    command: >
-      sh -c "
-        echo '🧪 Fitness Tracker - E2E Tests' &&
-        echo '================================' &&
-        echo '' &&
-        npm install &&
-        npx playwright install --with-deps &&
-        npm run test:e2e || true
-      "
-    networks:
-      - test-network
-    profiles:
-      - e2e
       - tests
 
 networks:
