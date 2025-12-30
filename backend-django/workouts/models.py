@@ -95,7 +95,6 @@ class SupersetExerciseItem(models.Model):
     superset = models.ForeignKey(WorkoutPresetExercise, on_delete=models.CASCADE, related_name='superset_exercises')
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='superset_items')
     type = models.CharField(max_length=20, choices=TYPES, default='normal')
-    sets = models.IntegerField(default=3)
     dropdowns = models.IntegerField(null=True, blank=True)
     include_warmup = models.BooleanField(default=False)
     order = models.IntegerField()
@@ -117,7 +116,7 @@ class WorkoutSession(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.name} - {self.date}"
+        return f"{self.name} - {self.created_at}"
 
 
 class WorkoutSet(models.Model):
@@ -134,7 +133,7 @@ class WorkoutSet(models.Model):
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
 
     set_type = models.CharField(max_length=20, choices=SET_TYPES, default='normal')
-    weight = models.DecimalField(null=True, blank=True)
+    weight = models.DecimalField(null=True, blank=True, max_digits=6, decimal_places=2)
     reps = models.IntegerField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 
