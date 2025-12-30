@@ -4,17 +4,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.db.models import Sum, F
 from .models import FoodItem, Meal, MealFoodItem, MealTemplate, MealTemplateFoodItem
-from .serializers import (
-    FoodItemSerializer, MealSerializer, MealFoodItemSerializer,
-    MealTemplateSerializer, MealTemplateFoodItemSerializer,
-    CalculateCaloriesRequestSerializer, DetectCategoryRequestSerializer,
-    CalculateNutritionRequestSerializer, InferMetabolismRequestSerializer
-)
 
+def model_to_dict(instance):
+    return {k: v for k, v in instance.__dict__.items() if not k.startswith("_")}
 
 class FoodItemViewSet(viewsets.ModelViewSet):
-    serializer_class = FoodItemSerializer
-
     def get_queryset(self):
         return FoodItem.objects.filter(
             user=self.request.user
@@ -25,12 +19,58 @@ class FoodItemViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return super().get_permissions()
 
+    def list(self, request, *args, **kwargs):
+        return Response([model_to_dict(obj) for obj in self.get_queryset()])
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(model_to_dict(self.get_object()))
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data["user_id"] = request.user.id
+        data["is_custom"] = True
+        obj = FoodItem.objects.create(**data)
+        return Response(model_to_dict(obj), status=201)
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        for k, v in request.data.items():
+            setattr(obj, k, v)
+        obj.save()
+        return Response(model_to_dict(obj))
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.delete()
+        return Response(status=204)
 
 class MealViewSet(viewsets.ModelViewSet):
-    serializer_class = MealSerializer
-
     def get_queryset(self):
         return Meal.objects.filter(user=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        return Response([model_to_dict(obj) for obj in self.get_queryset()])
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(model_to_dict(self.get_object()))
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data["user_id"] = request.user.id
+        obj = Meal.objects.create(**data)
+        return Response(model_to_dict(obj), status=201)
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        for k, v in request.data.items():
+            setattr(obj, k, v)
+        obj.save()
+        return Response(model_to_dict(obj))
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.delete()
+        return Response(status=204)
 
     @action(detail=False, methods=["get"], url_path="date/(?P<date_str>[^/.]+)")
     def by_date(self, request, date_str=None):
@@ -41,8 +81,7 @@ class MealViewSet(viewsets.ModelViewSet):
             return Response({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
         meals = self.get_queryset().filter(date=date_obj)
-        serializer = self.get_serializer(meals, many=True)
-        return Response(serializer.data)
+        return Response([model_to_dict(obj) for obj in meals])
 
     @action(detail=False, methods=["get"], url_path="daily/totals/(?P<date_str>[^/.]+)")
     def daily_totals(self, request, date_str=None):
@@ -75,39 +114,51 @@ class MealViewSet(viewsets.ModelViewSet):
             "sodium_mg": totals["total_sodium"] or 0,
         })
 
-
 class MealTemplateViewSet(viewsets.ModelViewSet):
-    serializer_class = MealTemplateSerializer
-
     def get_queryset(self):
         return MealTemplate.objects.filter(user=self.request.user)
 
+    def list(self, request, *args, **kwargs):
+        return Response([model_to_dict(obj) for obj in self.get_queryset()])
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(model_to_dict(self.get_object()))
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data["user_id"] = request.user.id
+        obj = MealTemplate.objects.create(**data)
+        return Response(model_to_dict(obj), status=201)
+
+    def partial_update(self, request, *args, **kwargs):
+        obj = self.get_object()
+        for k, v in request.data.items():
+            setattr(obj, k, v)
+        obj.save()
+        return Response(model_to_dict(obj))
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.delete()
+        return Response(status=204)
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def calculate_calories(request):
-    serializer = CalculateCaloriesRequestSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    protein = serializer.validated_data.get("protein_g", 0)
-    carbs = serializer.validated_data.get("carbs_g", 0)
-    fat = serializer.validated_data.get("fat_g", 0)
-
+    protein = request.data.get("protein_g", 0)
+    carbs = request.data.get("carbs_g", 0)
+    fat = request.data.get("fat_g", 0)
     calories = (protein * 4) + (carbs * 4) + (fat * 9)
-
     return Response({"calories": calories, "protein_g": protein, "carbs_g": carbs, "fat_g": fat})
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def detect_category(request):
-    serializer = DetectCategoryRequestSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    protein = serializer.validated_data.get("protein_g", 0)
-    carbs = serializer.validated_data.get("carbs_g", 0)
-    fat = serializer.validated_data.get("fat_g", 0)
-
+    protein = request.data.get("protein_g", 0)
+    carbs = request.data.get("carbs_g", 0)
+    fat = request.data.get("fat_g", 0)
     total = protein + carbs + fat
+
     if total == 0:
         category = "unknown"
     elif protein > total * 0.4:
@@ -129,14 +180,11 @@ def detect_category(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def infer_metabolism(request):
-    serializer = InferMetabolismRequestSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    protein = serializer.validated_data.get("protein_g", 0)
-    carbs = serializer.validated_data.get("carbs_g", 0)
-    fat = serializer.validated_data.get("fat_g", 0)
-    fiber = serializer.validated_data.get("fiber_g", 0)
-    food_type = serializer.validated_data.get("food_type", "").lower()
+    protein = request.data.get("protein_g", 0)
+    carbs = request.data.get("carbs_g", 0)
+    fat = request.data.get("fat_g", 0)
+    fiber = request.data.get("fiber_g", 0)
+    food_type = request.data.get("food_type", "").lower()
 
     total = protein + carbs + fat
 
@@ -189,10 +237,7 @@ def infer_metabolism(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def calculate_nutrition(request):
-    serializer = CalculateNutritionRequestSerializer(data=request.data)
-    serializer.is_valid(raise_exception=True)
-
-    items = serializer.validated_data["food_items"]
+    items = request.data.get("food_items", [])
     total_calories = 0
     total_protein = 0
     total_carbs = 0

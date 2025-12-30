@@ -11,9 +11,6 @@ class Exercise(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        db_table = 'exercises'
-
     def __str__(self):
         return self.name
 
@@ -27,9 +24,6 @@ class WorkoutSession(models.Model):
     duration_seconds = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'workout_sessions'
 
     def __str__(self):
         return f"{self.name} - {self.date}"
@@ -47,10 +41,6 @@ class WorkoutSet(models.Model):
     rpe = models.IntegerField(null=True, blank=True)
     set_order = models.IntegerField()
 
-    class Meta:
-        db_table = 'workout_sets'
-        ordering = ['set_order']
-
     def __str__(self):
         return f"{self.exercise.name} - Set {self.set_order}"
 
@@ -63,9 +53,6 @@ class WorkoutPreset(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        db_table = 'workout_presets'
-
     def __str__(self):
         return self.name
 
@@ -76,10 +63,6 @@ class WorkoutPresetExercise(models.Model):
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
     order = models.IntegerField()
     default_sets = models.JSONField(default=list)
-
-    class Meta:
-        db_table = 'workout_preset_exercises'
-        ordering = ['order']
 
     def __str__(self):
         return f"{self.preset.name} - {self.exercise.name}"
@@ -93,9 +76,6 @@ class ActiveWorkoutState(models.Model):
     started_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     data = models.JSONField(default=dict)
-
-    class Meta:
-        db_table = 'active_workout_states'
 
     def __str__(self):
         return f"Active workout for {self.user.username}"
