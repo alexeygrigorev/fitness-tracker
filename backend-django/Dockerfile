@@ -22,6 +22,9 @@ COPY . .
 # Run migrations
 RUN uv run python manage.py migrate
 
+# Seed database with test data
+RUN uv run python data/generate.py
+
 # Expose port
 EXPOSE 8000
 
