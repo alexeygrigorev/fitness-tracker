@@ -3,22 +3,23 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from datetime import datetime
+from django.db.models import Prefetch
 from .models import (
     Exercise, WorkoutSession, WorkoutSet, WorkoutPreset,
-    WorkoutPresetExercise, ActiveWorkoutState
+    WorkoutPresetExercise
 )
-from .services import generate_sets_from_preset, is_bodyweight
+from .services import generate_sets_from_preset
 
 
 def model_to_dict(instance):
-    return {k: v for k, v in instance.__dict__.items() if not k.startswith('_')}
+    return {k: v for k, v in instance.__dict__.items() if not k.startswith("_")}
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):
     queryset = Exercise.objects.all()
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ["list", "retrieve"]:
             return [AllowAny()]
         return super().get_permissions()
 
@@ -59,7 +60,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
-        data['user_id'] = request.user.id
+        data["user_id"] = request.user.id
         obj = WorkoutSession.objects.create(**data)
         return Response(model_to_dict(obj), status=201)
 
@@ -88,7 +89,7 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
-        data['user_id'] = request.user.id
+        data["user_id"] = request.user.id
         obj = WorkoutPreset.objects.create(**data)
         return Response(model_to_dict(obj), status=201)
 
@@ -104,12 +105,9 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         obj.delete()
         return Response(status=204)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=["post"])
     def start_workout(self, request, pk=None):
-        """
-        Create a WorkoutSession from this preset with all sets generated.
-        Usage: POST /api/workouts/presets/{id}/start_workout/
-        """
+        """Create a WorkoutSession from this preset with all sets."""
         preset = self.get_object()
 
         # Create the workout session
@@ -121,57 +119,45 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
             date=datetime.now()
         )
 
-        # Generate sets from the preset
-        sets = generate_sets_from_preset(preset, session)
+        # Prefetch and convert to list
+        preset_exercises = list(preset.exercises.prefetch_related(
+            Prefetch("superset_exercises__exercise")
+        ).order_by("order"))
+
+        # Attach superset_exercises as list
+        for pe in preset_exercises:
+            pe.superset_exercises = list(pe.superset_exercises.all().order_by("order"))
+
+        # Generate WorkoutSet instances (unsaved)
+        sets = generate_sets_from_preset(preset_exercises, session)
+
+        # Bulk create
+        WorkoutSet.objects.bulk_create(sets)
 
         return Response({
-            'session': model_to_dict(session),
-            'sets': [model_to_dict(s) for s in sets]
+            "session": model_to_dict(session),
+            "sets": [model_to_dict(s) for s in session.sets.all()]
         }, status=201)
 
 
-@api_view(['GET', 'POST', 'PATCH', 'DELETE'])
-def active_workout_state(request):
-    state, created = ActiveWorkoutState.objects.get_or_create(
-        user=request.user,
-        defaults={'data': request.data if request.method == 'POST' else {}}
-    )
-
-    if request.method == 'GET':
-        return Response(model_to_dict(state))
-    elif request.method == 'POST':
-        for k, v in request.data.items():
-            setattr(state, k, v)
-        state.save()
-        return Response(model_to_dict(state), status=201)
-    elif request.method == 'PATCH':
-        for k, v in request.data.items():
-            setattr(state, k, v)
-        state.save()
-        return Response(model_to_dict(state))
-    elif request.method == 'DELETE':
-        state.delete()
-        return Response(status=204)
-
-
-@api_view(['POST'])
+@api_view(["POST"])
 def calculate_volume(request):
-    sets = request.data.get('sets', [])
+    sets = request.data.get("sets", [])
     total_volume = 0
     volume_by_exercise = {}
 
     for set_item in sets:
-        weight = set_item.get('weight_lbs', 0) or 0
-        reps = set_item.get('reps', 0) or 0
+        weight = set_item.get("weight_lbs", 0) or 0
+        reps = set_item.get("reps", 0) or 0
         set_volume = weight * reps
         total_volume += set_volume
 
-        exercise_id = set_item.get('exercise_id', 'unknown')
+        exercise_id = set_item.get("exercise_id", "unknown")
         if exercise_id not in volume_by_exercise:
             volume_by_exercise[exercise_id] = 0
         volume_by_exercise[exercise_id] += set_volume
 
     return Response({
-        'total_volume': total_volume,
-        'volume_by_exercise': volume_by_exercise
+        "total_volume": total_volume,
+        "volume_by_exercise": volume_by_exercise
     })

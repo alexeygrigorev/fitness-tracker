@@ -10,3 +10,9 @@ dependencies = [
     "djangorestframework-simplejwt>=5.5.1",
     "pydantic>=2.12.5",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-django>=4.11.1",
+]
