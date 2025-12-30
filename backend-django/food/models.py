@@ -20,9 +20,6 @@ class FoodItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        db_table = 'food_items'
-
     def __str__(self):
         return self.name
 
@@ -37,9 +34,6 @@ class Meal(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        db_table = 'meals'
-
     def __str__(self):
         return f"{self.name} - {self.date}"
 
@@ -50,10 +44,6 @@ class MealFoodItem(models.Model):
     food = models.ForeignKey(FoodItem, on_delete=models.CASCADE)
     servings = models.FloatField(default=1)
     order = models.IntegerField()
-
-    class Meta:
-        db_table = 'meal_food_items'
-        ordering = ['order']
 
     def __str__(self):
         return f"{self.meal.name} - {self.food.name}"
@@ -67,9 +57,6 @@ class MealTemplate(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        db_table = 'meal_templates'
-
     def __str__(self):
         return self.name
 
@@ -80,10 +67,6 @@ class MealTemplateFoodItem(models.Model):
     food = models.ForeignKey(FoodItem, on_delete=models.CASCADE)
     servings = models.FloatField(default=1)
     order = models.IntegerField()
-
-    class Meta:
-        db_table = 'meal_template_food_items'
-        ordering = ['order']
 
     def __str__(self):
         return f"{self.template.name} - {self.food.name}"
