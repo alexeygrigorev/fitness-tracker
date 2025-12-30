@@ -39,7 +39,7 @@ class ExerciseTagAdmin(admin.ModelAdmin):
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
     list_display = ["id", "name", "is_compound"]
-    filter_horizontal = ["muscle_groups", "tags"]
+    filter_horizontal = ["tags"]
 
 
 @admin.register(WorkoutPreset)
