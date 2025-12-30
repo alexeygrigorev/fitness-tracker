@@ -1,4 +1,4 @@
-.PHONY: help dev dev-backend dev-frontend build test test-backend test-frontend test-integration test-schema test-e2e clean
+.PHONY: help dev dev-backend dev-frontend build test test-backend test-frontend test-integration clean
 
 help:
 	@echo "Available commands:"
@@ -10,8 +10,8 @@ help:
 	@echo "  make test-backend     - Run backend unit tests"
 	@echo "  make test-frontend    - Run frontend unit tests"
 	@echo "  make test-integration - Run integration tests (schema + e2e)"
-	@echo "  make test-schema      - Run schema integration tests (local)"
-	@echo "  make test-e2e         - Run e2e tests (local)"
+	@echo "  make test-schema      - Run schema integration tests"
+	@echo "  make test-e2e         - Run e2e tests"
 	@echo "  make clean            - Clean build artifacts and containers"
 
 dev:
@@ -39,13 +39,13 @@ test-frontend:
 	cd web && npm test
 
 test-integration:
-	docker compose -f docker-compose.test.yml up --abort-on-container-exit --build
+	docker compose -f docker-compose.test.yml --profile tests up --abort-on-container-exit --build
 
 test-schema:
-	cd web && npm run test:schema
+	docker compose -f docker-compose.test.yml --profile schema up --abort-on-container-exit --build
 
 test-e2e:
-	cd web && npm run test:e2e
+	docker compose -f docker-compose.test.yml --profile e2e up --abort-on-container-exit --build
 
 clean:
 	docker compose -f docker-compose.test.yml down --remove-orphans

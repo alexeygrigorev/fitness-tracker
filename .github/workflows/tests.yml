@@ -50,4 +50,4 @@ jobs:
 
       - name: Run integration tests
         run: |
-          docker compose -f docker-compose.test.yml up --abort-on-container-exit --build
+          docker compose -f docker-compose.test.yml --profile tests up --abort-on-container-exit --build
