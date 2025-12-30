@@ -1,5 +1,5 @@
 from typing import List
-from .models import WorkoutSet, WorkoutSession, Exercise, WorkoutPresetExercise
+from .models import WorkoutSet, WorkoutSession, WorkoutPresetExercise
 
 
 def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], session: WorkoutSession) -> List[WorkoutSet]:
@@ -7,8 +7,7 @@ def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], ses
     Generate WorkoutSet instances (unsaved) from preset exercises.
 
     Args:
-        preset_exercises: List of WorkoutPresetExercise with attributes
-            type, exercise, sets, dropdowns, include_warmup, superset_exercises
+        preset_exercises: List of WorkoutPresetExercise
         session: WorkoutSession instance
 
     Returns:
@@ -23,7 +22,7 @@ def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], ses
             if not preset_ex.superset_exercises:
                 continue
             
-            superset_items = list(preset_ex.superset_exercises)
+            superset_items = preset_ex.superset_exercises.all().order_by('order')
 
             # Warmup sets
             for sup_item in superset_items:
