@@ -3,12 +3,22 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from django.db.models import Sum, F
+from drf_spectacular.utils import extend_schema
 from .models import FoodItem, Meal, MealFoodItem, MealTemplate, MealTemplateFoodItem
+from .serializers import (
+    FoodItemSerializer, MealSerializer, MealTemplateSerializer,
+    CalorieCalculationRequestSerializer, CalorieCalculationResponseSerializer,
+    CategoryDetectionRequestSerializer, CategoryDetectionResponseSerializer,
+    MetabolismInferenceRequestSerializer, MetabolismInferenceResponseSerializer,
+    NutritionCalculationRequestSerializer, NutritionCalculationResponseSerializer
+)
 
 def model_to_dict(instance):
     return {k: v for k, v in instance.__dict__.items() if not k.startswith("_")}
 
 class FoodItemViewSet(viewsets.ModelViewSet):
+    serializer_class = FoodItemSerializer
+    
     def get_queryset(self):
         return FoodItem.objects.filter(
             user=self.request.user
@@ -45,6 +55,8 @@ class FoodItemViewSet(viewsets.ModelViewSet):
         return Response(status=204)
 
 class MealViewSet(viewsets.ModelViewSet):
+    serializer_class = MealSerializer
+    
     def get_queryset(self):
         return Meal.objects.filter(user=self.request.user)
 
@@ -115,6 +127,8 @@ class MealViewSet(viewsets.ModelViewSet):
         })
 
 class MealTemplateViewSet(viewsets.ModelViewSet):
+    serializer_class = MealTemplateSerializer
+    
     def get_queryset(self):
         return MealTemplate.objects.filter(user=self.request.user)
 
@@ -142,6 +156,11 @@ class MealTemplateViewSet(viewsets.ModelViewSet):
         obj.delete()
         return Response(status=204)
 
+@extend_schema(
+    request=CalorieCalculationRequestSerializer,
+    responses={200: CalorieCalculationResponseSerializer},
+    description="Calculate calories from macronutrients (protein, carbs, fat)"
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def calculate_calories(request):
@@ -151,6 +170,11 @@ def calculate_calories(request):
     calories = (protein * 4) + (carbs * 4) + (fat * 9)
     return Response({"calories": calories, "protein_g": protein, "carbs_g": carbs, "fat_g": fat})
 
+@extend_schema(
+    request=CategoryDetectionRequestSerializer,
+    responses={200: CategoryDetectionResponseSerializer},
+    description="Detect food category based on macronutrient composition"
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def detect_category(request):
@@ -177,6 +201,11 @@ def detect_category(request):
         "fat_ratio": fat / total if total > 0 else 0
     })
 
+@extend_schema(
+    request=MetabolismInferenceRequestSerializer,
+    responses={200: MetabolismInferenceResponseSerializer},
+    description="Infer metabolic properties of food (glycemic index, absorption speed, etc.)"
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def infer_metabolism(request):
@@ -234,6 +263,11 @@ def infer_metabolism(request):
         "satiety_level": satiety_level
     })
 
+@extend_schema(
+    request=NutritionCalculationRequestSerializer,
+    responses={200: NutritionCalculationResponseSerializer},
+    description="Calculate total nutrition for a list of food items"
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def calculate_nutrition(request):
