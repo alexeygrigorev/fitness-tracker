@@ -1,8 +1,13 @@
 from rest_framework import viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from .models import Exercise, WorkoutSession, WorkoutSet, WorkoutPreset, WorkoutPresetExercise, ActiveWorkoutState
+from datetime import datetime
+from .models import (
+    Exercise, WorkoutSession, WorkoutSet, WorkoutPreset,
+    WorkoutPresetExercise, ActiveWorkoutState
+)
+from .services import generate_sets_from_preset, is_bodyweight
 
 
 def model_to_dict(instance):
@@ -98,6 +103,31 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         obj.delete()
         return Response(status=204)
+
+    @action(detail=True, methods=['post'])
+    def start_workout(self, request, pk=None):
+        """
+        Create a WorkoutSession from this preset with all sets generated.
+        Usage: POST /api/workouts/presets/{id}/start_workout/
+        """
+        preset = self.get_object()
+
+        # Create the workout session
+        session = WorkoutSession.objects.create(
+            user=request.user,
+            preset=preset,
+            name=preset.name,
+            notes=preset.notes,
+            date=datetime.now()
+        )
+
+        # Generate sets from the preset
+        sets = generate_sets_from_preset(preset, session)
+
+        return Response({
+            'session': model_to_dict(session),
+            'sets': [model_to_dict(s) for s in sets]
+        }, status=201)
 
 
 @api_view(['GET', 'POST', 'PATCH', 'DELETE'])
