@@ -11,7 +11,7 @@ import type {
   Exercise
 } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8001';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 async function getHeaders(json = true): Promise<HeadersInit> {
   const token = localStorage.getItem('token');
@@ -47,7 +47,7 @@ export const authApi = {
     formData.append('username', username);
     formData.append('password', password);
 
-    const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+    const response = await fetch(`${API_BASE}/api/auth/login/`, {
       method: 'POST',
       headers: await getHeaders(false),
       body: formData,
@@ -59,11 +59,11 @@ export const authApi = {
     }
 
     const data = await response.json();
-    return data.access_token;
+    return data.access;
   },
 
   register: async (email: string, username: string, password: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/auth/register`, {
+    const response = await fetch(`${API_BASE}/api/auth/register/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ email, username, password }),
@@ -78,7 +78,7 @@ export const authApi = {
   },
 
   getMe: async () => {
-    const response = await fetch(`${API_BASE}/api/v1/auth/me`, {
+    const response = await fetch(`${API_BASE}/api/auth/me/`, {
       headers: await getHeaders(),
     });
 
@@ -119,19 +119,19 @@ export const authApi = {
 // Exercises API
 export const exercisesApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises`, {
+    const response = await fetch(`${API_BASE}/api/workouts/exercises/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   getById: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises/${id}`, {
+    const response = await fetch(`${API_BASE}/api/workouts/exercises/${id}/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   create: async (data: Omit<Exercise, 'id'>) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises`, {
+    const response = await fetch(`${API_BASE}/api/workouts/exercises/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(data),
@@ -139,7 +139,7 @@ export const exercisesApi = {
     return handleResponse(response);
   },
   update: async (id: string, data: Partial<Exercise>) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises/${id}`, {
+    const response = await fetch(`${API_BASE}/api/workouts/exercises/${id}/`, {
       method: 'PUT',
       headers: await getHeaders(),
       body: JSON.stringify(data),
@@ -147,14 +147,14 @@ export const exercisesApi = {
     return handleResponse(response);
   },
   delete: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/exercises/${id}`, {
+    const response = await fetch(`${API_BASE}/api/workouts/exercises/${id}/`, {
       method: 'DELETE',
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   analyzeWithAI: async (input: { images?: File[]; description?: string }) => {
-    const response = await fetch(`${API_BASE}/api/v1/ai/analyze-exercise`, {
+    const response = await fetch(`${API_BASE}/api/ai/analyze-exercise/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ description: input.description || '' }),
@@ -166,19 +166,19 @@ export const exercisesApi = {
 // Workouts API
 export const workoutsApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions`, {
+    const response = await fetch(`${API_BASE}/api/workouts/sessions/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   getById: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions/${id}`, {
+    const response = await fetch(`${API_BASE}/api/workouts/sessions/${id}/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   create: async (session: Omit<WorkoutSession, 'id'>) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions`, {
+    const response = await fetch(`${API_BASE}/api/workouts/sessions/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(session),
@@ -186,14 +186,14 @@ export const workoutsApi = {
     return handleResponse(response);
   },
   delete: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions/${id}`, {
+    const response = await fetch(`${API_BASE}/api/workouts/sessions/${id}/`, {
       method: 'DELETE',
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   update: async (id: string, updates: Partial<WorkoutSession>) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/sessions/${id}`, {
+    const response = await fetch(`${API_BASE}/api/workouts/sessions/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
       body: JSON.stringify(updates),
@@ -205,19 +205,19 @@ export const workoutsApi = {
 // Workout Presets API
 export const workoutPresetsApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/presets`, {
+    const response = await fetch(`${API_BASE}/api/workouts/presets/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   getById: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/presets/${id}`, {
+    const response = await fetch(`${API_BASE}/api/workouts/presets/${id}/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   create: async (preset: Omit<WorkoutPreset, 'id'>) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/presets`, {
+    const response = await fetch(`${API_BASE}/api/workouts/presets/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(preset),
@@ -225,7 +225,7 @@ export const workoutPresetsApi = {
     return handleResponse(response);
   },
   update: async (id: string, updates: Partial<WorkoutPreset>) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/presets/${id}`, {
+    const response = await fetch(`${API_BASE}/api/workouts/presets/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
       body: JSON.stringify(updates),
@@ -233,87 +233,65 @@ export const workoutPresetsApi = {
     return handleResponse(response);
   },
   delete: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/presets/${id}`, {
+    const response = await fetch(`${API_BASE}/api/workouts/presets/${id}/`, {
       method: 'DELETE',
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+  startWorkout: async (id: string) => {
+    const response = await fetch(`${API_BASE}/api/workouts/presets/${id}/start_workout/`, {
+      method: 'POST',
       headers: await getHeaders(),
     });
     return handleResponse(response);
   }
 };
 
-// Workout Calculations API (moved from frontend)
+// Workout Calculations API
 export const workoutCalculationsApi = {
   calculateVolume: async (sets: WorkoutSet[]) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/calculations/volume`, {
+    const response = await fetch(`${API_BASE}/api/workouts/calculations/calculate-volume/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ sets }),
     });
     return handleResponse(response);
-  },
-  buildFromPreset: async (preset: WorkoutPreset, exercises: Exercise[]) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/calculations/build-from-preset`, {
-      method: 'POST',
-      headers: await getHeaders(),
-      body: JSON.stringify({ preset, exercises }),
-    });
-    return handleResponse(response);
-  },
-  sortPresets: async (presets: WorkoutPreset[]) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/calculations/sort-presets`, {
-      method: 'POST',
-      headers: await getHeaders(),
-      body: JSON.stringify(presets),
-    });
-    return handleResponse(response);
   }
 };
 
-// Active Workout State API (replaces localStorage)
+// Active Workout State API (client-side for now)
 export const activeWorkoutStateApi = {
   get: async () => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/active-state`, {
-      headers: await getHeaders(),
-    });
-    if (response.status === 404) return null;
-    return handleResponse(response);
+    const state = localStorage.getItem('activeWorkout');
+    return state ? JSON.parse(state) : null;
   },
   save: async (state: any) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/active-state`, {
-      method: 'POST',
-      headers: await getHeaders(),
-      body: JSON.stringify(state),
-    });
-    return handleResponse(response);
+    localStorage.setItem('activeWorkout', JSON.stringify(state));
+    return state;
   },
   update: async (updates: any) => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/active-state`, {
-      method: 'PATCH',
-      headers: await getHeaders(),
-      body: JSON.stringify(updates),
-    });
-    if (response.status === 404) return null;
-    return handleResponse(response);
+    const current = await activeWorkoutStateApi.get();
+    const updated = { ...current, ...updates };
+    localStorage.setItem('activeWorkout', JSON.stringify(updated));
+    return updated;
   },
   clear: async () => {
-    const response = await fetch(`${API_BASE}/api/v1/workouts/active-state`, {
-      method: 'DELETE',
-      headers: await getHeaders(),
-    });
-    return response.ok;
+    localStorage.removeItem('activeWorkout');
+    return true;
   }
 };
 
 // Food API
 export const foodApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE}/api/v1/food/foods`, {
+    const response = await fetch(`${API_BASE}/api/food/foods/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   getById: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/foods/${id}`, {
+    const response = await fetch(`${API_BASE}/api/food/foods/${id}/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
@@ -326,7 +304,7 @@ export const foodApi = {
     );
   },
   create: async (food: Omit<FoodItem, 'id'>) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/foods`, {
+    const response = await fetch(`${API_BASE}/api/food/foods/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(food),
@@ -334,7 +312,7 @@ export const foodApi = {
     return handleResponse(response);
   },
   update: async (id: string, updates: Partial<FoodItem>) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/foods/${id}`, {
+    const response = await fetch(`${API_BASE}/api/food/foods/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
       body: JSON.stringify(updates),
@@ -342,14 +320,14 @@ export const foodApi = {
     return handleResponse(response);
   },
   delete: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/foods/${id}`, {
+    const response = await fetch(`${API_BASE}/api/food/foods/${id}/`, {
       method: 'DELETE',
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   analyzeWithAI: async (params: { images?: File[]; description: string }) => {
-    const response = await fetch(`${API_BASE}/api/v1/ai/analyze-food`, {
+    const response = await fetch(`${API_BASE}/api/ai/analyze-food/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ description: params.description }),
@@ -361,19 +339,19 @@ export const foodApi = {
 // Meal Templates API
 export const mealTemplatesApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE}/api/v1/food/templates`, {
+    const response = await fetch(`${API_BASE}/api/food/templates/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   getById: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/templates/${id}`, {
+    const response = await fetch(`${API_BASE}/api/food/templates/${id}/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   create: async (template: Omit<MealTemplate, 'id'>) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/templates`, {
+    const response = await fetch(`${API_BASE}/api/food/templates/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(template),
@@ -381,7 +359,7 @@ export const mealTemplatesApi = {
     return handleResponse(response);
   },
   update: async (id: string, updates: Partial<MealTemplate>) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/templates/${id}`, {
+    const response = await fetch(`${API_BASE}/api/food/templates/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
       body: JSON.stringify(updates),
@@ -389,14 +367,14 @@ export const mealTemplatesApi = {
     return handleResponse(response);
   },
   delete: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/templates/${id}`, {
+    const response = await fetch(`${API_BASE}/api/food/templates/${id}/`, {
       method: 'DELETE',
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   calculateNutrition: async (request: { foods: MealFoodItem[] }) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/templates/calculate-nutrition`, {
+    const response = await fetch(`${API_BASE}/api/food/calculations/calculate-nutrition/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(request),
@@ -408,33 +386,33 @@ export const mealTemplatesApi = {
 // Meals API
 export const mealsApi = {
   getAll: async () => {
-    const response = await fetch(`${API_BASE}/api/v1/food/meals`, {
+    const response = await fetch(`${API_BASE}/api/food/meals/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   getById: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/meals/${id}`, {
+    const response = await fetch(`${API_BASE}/api/food/meals/${id}/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   getByDate: async (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
-    const response = await fetch(`${API_BASE}/api/v1/food/meals/date/${dateStr}`, {
+    const response = await fetch(`${API_BASE}/api/food/meals/date/${dateStr}/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   getDailyTotals: async (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
-    const response = await fetch(`${API_BASE}/api/v1/food/meals/daily/totals/${dateStr}`, {
+    const response = await fetch(`${API_BASE}/api/food/meals/daily/totals/${dateStr}/`, {
       headers: await getHeaders(),
     });
     return handleResponse(response);
   },
   create: async (meal: any) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/meals`, {
+    const response = await fetch(`${API_BASE}/api/food/meals/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify(meal),
@@ -442,7 +420,7 @@ export const mealsApi = {
     return handleResponse(response);
   },
   update: async (id: string, updates: Partial<Meal>) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/meals/${id}`, {
+    const response = await fetch(`${API_BASE}/api/food/meals/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
       body: JSON.stringify(updates),
@@ -450,7 +428,7 @@ export const mealsApi = {
     return handleResponse(response);
   },
   delete: async (id: string) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/meals/${id}`, {
+    const response = await fetch(`${API_BASE}/api/food/meals/${id}/`, {
       method: 'DELETE',
       headers: await getHeaders(),
     });
@@ -458,10 +436,10 @@ export const mealsApi = {
   }
 };
 
-// Food Calculations API (moved from frontend)
+// Food Calculations API
 export const foodCalculationsApi = {
   calculateCalories: async (protein: number, carbs: number, fat: number) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/calculations/calories`, {
+    const response = await fetch(`${API_BASE}/api/food/calculations/calculate-calories/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ protein, carbs, fat }),
@@ -469,7 +447,7 @@ export const foodCalculationsApi = {
     return handleResponse(response);
   },
   detectCategory: async (protein: number, carbs: number, fat: number) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/calculations/category`, {
+    const response = await fetch(`${API_BASE}/api/food/calculations/detect-category/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ protein, carbs, fat }),
@@ -477,7 +455,7 @@ export const foodCalculationsApi = {
     return handleResponse(response);
   },
   inferMetabolism: async (name: string, fat: number, carbs: number, protein: number, fiber: number, sugar?: number) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/calculations/metabolism`, {
+    const response = await fetch(`${API_BASE}/api/food/calculations/infer-metabolism/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ name, fat, carbs, protein, fiber, sugar }),
@@ -485,7 +463,7 @@ export const foodCalculationsApi = {
     return handleResponse(response);
   },
   calculateNutrition: async (foods: any[], foodDatabase: FoodItem[]) => {
-    const response = await fetch(`${API_BASE}/api/v1/food/calculations/nutrition`, {
+    const response = await fetch(`${API_BASE}/api/food/calculations/calculate-nutrition/`, {
       method: 'POST',
       headers: await getHeaders(),
       body: JSON.stringify({ foods, foodDatabase }),
@@ -525,7 +503,7 @@ export const adviceApi = {
 
 // AI Meal Analysis
 export const analyzeMealWithAI = async (description: string) => {
-  const response = await fetch(`${API_BASE}/api/v1/ai/analyze-meal`, {
+  const response = await fetch(`${API_BASE}/api/ai/analyze-meal/`, {
     method: 'POST',
     headers: await getHeaders(),
     body: JSON.stringify({ description }),

@@ -11,7 +11,8 @@
     "test": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --run",
     "test:watch": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --watch",
     "test:ui": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --ui",
-    "test:coverage": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --coverage"
+    "test:coverage": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --coverage",
+    "test:schema": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --run tests/integration/schema.test.ts"
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^7.1.0",

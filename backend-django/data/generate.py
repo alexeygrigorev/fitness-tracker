@@ -12,8 +12,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
 from django.contrib.auth import get_user_model  # noqa: E402
-from workouts.models import (
-    ExerciseMuscleGroup,  # noqa: E402
+from workouts.models import ( # noqa: E402
+    ExerciseMuscleGroup, 
     MuscleRegion,
     MuscleGroup,
     Equipment,
@@ -101,77 +101,93 @@ pull_tag, _ = ExerciseTag.objects.get_or_create(name="Pull")
 bodyweight_tag, _ = ExerciseTag.objects.get_or_create(name="Bodyweight")
 
 # Create exercises with detailed muscle groups
-# Format: (name, is_bodyweight, muscle_groups, equipment, tags)
+# Format: (name, is_bodyweight, primary_muscles, secondary_muscles, equipment, tags)
 # For bodyweight exercises: equipment=None, add bodyweight_tag to tags
 exercises_data = [
     # Chest
-    ("Bench Press", False, [pec_major, front_delts, triceps], barbell, [compound_tag, push_tag]),
-    ("Incline Dumbbell Press", False, [pec_major, front_delts, triceps], dumbbell, [compound_tag, push_tag]),
-    ("Decline Bench Press", False, [pec_major, triceps], barbell, [compound_tag, push_tag]),
-    ("Cable Flyes", False, [pec_major], cables, [isolation_tag, push_tag]),
-    ("Dips", True, [pec_major, front_delts, triceps], None, [compound_tag, push_tag, bodyweight_tag]),
-    ("Push-ups", True, [pec_major, front_delts, triceps], None, [compound_tag, push_tag, bodyweight_tag]),
+    ("Bench Press", False, [pec_major], [front_delts, triceps], barbell, [compound_tag, push_tag]),
+    ("Incline Dumbbell Press", False, [pec_major], [front_delts, triceps], dumbbell, [compound_tag, push_tag]),
+    ("Decline Bench Press", False, [pec_major], [triceps], barbell, [compound_tag, push_tag]),
+    ("Cable Flyes", False, [pec_major], [], cables, [isolation_tag, push_tag]),
+    ("Dips", True, [pec_major], [front_delts, triceps], None, [compound_tag, push_tag, bodyweight_tag]),
+    ("Push-ups", True, [pec_major], [front_delts, triceps], None, [compound_tag, push_tag, bodyweight_tag]),
 
     # Back
-    ("Pull-ups", True, [lats, biceps, rear_delts], None, [compound_tag, pull_tag, bodyweight_tag]),
-    ("Chin-ups", True, [lats, biceps, rear_delts], None, [compound_tag, pull_tag, bodyweight_tag]),
-    ("Barbell Rows", False, [lats, traps, rear_delts, biceps], barbell, [compound_tag, pull_tag]),
-    ("Deadlifts", False, [hamstrings, glute_max, erector_spinae, traps], barbell, [compound_tag, pull_tag]),
-    ("Lat Pulldown", False, [lats, biceps], machine, [compound_tag, pull_tag]),
-    ("Seated Cable Rows", False, [lats, traps, rear_delts, biceps], cables, [compound_tag, pull_tag]),
-    ("Face Pulls", False, [rear_delts, traps, rotator_cuff], cables, [isolation_tag, pull_tag]),
-    ("Shrugs", False, [traps], barbell, [isolation_tag, pull_tag]),
+    ("Pull-ups", True, [lats], [biceps, rear_delts], None, [compound_tag, pull_tag, bodyweight_tag]),
+    ("Chin-ups", True, [lats], [biceps, rear_delts], None, [compound_tag, pull_tag, bodyweight_tag]),
+    ("Barbell Rows", False, [lats], [traps, rear_delts, biceps], barbell, [compound_tag, pull_tag]),
+    ("Deadlifts", False, [hamstrings, glute_max, erector_spinae], [traps], barbell, [compound_tag, pull_tag]),
+    ("Lat Pulldown", False, [lats], [biceps], machine, [compound_tag, pull_tag]),
+    ("Seated Cable Rows", False, [lats], [traps, rear_delts, biceps], cables, [compound_tag, pull_tag]),
+    ("Face Pulls", False, [rear_delts], [traps, rotator_cuff], cables, [isolation_tag, pull_tag]),
+    ("Shrugs", False, [traps], [], barbell, [isolation_tag, pull_tag]),
 
     # Shoulders
-    ("Overhead Press", False, [front_delts, side_delts, triceps], barbell, [compound_tag, push_tag]),
-    ("Lateral Raises", False, [side_delts], dumbbell, [isolation_tag, push_tag]),
-    ("Front Raises", False, [front_delts], dumbbell, [isolation_tag, push_tag]),
-    ("Rear Delt Flyes", False, [rear_delts], dumbbell, [isolation_tag, pull_tag]),
-    ("Arnold Press", False, [front_delts, side_delts, triceps], dumbbell, [compound_tag, push_tag]),
+    ("Overhead Press", False, [front_delts, side_delts], [triceps], barbell, [compound_tag, push_tag]),
+    ("Lateral Raises", False, [side_delts], [], dumbbell, [isolation_tag, push_tag]),
+    ("Front Raises", False, [front_delts], [], dumbbell, [isolation_tag, push_tag]),
+    ("Rear Delt Flyes", False, [rear_delts], [], dumbbell, [isolation_tag, pull_tag]),
+    ("Arnold Press", False, [front_delts, side_delts], [triceps], dumbbell, [compound_tag, push_tag]),
 
     # Legs
-    ("Squats", False, [quads, hamstrings, glute_max], barbell, [compound_tag, push_tag]),
-    ("Leg Press", False, [quads, hamstrings, glute_max], machine, [compound_tag, push_tag]),
-    ("Lunges", False, [quads, hamstrings, glute_max], dumbbell, [compound_tag, push_tag]),
-    ("Leg Extensions", False, [quads], machine, [isolation_tag, push_tag]),
-    ("Leg Curls", False, [hamstrings, glute_max], machine, [isolation_tag, pull_tag]),
-    ("Calf Raises", False, [calves], machine, [isolation_tag, push_tag]),
+    ("Squats", False, [quads], [hamstrings, glute_max], barbell, [compound_tag, push_tag]),
+    ("Leg Press", False, [quads], [hamstrings, glute_max], machine, [compound_tag, push_tag]),
+    ("Lunges", False, [quads], [hamstrings, glute_max], dumbbell, [compound_tag, push_tag]),
+    ("Leg Extensions", False, [quads], [], machine, [isolation_tag, push_tag]),
+    ("Leg Curls", False, [hamstrings], [glute_max], machine, [isolation_tag, pull_tag]),
+    ("Calf Raises", False, [calves], [], machine, [isolation_tag, push_tag]),
 
     # Glutes
-    ("Hip Thrusts", False, [glute_max, hamstrings], barbell, [compound_tag, push_tag]),
-    ("Glute Bridges", True, [glute_max, hamstrings], None, [isolation_tag, push_tag, bodyweight_tag]),
-    ("Bulgarian Split Squats", False, [glute_max, quads, glute_med], dumbbell, [compound_tag, push_tag]),
-    ("Cable Kickbacks", False, [glute_max], cables, [isolation_tag, pull_tag]),
-    ("Side Lying Clamshells", True, [glute_med, glute_min], None, [isolation_tag, pull_tag, bodyweight_tag]),
-    ("Fire Hydrants", True, [glute_med], None, [isolation_tag, pull_tag, bodyweight_tag]),
-    ("Abductions", False, [glute_med, glute_min], machine, [isolation_tag, pull_tag]),
+    ("Hip Thrusts", False, [glute_max], [hamstrings], barbell, [compound_tag, push_tag]),
+    ("Glute Bridges", True, [glute_max], [hamstrings], None, [isolation_tag, push_tag, bodyweight_tag]),
+    ("Bulgarian Split Squats", False, [glute_max], [quads, glute_med], dumbbell, [compound_tag, push_tag]),
+    ("Cable Kickbacks", False, [glute_max], [], cables, [isolation_tag, pull_tag]),
+    ("Side Lying Clamshells", True, [glute_med], [glute_min], None, [isolation_tag, pull_tag, bodyweight_tag]),
+    ("Fire Hydrants", True, [glute_med], [], None, [isolation_tag, pull_tag, bodyweight_tag]),
+    ("Abductions", False, [glute_med], [glute_min], machine, [isolation_tag, pull_tag]),
 
     # Arms
-    ("Bicep Curls", False, [biceps, brachialis], dumbbell, [isolation_tag, pull_tag]),
-    ("Hammer Curls", False, [brachialis, forearms], dumbbell, [isolation_tag, pull_tag]),
-    ("Tricep Pushdowns", False, [triceps], cables, [isolation_tag, push_tag]),
-    ("Skull Crushers", False, [triceps], dumbbell, [isolation_tag, push_tag]),
-    ("Overhead Tricep Extension", False, [triceps], dumbbell, [isolation_tag, push_tag]),
-    ("Wrist Curls", False, [forearms], dumbbell, [isolation_tag, pull_tag]),
+    ("Bicep Curls", False, [biceps], [brachialis], dumbbell, [isolation_tag, pull_tag]),
+    ("Hammer Curls", False, [brachialis], [forearms], dumbbell, [isolation_tag, pull_tag]),
+    ("Tricep Pushdowns", False, [triceps], [], cables, [isolation_tag, push_tag]),
+    ("Skull Crushers", False, [triceps], [], dumbbell, [isolation_tag, push_tag]),
+    ("Overhead Tricep Extension", False, [triceps], [], dumbbell, [isolation_tag, push_tag]),
+    ("Wrist Curls", False, [forearms], [], dumbbell, [isolation_tag, pull_tag]),
 
     # Core
-    ("Plank", True, [rectus_abdominis, transverse_abdominis, obliques], None, [isolation_tag, pull_tag, bodyweight_tag]),
-    ("Crunches", True, [rectus_abdominis], None, [isolation_tag, push_tag, bodyweight_tag]),
-    ("Hanging Leg Raises", True, [rectus_abdominis, obliques], None, [compound_tag, pull_tag, bodyweight_tag]),
-    ("Russian Twists", True, [obliques, rectus_abdominis], None, [isolation_tag, push_tag, bodyweight_tag]),
+    ("Plank", True, [rectus_abdominis, transverse_abdominis], [obliques], None, [isolation_tag, pull_tag, bodyweight_tag]),
+    ("Crunches", True, [rectus_abdominis], [], None, [isolation_tag, push_tag, bodyweight_tag]),
+    ("Hanging Leg Raises", True, [rectus_abdominis], [obliques], None, [compound_tag, pull_tag, bodyweight_tag]),
+    ("Russian Twists", True, [obliques], [rectus_abdominis], None, [isolation_tag, push_tag, bodyweight_tag]),
 ]
 
 exercise_objects = {}
-for name, is_bw, muscle_groups, equipment, tags in exercises_data:
+for name, is_bw, primary_muscles, secondary_muscles, equipment, tags in exercises_data:
     exercise, created = Exercise.objects.get_or_create(
         name=name,
         defaults={"is_bodyweight": is_bw}
     )
     if created:
-        exercise.muscle_groups.set(muscle_groups)
         exercise.equipment = equipment
         exercise.tags.set(tags)
         exercise.save()
+
+        # Set primary muscle groups
+        for muscle in primary_muscles:
+            ExerciseMuscleGroup.objects.create(
+                exercise=exercise,
+                muscle_group=muscle,
+                target_type='primary'
+            )
+
+        # Set secondary muscle groups
+        for muscle in secondary_muscles:
+            ExerciseMuscleGroup.objects.create(
+                exercise=exercise,
+                muscle_group=muscle,
+                target_type='secondary'
+            )
+
         print(f"Created exercise: {exercise.name}")
     exercise_objects[name] = exercise
 
