@@ -91,3 +91,8 @@ amplifytools.xcconfig
 **.sample
 #amplify-do-not-edit-end
 __pycache__/
+
+# Python virtual environments
+venv/
+.venv/
+backend-django/venv/
