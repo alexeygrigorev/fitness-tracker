@@ -35,10 +35,35 @@ class ExerciseTag(models.Model):
         return self.name
 
 
+class ExerciseMuscleGroup(models.Model):
+    """Through model for Exercise-MuscleGroup relationship with primary/secondary distinction."""
+    TARGET_TYPE = [
+        ('primary', 'Primary'),
+        ('secondary', 'Secondary'),
+    ]
+
+    id = models.AutoField(primary_key=True)
+    exercise = models.ForeignKey('Exercise', on_delete=models.CASCADE, related_name='exercise_muscle_groups')
+    muscle_group = models.ForeignKey(MuscleGroup, on_delete=models.CASCADE, related_name='exercise_muscle_groups')
+    target_type = models.CharField(max_length=20, choices=TARGET_TYPE, default='primary')
+
+    class Meta:
+        unique_together = ('exercise', 'muscle_group')
+
+    def __str__(self):
+        return f"{self.exercise.name} - {self.muscle_group.name} ({self.target_type})"
+
+
 class Exercise(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255)
-    muscle_groups = models.ManyToManyField(MuscleGroup, related_name='exercises', blank=True)
+    muscle_groups = models.ManyToManyField(
+        MuscleGroup,
+        related_name='exercises',
+        blank=True,
+        through='ExerciseMuscleGroup',
+        through_fields=('exercise', 'muscle_group')
+    )
     equipment = models.ForeignKey(Equipment, on_delete=models.SET_NULL, null=True, blank=True, related_name='exercises')
     tags = models.ManyToManyField(ExerciseTag, related_name='exercises', blank=True)
     description = models.TextField(blank=True, null=True)
@@ -139,16 +164,3 @@ class WorkoutSet(models.Model):
 
     def __str__(self):
         return f"{self.exercise.name} - {self.set_type} Set {self.set_order}"
-
-
-# class ActiveWorkoutState(models.Model):
-#     id = models.AutoField(primary_key=True)
-#     user = models.OneToOneField('users.User', on_delete=models.CASCADE, related_name='active_workout_state')
-#     preset_id = models.IntegerField(null=True, blank=True)
-#     session_id = models.IntegerField(null=True, blank=True)
-#     started_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True)
-#     data = models.JSONField(default=dict)
-
-#     def __str__(self):
-#         return f"Active workout for {self.user.username}"
