@@ -56,6 +56,7 @@ class ExerciseMuscleGroup(models.Model):
 
 class Exercise(models.Model):
     id = models.AutoField(primary_key=True)
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, null=True, blank=True, related_name='exercises')
     name = models.CharField(max_length=255)
     muscle_groups = models.ManyToManyField(
         MuscleGroup,
@@ -78,9 +79,10 @@ class Exercise(models.Model):
 
 class WorkoutPreset(models.Model):
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='workout_presets')
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, null=True, blank=True, related_name='workout_presets')
     name = models.CharField(max_length=255)
     notes = models.TextField(blank=True, null=True)
+    is_public = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -126,6 +128,40 @@ class SupersetExerciseItem(models.Model):
 
     def __str__(self):
         return f"{self.exercise.name} ({self.type})"
+
+
+class WorkoutPlan(models.Model):
+    """A workout plan containing multiple preset templates that users can adopt."""
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='workout_plans')
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    presets = models.ManyToManyField(
+        WorkoutPreset,
+        related_name='plans',
+        blank=True,
+        through='WorkoutPlanPreset'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class WorkoutPlanPreset(models.Model):
+    """Through model for WorkoutPlan-Preset relationship with order."""
+    id = models.AutoField(primary_key=True)
+    plan = models.ForeignKey(WorkoutPlan, on_delete=models.CASCADE, related_name='plan_presets')
+    preset = models.ForeignKey(WorkoutPreset, on_delete=models.CASCADE, related_name='plan_presets')
+    order = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+        unique_together = ('plan', 'preset')
+
+    def __str__(self):
+        return f"{self.plan.name} - {self.preset.name} ({self.order})"
 
 
 class WorkoutSession(models.Model):

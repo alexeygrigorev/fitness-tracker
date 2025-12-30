@@ -1,8 +1,43 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from drf_spectacular.utils import extend_schema
 
 
+@extend_schema(
+    operation_id='ai_analyze_food',
+    tags=['AI'],
+    summary='Analyze food from description',
+    description='AI-powered food analysis that returns nutritional information',
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'description': {'type': 'string', 'description': 'Food description'},
+            },
+            'required': ['description'],
+        }
+    },
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string'},
+                'serving_size': {'type': 'number'},
+                'serving_unit': {'type': 'string'},
+                'calories_per_serving': {'type': 'number'},
+                'protein_g': {'type': 'number'},
+                'carbs_g': {'type': 'number'},
+                'fat_g': {'type': 'number'},
+                'fiber_g': {'type': 'number'},
+                'sugar_g': {'type': 'number'},
+                'sodium_mg': {'type': 'number'},
+                'category': {'type': 'string'},
+                'confidence': {'type': 'number'},
+            },
+        }
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def analyze_food(request):
@@ -24,6 +59,36 @@ def analyze_food(request):
     return Response(result)
 
 
+@extend_schema(
+    operation_id='ai_analyze_meal',
+    tags=['AI'],
+    summary='Analyze meal from description',
+    description='AI-powered meal analysis that breaks down into food items',
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'description': {'type': 'string', 'description': 'Meal description'},
+            },
+            'required': ['description'],
+        }
+    },
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string'},
+                'meal_type': {'type': 'string'},
+                'food_items': {'type': 'array'},
+                'total_calories': {'type': 'number'},
+                'total_protein_g': {'type': 'number'},
+                'total_carbs_g': {'type': 'number'},
+                'total_fat_g': {'type': 'number'},
+                'confidence': {'type': 'number'},
+            },
+        }
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def analyze_meal(request):
@@ -46,6 +111,37 @@ def analyze_meal(request):
     return Response(result)
 
 
+@extend_schema(
+    operation_id='ai_analyze_exercise',
+    tags=['AI'],
+    summary='Analyze exercise from description',
+    description='AI-powered exercise analysis that returns exercise details',
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'description': {'type': 'string', 'description': 'Exercise description'},
+            },
+            'required': ['description'],
+        }
+    },
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'name': {'type': 'string'},
+                'muscle_group': {'type': 'string'},
+                'equipment': {'type': 'string'},
+                'description': {'type': 'string'},
+                'is_compound': {'type': 'boolean'},
+                'primary_muscles': {'type': 'array', 'items': {'type': 'string'}},
+                'secondary_muscles': {'type': 'array', 'items': {'type': 'string'}},
+                'difficulty': {'type': 'string'},
+                'confidence': {'type': 'number'},
+            },
+        }
+    }
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def analyze_exercise(request):

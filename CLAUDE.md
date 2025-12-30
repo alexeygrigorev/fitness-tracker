@@ -45,3 +45,26 @@ Edit(file_path: "path\to\file.txt", old_string="...", new_string="...")
 - File watchers or build processes
 
 **Tip:** If this happens repeatedly, consider disabling auto-formatting for files you're actively editing with Claude Code.
+
+### ⚠️ Use UV for Python Package Management
+
+When installing Python packages, use `uv` instead of `pip`. See `/uv` for details.
+
+❌ WRONG:
+```bash
+pip install djangorestframework
+```
+
+✅ CORRECT:
+```bash
+cd backend-django
+uv add djangorestframework
+```
+
+Run Django commands:
+```bash
+cd backend-django
+uv run python manage.py makemigrations
+uv run python manage.py migrate
+uv run python manage.py test
+```
