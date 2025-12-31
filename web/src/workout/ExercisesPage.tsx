@@ -317,18 +317,18 @@ export default function ExercisesPage() {
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={() => goToDate(-1)}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
             >
               <FontAwesomeIcon icon={faChevronLeft} />
             </button>
             <div className="text-center">
               <button
                 onClick={goToToday}
-                className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                className="text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 {formatDate(selectedDate)}
               </button>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </div>
             </div>
@@ -336,8 +336,8 @@ export default function ExercisesPage() {
               onClick={() => goToDate(1)}
               disabled={isToday}
               className={"p-2 rounded-md transition-colors " + (isToday
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               )}
             >
               <FontAwesomeIcon icon={faChevronRight} />
@@ -345,28 +345,28 @@ export default function ExercisesPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">Workouts</div>
-              <div className="text-2xl font-bold text-gray-900">{workoutsForDate.length}</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Workouts</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{workoutsForDate.length}</div>
             </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">Total Volume</div>
-              <div className="text-2xl font-bold text-blue-600">{totals.volume} kg</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Total Volume</div>
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totals.volume} kg</div>
             </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">Total Sets</div>
-              <div className="text-2xl font-bold text-gray-900">{totals.sets}</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Total Sets</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totals.sets}</div>
             </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">Active Presets</div>
-              <div className="text-2xl font-bold text-purple-600">{presets.filter(p => p.status === 'active').length}</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Active Presets</div>
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{presets.filter(p => p.status === 'active').length}</div>
             </div>
           </div>
         </>
       )}
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-8">
           {(['workouts', 'presets', 'library'] as Tab[]).map(tab => (
             <button
@@ -375,8 +375,8 @@ export default function ExercisesPage() {
               className={
                 'py-2 px-1 border-b-2 font-medium text-sm ' +
                 (activeTab === tab
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500')
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')
               }
             >
               {tabLabels[tab]}
@@ -390,7 +390,7 @@ export default function ExercisesPage() {
         <div className="space-y-6">
           {/* Active Workout Session - shown at top when a workout is in progress */}
           {activePreset && (
-            <div className="bg-blue-50 rounded-lg shadow p-6 border-2 border-blue-400">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow p-6 border-2 border-blue-400 dark:border-blue-600">
               <ActiveWorkout
                 preset={activePreset}
                 onComplete={handleWorkoutComplete}
@@ -401,46 +401,46 @@ export default function ExercisesPage() {
           )}
 
           {/* Quick Start - Today's Presets */}
-          {sortedPresets.filter(p => p.status === 'active').length > 0 && !activePreset && (
-            <div className="bg-white rounded-lg shadow p-6">
+          {!activePreset && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Start Workout</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Start Workout</h3>
               </div>
 
               {/* Today's Presets */}
               {sortedPresets.filter(p => p.status === 'active' && getDayOfWeek(p.dayLabel) === currentDayOfWeek).length > 0 && (
                 <div className="mb-4">
-                  <div className="text-sm font-medium text-green-700 mb-2">Today</div>
+                  <div className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">Today</div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {sortedPresets.filter(p => p.status === 'active' && getDayOfWeek(p.dayLabel) === currentDayOfWeek).map(preset => {
-                      const totalSets = preset.exercises.reduce((sum, ex) => sum + (ex.sets || 3), 0);
+                      const totalSets = (preset.exercises || []).reduce((sum, ex) => sum + (ex.sets || 3), 0);
 
                       return (
                         <button
                           key={preset.id}
                           onClick={() => startWorkout(preset)}
-                          className="text-left p-4 rounded-lg border-2 border-green-400 bg-green-50 hover:bg-green-100 transition-all"
+                          className="text-left p-4 rounded-lg border-2 border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className="font-medium text-gray-900">{preset.name}</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100">{preset.name}</span>
                                 {preset.dayLabel && (
-                                  <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 shrink-0">
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 shrink-0">
                                     {preset.dayLabel}
                                   </span>
                                 )}
                                 {preset.tags?.map(tag => (
-                                  <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 capitalize shrink-0">
+                                  <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 capitalize shrink-0">
                                     {tag}
                                   </span>
                                 ))}
                               </div>
-                              <div className="text-sm text-gray-500">
-                                {preset.exercises.length} exercises • {totalSets} sets
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {(preset.exercises || []).length} exercises • {totalSets} sets
                               </div>
                             </div>
-                            <FontAwesomeIcon icon={faPlay} className="text-green-600 ml-2 shrink-0" />
+                            <FontAwesomeIcon icon={faPlay} className="text-green-600 dark:text-green-400 ml-2 shrink-0" />
                           </div>
                         </button>
                       );
@@ -448,21 +448,21 @@ export default function ExercisesPage() {
                     {/* Freestyle - always last in the row */}
                     <button
                       onClick={startFreestyleWorkout}
-                      className="text-left p-4 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all"
+                      className="text-left p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-medium text-gray-900">Freestyle</span>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 shrink-0">
+                            <span className="font-medium text-gray-900 dark:text-gray-100">Freestyle</span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 shrink-0">
                               Any exercises
                             </span>
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
                             Add exercises as you go
                           </div>
                         </div>
-                        <FontAwesomeIcon icon={faPlay} className="text-gray-500 ml-2 shrink-0" />
+                        <FontAwesomeIcon icon={faPlay} className="text-gray-500 dark:text-gray-400 ml-2 shrink-0" />
                       </div>
                     </button>
                   </div>
@@ -472,40 +472,40 @@ export default function ExercisesPage() {
               {/* Other Days - Collapsible */}
               {sortedPresets.filter(p => p.status === 'active' && getDayOfWeek(p.dayLabel) !== currentDayOfWeek).length > 0 && (
                 <details className="group">
-                  <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-900 mb-2 list-none flex items-center gap-2">
+                  <summary className="cursor-pointer text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-2 list-none flex items-center gap-2">
                     <FontAwesomeIcon icon={faChevronRight} className="transition-transform group-open:rotate-90" />
                     Other days
                   </summary>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
                     {sortedPresets.filter(p => p.status === 'active' && getDayOfWeek(p.dayLabel) !== currentDayOfWeek).map(preset => {
-                      const totalSets = preset.exercises.reduce((sum, ex) => sum + (ex.sets || 3), 0);
+                      const totalSets = (preset.exercises || []).reduce((sum, ex) => sum + (ex.sets || 3), 0);
 
                       return (
                         <button
                           key={preset.id}
                           onClick={() => startWorkout(preset)}
-                          className="text-left p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all"
+                          className="text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className="font-medium text-gray-900">{preset.name}</span>
+                                <span className="font-medium text-gray-900 dark:text-gray-100">{preset.name}</span>
                                 {preset.dayLabel && (
-                                  <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 shrink-0">
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 shrink-0">
                                     {preset.dayLabel}
                                   </span>
                                 )}
                                 {preset.tags?.map(tag => (
-                                  <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 capitalize shrink-0">
+                                  <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 capitalize shrink-0">
                                     {tag}
                                   </span>
                                 ))}
                               </div>
-                              <div className="text-sm text-gray-500">
-                                {preset.exercises.length} exercises • {totalSets} sets
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {(preset.exercises || []).length} exercises • {totalSets} sets
                               </div>
                             </div>
-                            <FontAwesomeIcon icon={faPlay} className="text-gray-400 ml-2 shrink-0" />
+                            <FontAwesomeIcon icon={faPlay} className="text-gray-400 dark:text-gray-500 ml-2 shrink-0" />
                           </div>
                         </button>
                       );
@@ -519,21 +519,21 @@ export default function ExercisesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <button
                     onClick={startFreestyleWorkout}
-                    className="text-left p-4 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all"
+                    className="text-left p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="font-medium text-gray-900">Freestyle</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 shrink-0">
+                          <span className="font-medium text-gray-900 dark:text-gray-100">Freestyle</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 shrink-0">
                             Any exercises
                           </span>
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
                           Add exercises as you go
                         </div>
                       </div>
-                      <FontAwesomeIcon icon={faPlay} className="text-gray-500 ml-2 shrink-0" />
+                      <FontAwesomeIcon icon={faPlay} className="text-gray-500 dark:text-gray-400 ml-2 shrink-0" />
                     </div>
                   </button>
                 </div>
@@ -542,44 +542,44 @@ export default function ExercisesPage() {
           )}
 
           {/* Logged Workouts */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
               Workouts for {formatDate(selectedDate).toLowerCase()}
             </h3>
             {workoutsForDate.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <p>No workouts logged for {formatDate(selectedDate).toLowerCase()}</p>
               </div>
             ) : (
             <div className="space-y-3">
               {workoutsForDate.map(workout => (
-                <div key={workout.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={workout.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900">{workout.name}</div>
-                      <div className="text-sm text-gray-500">
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{workout.name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
                         {new Date(workout.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         {workout.endedAt && ` - ${new Date(workout.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">{workout.sets.length} sets</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{workout.sets.length} sets</div>
                     </div>
                     <div className="text-right mr-4">
-                      <div className="font-medium text-gray-900">{workout.totalVolume} kg</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{workout.totalVolume} kg</div>
                       {workout.estimatedRecovery && (
-                        <div className="text-sm text-orange-600">~{workout.estimatedRecovery}h recovery</div>
+                        <div className="text-sm text-orange-600 dark:text-orange-400">~{workout.estimatedRecovery}h recovery</div>
                       )}
                     </div>
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleEditWorkout(workout)}
-                        className="text-gray-400 hover:text-green-600 p-1"
+                        className="text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 p-1"
                         title="Resume"
                       >
                         <FontAwesomeIcon icon={faPlay} />
                       </button>
                       <button
                         onClick={() => handleDeleteWorkout(workout.id)}
-                        className="text-gray-400 hover:text-red-600 p-1"
+                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                         title="Delete"
                       >
                         <FontAwesomeIcon icon={faTrash} />
@@ -589,14 +589,14 @@ export default function ExercisesPage() {
                   {/* Notes removed */}
                   {workout.sets.length > 0 && (
                     <details className="mt-3">
-                      <summary className="text-sm text-blue-600 cursor-pointer hover:text-blue-700">
+                      <summary className="text-sm text-blue-600 dark:text-blue-400 cursor-pointer hover:text-blue-700 dark:hover:text-blue-300">
                         View sets
                       </summary>
                       <div className="mt-2 space-y-1 text-sm">
                         {workout.sets.map(set => {
                           const exercise = exercises.find(e => e.id === set.exerciseId);
                           return (
-                            <div key={set.id} className="text-gray-600">
+                            <div key={set.id} className="text-gray-600 dark:text-gray-400">
                               {exercise?.name || 'Unknown'}: {set.setType} - {set.weight || '-'} kg × {set.reps} reps
                             </div>
                           );
@@ -615,9 +615,9 @@ export default function ExercisesPage() {
       {/* Presets Tab */}
       {activeTab === 'presets' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Workout Presets</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Workout Presets</h3>
               <button
                 onClick={openAddPreset}
                 className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
@@ -626,7 +626,7 @@ export default function ExercisesPage() {
               </button>
             </div>
             {sortedPresets.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <p>No workout presets yet</p>
                 <p className="text-sm mt-1">Create presets like "Upper Body A" or "Push Day" to quickly start workouts</p>
               </div>
@@ -634,41 +634,41 @@ export default function ExercisesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {sortedPresets.map(preset => {
                   // Calculate total sets for the preset
-                  const totalSets = preset.exercises.reduce((sum, ex) => sum + (ex.sets || 3), 0);
+                  const totalSets = (preset.exercises || []).reduce((sum, ex) => sum + (ex.sets || 3), 0);
                   const isTodaysPreset = getDayOfWeek(preset.dayLabel) === currentDayOfWeek;
 
                   return (
-                    <div key={preset.id} className={`bg-white rounded-lg shadow p-4 ${preset.status === 'archived' ? 'opacity-60' : ''} ${isTodaysPreset ? 'ring-2 ring-blue-400' : ''}`}>
+                    <div key={preset.id} className={`bg-white dark:bg-gray-700 rounded-lg shadow p-4 ${preset.status === 'archived' ? 'opacity-60' : ''} ${isTodaysPreset ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-gray-900">{preset.name}</span>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{preset.name}</span>
                             {preset.dayLabel && (
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${isTodaysPreset ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'}`}>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${isTodaysPreset ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'}`}>
                                 {preset.dayLabel}
                               </span>
                             )}
                             {isTodaysPreset && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
                                 Today
                               </span>
                             )}
                             {preset.status === 'archived' && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                                 Archived
                               </span>
                             )}
                             {preset.tags?.map(tag => (
-                              <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 capitalize">
+                              <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 capitalize">
                                 {tag}
                               </span>
                             ))}
                           </div>
-                          <div className="text-sm text-gray-500 mt-1">
-                            {preset.exercises.map((ex) => {
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {(preset.exercises || []).map((ex, idx) => {
                               const exercise = exercises.find(e => e.id === ex.exerciseId);
                               return (
-                                <span key={ex.exerciseId} className="inline mr-2">
+                                <span key={`${ex.exerciseId || ex.type}-${idx}`} className="inline mr-2">
                                   {exercise?.name || 'Unknown'} ({ex.sets || 3} {ex.type === 'dropdown' ? 'drops' : 'sets'})
                                 </span>
                               );
@@ -676,20 +676,20 @@ export default function ExercisesPage() {
                           </div>
                         </div>
                         <div className="text-right mr-4">
-                          <div className="text-sm font-medium text-gray-900">{totalSets} sets</div>
-                          <div className="text-xs text-gray-500">{preset.exercises.length} exercises</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{totalSets} sets</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{(preset.exercises || []).length} exercises</div>
                         </div>
                         <div className="flex gap-1">
                           <button
                             onClick={() => openEditPreset(preset)}
-                            className="text-gray-400 hover:text-blue-600 p-1"
+                            className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
                             title="Edit"
                           >
                             <FontAwesomeIcon icon={faPen} />
                           </button>
                           <button
                             onClick={() => handleDeletePreset(preset.id)}
-                            className="text-gray-400 hover:text-red-600 p-1"
+                            className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                             title="Delete"
                           >
                             <FontAwesomeIcon icon={faTrash} />
@@ -708,9 +708,9 @@ export default function ExercisesPage() {
       {/* Exercises Tab - Exercise viewer */}
       {activeTab === 'library' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Exercises</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Exercises</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowExerciseAIModal(true)}
@@ -733,33 +733,33 @@ export default function ExercisesPage() {
                 <div
                   key={exercise.id}
                   onClick={() => setSelectedExercise(exercise)}
-                  className={`p-3 rounded-lg border transition-colors flex items-center justify-between ${
+                  className={`p-3 rounded-lg border transition-colors flex items-center justify-between cursor-pointer ${
                     selectedExercise?.id === exercise.id
-                      ? 'bg-blue-50 border-blue-300'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      ? 'bg-blue-500/10 border-blue-500 dark:bg-blue-500/20'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
                   }`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{exercise.name}</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{exercise.name}</span>
                       {exercise.bodyweight && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">BW</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">BW</span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-500 capitalize">{exercise.category}</div>
-                    <div className="text-xs text-gray-400">{exercise.muscleGroups.join(', ')}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 capitalize">{exercise.category || 'Exercise'}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-500">{exercise.muscleGroups?.join(', ') || ''}</div>
                   </div>
                   <div className="flex gap-1">
                     <button
                       onClick={(e) => { e.stopPropagation(); openEditExercise(exercise); }}
-                      className="text-gray-400 hover:text-blue-600 p-1"
+                      className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
                       title="Edit"
                     >
                       <FontAwesomeIcon icon={faPen} />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise.id); }}
-                      className="text-gray-400 hover:text-red-600 p-1"
+                      className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                       title="Delete"
                     >
                       <FontAwesomeIcon icon={faTrash} />
@@ -770,23 +770,23 @@ export default function ExercisesPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {selectedExercise ? selectedExercise.name : 'Select an exercise'}
               </h3>
               {selectedExercise && (
                 <div className="flex gap-1">
                   <button
                     onClick={() => openEditExercise(selectedExercise)}
-                    className="text-gray-400 hover:text-blue-600 p-1"
+                    className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
                     title="Edit"
                   >
                     <FontAwesomeIcon icon={faPen} />
                   </button>
                   <button
                     onClick={() => handleDeleteExercise(selectedExercise.id)}
-                    className="text-gray-400 hover:text-red-600 p-1"
+                    className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                     title="Delete"
                   >
                     <FontAwesomeIcon icon={faTrash} />
@@ -798,26 +798,26 @@ export default function ExercisesPage() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 flex-wrap">
                   <div>
-                    <div className="text-sm text-gray-500">Category</div>
-                    <div className="capitalize">{selectedExercise.category}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Category</div>
+                    <div className="capitalize text-gray-900 dark:text-gray-100">{selectedExercise.category}</div>
                   </div>
                   {selectedExercise.bodyweight && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs">
+                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 text-xs">
                       Bodyweight
                     </span>
                   )}
                 </div>
                 <div>
-                  <div className="text-sm text-gray-500">Muscle Groups</div>
-                  <div className="capitalize">{selectedExercise.muscleGroups.join(', ')}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Muscle Groups</div>
+                  <div className="capitalize text-gray-900 dark:text-gray-100">{selectedExercise.muscleGroups?.join(', ') || 'None'}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-500">Equipment</div>
-                  <div>{selectedExercise.equipment.join(', ') || 'None'}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Equipment</div>
+                  <div className="text-gray-900 dark:text-gray-100">{selectedExercise.equipment || 'None'}</div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-500">Instructions</div>
-                  <ol className="list-decimal list-inside text-sm space-y-1">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Instructions</div>
+                  <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 dark:text-gray-300">
                     {selectedExercise.instructions.map((inst, i) => (
                       <li key={i}>{inst}</li>
                     ))}
@@ -825,7 +825,7 @@ export default function ExercisesPage() {
                 </div>
               </div>
             ) : (
-              <p className="text-gray-500">Click on an exercise to see details</p>
+              <p className="text-gray-500 dark:text-gray-400">Click on an exercise to see details</p>
             )}
           </div>
         </div>

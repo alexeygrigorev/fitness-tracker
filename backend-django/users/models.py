@@ -6,6 +6,7 @@ class User(AbstractUser):
     email = models.CharField(max_length=255, unique=True)
     username = models.CharField(max_length=255, unique=True)
     is_active = models.BooleanField(default=True)
+    dark_mode = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']

@@ -18,7 +18,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             username = request.data.get('username')
             try:
                 user = User.objects.get(username=username)
-                response.data['user'] = {'id': user.id, 'username': user.username, 'email': user.email}
+                response.data['user'] = {'id': user.id, 'username': user.username, 'email': user.email, 'dark_mode': user.dark_mode}
             except User.DoesNotExist:
                 pass
         return response
@@ -48,7 +48,7 @@ def register(request):
 
     user = User.objects.create_user(username=username, email=email, password=password)
     return Response({
-        'user': {'id': user.id, 'username': user.username, 'email': user.email},
+        'user': {'id': user.id, 'username': user.username, 'email': user.email, 'dark_mode': user.dark_mode},
         'message': 'User created successfully'
     }, status=status.HTTP_201_CREATED)
 
@@ -59,4 +59,19 @@ def register(request):
 )
 @api_view(['GET'])
 def me(request):
-    return Response({'id': request.user.id, 'username': request.user.username, 'email': request.user.email})
+    return Response({'id': request.user.id, 'username': request.user.username, 'email': request.user.email, 'dark_mode': request.user.dark_mode})
+
+
+@extend_schema(
+    request=UserProfileResponseSerializer,
+    responses={200: UserProfileResponseSerializer},
+    description="Update current user profile (supports dark_mode)"
+)
+@api_view(['PATCH'])
+def update_profile(request):
+    """Update user profile fields like dark_mode preference."""
+    dark_mode = request.data.get('dark_mode')
+    if dark_mode is not None:
+        request.user.dark_mode = bool(dark_mode)
+        request.user.save()
+    return Response({'id': request.user.id, 'username': request.user.username, 'email': request.user.email, 'dark_mode': request.user.dark_mode})

@@ -52,7 +52,7 @@ export default function Weight() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Weight Tracking</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Weight Tracking</h2>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -64,51 +64,51 @@ export default function Weight() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500">Current</div>
-          <div className="text-2xl font-bold text-gray-900">{latestWeight} kg</div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-400">Current</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{latestWeight} kg</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500">Change</div>
-          <div className={`text-2xl font-bold ${weightChange >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-400">Change</div>
+          <div className={`text-2xl font-bold ${weightChange >= 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
             {weightChange >= 0 ? '+' : ''}{weightChange.toFixed(1)} kg
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500">Average</div>
-          <div className="text-2xl font-bold text-gray-900">{avgWeight.toFixed(1)} kg</div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-400">Average</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{avgWeight.toFixed(1)} kg</div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500">Total Entries</div>
-          <div className="text-2xl font-bold text-blue-600">{entries.length}</div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-400">Total Entries</div>
+          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{entries.length}</div>
         </div>
       </div>
 
       {/* Add Weight Form */}
       {showAddForm && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Log New Weight</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Log New Weight</h3>
           <div className="flex gap-4 items-end">
             <div>
-              <label className="block text-sm text-gray-500 mb-1">Weight (kg)</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Weight (kg)</label>
               <input
                 type="number"
                 value={newWeight}
                 onChange={e => setNewWeight(e.target.value)}
                 placeholder="80"
                 step="0.1"
-                className="border border-gray-300 rounded-lg px-4 py-2 w-32"
+                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 w-32"
                 autoFocus
               />
             </div>
             <div className="flex-1">
-              <label className="block text-sm text-gray-500 mb-1">Notes (optional)</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Notes (optional)</label>
               <input
                 type="text"
                 value={newNotes}
                 onChange={e => setNewNotes(e.target.value)}
                 placeholder="Any notes..."
-                className="border border-gray-300 rounded-lg px-4 py-2 w-full"
+                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 w-full"
               />
             </div>
             <button
@@ -119,7 +119,7 @@ export default function Weight() {
             </button>
             <button
               onClick={() => setShowAddForm(false)}
-              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>
@@ -128,9 +128,9 @@ export default function Weight() {
       )}
 
       {/* Weight Chart Visualization */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <FontAwesomeIcon icon={faChartLine} className="mr-2 text-blue-600" />
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+          <FontAwesomeIcon icon={faChartLine} className="mr-2 text-blue-600 dark:text-blue-400" />
           Weight Trend
         </h3>
         <div className="h-48 flex items-end justify-between gap-2">
@@ -144,14 +144,14 @@ export default function Weight() {
               <div key={entry.id} className="flex-1 flex flex-col items-center group">
                 <div className="relative w-full">
                   <div
-                    className="bg-blue-500 rounded-t transition-all group-hover:bg-blue-600"
+                    className="bg-blue-500 dark:bg-blue-600 rounded-t transition-all group-hover:bg-blue-600 dark:group-hover:bg-blue-500"
                     style={{ height: `${height}%` }}
                   />
-                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 dark:bg-gray-700 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
                     {entry.weight} kg
                   </div>
                 </div>
-                <div className="text-xs text-gray-500 mt-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </div>
               </div>
@@ -161,22 +161,22 @@ export default function Weight() {
       </div>
 
       {/* Weight History */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <FontAwesomeIcon icon={faWeightScale} className="mr-2 text-blue-600" />
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+          <FontAwesomeIcon icon={faWeightScale} className="mr-2 text-blue-600 dark:text-blue-400" />
           History
         </h3>
         {entries.length === 0 ? (
-          <p className="text-gray-500">No weight entries yet. Log your first weight!</p>
+          <p className="text-gray-500 dark:text-gray-400">No weight entries yet. Log your first weight!</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Date</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Weight</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Notes</th>
-                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-500">Actions</th>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Date</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Weight</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Notes</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -185,8 +185,8 @@ export default function Weight() {
                   const change = prevWeight ? entry.weight - prevWeight : 0;
 
                   return (
-                    <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4">
+                    <tr key={entry.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                      <td className="py-3 px-4 text-gray-900 dark:text-gray-100">
                         {entry.date.toLocaleDateString('en-US', {
                           weekday: 'short',
                           month: 'short',
@@ -195,18 +195,18 @@ export default function Weight() {
                         })}
                       </td>
                       <td className="py-3 px-4">
-                        <span className="font-medium">{entry.weight} kg</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{entry.weight} kg</span>
                         {change !== 0 && (
-                          <span className={`ml-2 text-sm ${change > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                          <span className={`ml-2 text-sm ${change > 0 ? 'text-red-500 dark:text-red-400' : 'text-green-500 dark:text-green-400'}`}>
                             {change > 0 ? '+' : ''}{change.toFixed(1)}
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-gray-500">{entry.notes || '-'}</td>
+                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400">{entry.notes || '-'}</td>
                       <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => handleDeleteEntry(entry.id)}
-                          className="text-red-500 hover:text-red-700 transition-colors"
+                          className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
                         >
                           <FontAwesomeIcon icon={faTrash} />
                         </button>

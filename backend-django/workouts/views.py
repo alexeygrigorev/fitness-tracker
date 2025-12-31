@@ -16,13 +16,45 @@ from .serializers import (
     VolumeCalculationRequestSerializer, VolumeCalculationResponseSerializer
 )
 
-
 def model_to_dict(instance):
-    return {k: v for k, v in instance.__dict__.items() if not k.startswith("_")}
+    """Convert model instance to dict, handling related objects and date formatting."""
+    result = {}
+    for k, v in instance.__dict__.items():
+        if k.startswith("_"):
+            continue
+        # Convert datetime to ISO format string
+        if hasattr(v, 'isoformat'):
+            result[k] = v.isoformat()
+        else:
+            result[k] = v
+
+    # For WorkoutSession, add related sets and map field names to frontend format
+    if hasattr(instance, 'sets'):
+        result['sets'] = [
+            {
+                'id': s.id,
+                'exerciseId': s.exercise_id,
+                'setType': s.set_type,
+                'weight': float(s.weight) if s.weight else None,
+                'reps': s.reps,
+                'set_order': s.set_order,
+                'loggedAt': s.completed_at.isoformat() if s.completed_at else None,
+            }
+            for s in instance.sets.all()
+        ]
+
+    # Map Django field names to frontend names for WorkoutSession
+    if instance.__class__.__name__ == 'WorkoutSession':
+        if 'created_at' in result:
+            result['startedAt'] = result.pop('created_at')
+        if 'finished_at' in result:
+            result['endedAt'] = result.pop('finished_at')
+
+    return result
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):
-    queryset = Exercise.objects.all()
+    queryset = Exercise.objects.all().prefetch_related('muscle_groups', 'equipment')
     serializer_class = ExerciseSerializer
 
     def get_permissions(self):
@@ -30,19 +62,9 @@ class ExerciseViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return super().get_permissions()
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        return Response([model_to_dict(obj) for obj in queryset])
-
-    def retrieve(self, request, *args, **kwargs):
-        return Response(model_to_dict(self.get_object()))
-
-    def create(self, request, *args, **kwargs):
-        data = request.data.copy()
+    def perform_create(self, serializer):
         # User-created exercises are always owned by the user
-        data["user_id"] = request.user.id
-        obj = Exercise.objects.create(**data)
-        return Response(model_to_dict(obj), status=201)
+        serializer.save(user=self.request.user)
 
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
@@ -52,10 +74,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         # User exercises can only be modified by their owner
         if obj.user_id != request.user.id:
             return Response({"error": "Cannot modify exercises created by another user"}, status=403)
-        for k, v in request.data.items():
-            setattr(obj, k, v)
-        obj.save()
-        return Response(model_to_dict(obj))
+        return super().partial_update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
@@ -65,8 +84,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         # User exercises can only be deleted by their owner
         if obj.user_id != request.user.id:
             return Response({"error": "Cannot delete exercises created by another user"}, status=403)
-        obj.delete()
-        return Response(status=204)
+        return super().destroy(request, *args, **kwargs)
 
 
 class WorkoutSetViewSet(viewsets.ModelViewSet):
@@ -110,16 +128,100 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         return Response(model_to_dict(self.get_object()))
 
     def create(self, request, *args, **kwargs):
+        from django.utils import timezone
+        from datetime import datetime
         data = request.data.copy()
+        # Extract sets data before creating session (sets can't be directly assigned)
+        sets_data = data.pop('sets', None)
+
+        # Map frontend field names to Django model field names
+        if 'startedAt' in data:
+            started_at = data.pop('startedAt')
+            # Parse ISO format datetime string from JavaScript
+            if isinstance(started_at, str):
+                # Handle various ISO formats from JS toISOString()
+                # JS: "2025-01-06T09:00:00.000Z" or "2025-01-06T09:00:00.000+00:00"
+                data['created_at'] = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            else:
+                data['created_at'] = started_at
+        # Default to server time if not provided
+        if 'created_at' not in data or data.get('created_at') is None:
+            data['created_at'] = timezone.now()
+        if 'endedAt' in data:
+            ended_at = data.pop('endedAt')
+            if isinstance(ended_at, str):
+                data['finished_at'] = datetime.fromisoformat(ended_at.replace('Z', '+00:00'))
+            else:
+                data['finished_at'] = ended_at
+
         data["user_id"] = request.user.id
         obj = WorkoutSession.objects.create(**data)
+
+        # Handle sets creation if provided
+        if sets_data:
+            for idx, set_data in enumerate(sets_data):
+                # Map frontend field names to Django model field names
+                mapped_data = {
+                    'session': obj,
+                    'set_order': set_data.get('set_order', idx),
+                    'exercise_id': set_data.get('exerciseId'),
+                    'set_type': set_data.get('setType', 'normal'),
+                    'weight': set_data.get('weight'),
+                    'reps': set_data.get('reps'),
+                    'completed_at': set_data.get('loggedAt'),
+                }
+                # Remove None values to let defaults apply
+                mapped_data = {k: v for k, v in mapped_data.items() if v is not None}
+                WorkoutSet.objects.create(**mapped_data)
+
         return Response(model_to_dict(obj), status=201)
 
     def partial_update(self, request, *args, **kwargs):
+        from datetime import datetime
         obj = self.get_object()
-        for k, v in request.data.items():
+        # Handle special fields that aren't simple attributes
+        data = request.data.copy() if hasattr(request.data, 'copy') else request.data
+        sets_data = data.pop('sets', None)
+
+        # Map frontend field names to Django model field names
+        if 'startedAt' in data:
+            started_at = data.pop('startedAt')
+            if isinstance(started_at, str):
+                data['created_at'] = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            else:
+                data['created_at'] = started_at
+        if 'endedAt' in data:
+            ended_at = data.pop('endedAt')
+            if isinstance(ended_at, str):
+                data['finished_at'] = datetime.fromisoformat(ended_at.replace('Z', '+00:00'))
+            else:
+                data['finished_at'] = ended_at
+
+        # Update simple attributes
+        for k, v in data.items():
             setattr(obj, k, v)
         obj.save()
+
+        # Handle sets update - delete existing sets and create new ones
+        if sets_data is not None:
+            # Delete existing sets for this session
+            WorkoutSet.objects.filter(session=obj).delete()
+            # Create new sets from the provided data
+            for idx, set_data in enumerate(sets_data):
+                # Map frontend field names to Django model field names
+                mapped_data = {
+                    'session': obj,
+                    'set_order': set_data.get('set_order', idx),  # Use provided order or index
+                    'exercise_id': set_data.get('exerciseId'),  # frontend sends exerciseId
+                    'set_type': set_data.get('setType', 'normal'),  # frontend sends setType
+                    'weight': set_data.get('weight'),
+                    'reps': set_data.get('reps'),
+                    'completed_at': set_data.get('loggedAt'),  # frontend sends loggedAt
+                }
+                # Remove None values to let defaults apply
+                mapped_data = {k: v for k, v in mapped_data.items() if v is not None}
+                WorkoutSet.objects.create(**mapped_data)
+
         return Response(model_to_dict(obj))
 
     def destroy(self, request, *args, **kwargs):
@@ -139,13 +241,17 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
 class WorkoutPresetViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutPresetSerializer
-    
+
     def get_queryset(self):
-        # For list action, only return user's own presets
+        # For list action, only return user's own presets (prefetch exercises for performance)
         if self.action == "list":
-            return WorkoutPreset.objects.filter(user=self.request.user)
+            return WorkoutPreset.objects.filter(user=self.request.user).prefetch_related(
+                'exercises__exercise', 'exercises__superset_exercises__exercise'
+            )
         # For detail actions, allow accessing any preset (permissions checked in action methods)
-        return WorkoutPreset.objects.all()
+        return WorkoutPreset.objects.all().prefetch_related(
+            'exercises__exercise', 'exercises__superset_exercises__exercise'
+        )
 
     def get_permissions(self):
         # Allow anyone to access templates endpoint
@@ -153,21 +259,17 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         return super().get_permissions()
 
-    def list(self, request, *args, **kwargs):
-        return Response([model_to_dict(obj) for obj in self.get_queryset()])
-
     def retrieve(self, request, *args, **kwargs):
         obj = self.get_object()
         # Only allow retrieving own presets or templates/public presets
         if obj.user_id != request.user.id and obj.user is not None and not obj.is_public:
             return Response({"error": "Not found"}, status=404)
-        return Response(model_to_dict(obj))
+        serializer = self.get_serializer(obj)
+        return Response(serializer.data)
 
-    def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        data["user_id"] = request.user.id
-        obj = WorkoutPreset.objects.create(**data)
-        return Response(model_to_dict(obj), status=201)
+    def perform_create(self, serializer):
+        # Set the user to the current user when creating
+        serializer.save(user=self.request.user)
 
     def partial_update(self, request, *args, **kwargs):
         obj = self.get_object()
@@ -177,10 +279,14 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         # User presets can only be modified by their owner
         if obj.user_id != request.user.id:
             return Response({"error": "Cannot modify presets created by another user"}, status=403)
-        for k, v in request.data.items():
-            setattr(obj, k, v)
-        obj.save()
-        return Response(model_to_dict(obj))
+
+        # Extract exercises data to pass to serializer for manual handling
+        exercises_data = request.data.get('exercises')
+        serializer = self.get_serializer(obj, data=request.data, partial=True)
+        serializer.context['exercises_data'] = exercises_data
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
@@ -190,14 +296,16 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         # User presets can only be deleted by their owner
         if obj.user_id != request.user.id:
             return Response({"error": "Cannot delete presets created by another user"}, status=403)
-        obj.delete()
-        return Response(status=204)
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=False, methods=["get"])
     def templates(self, request):
         """List all template presets (user=None or is_public=True)."""
-        templates = WorkoutPreset.objects.filter(Q(user=None) | Q(is_public=True))
-        return Response([model_to_dict(obj) for obj in templates])
+        templates = WorkoutPreset.objects.filter(
+            Q(user=None) | Q(is_public=True)
+        ).prefetch_related('exercises__exercise', 'exercises__superset_exercises__exercise')
+        serializer = self.get_serializer(templates, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["post"])
     def create_from_template(self, request):
@@ -254,19 +362,36 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
                         order=sup_item.order,
                     )
 
-        return Response(model_to_dict(new_preset), status=201)
+        serializer = self.get_serializer(new_preset)
+        return Response(serializer.data, status=201)
 
     @action(detail=True, methods=["post"])
     def start_workout(self, request, pk=None):
-        """Create a WorkoutSession from this preset with all sets."""
+        """Create a WorkoutSession from this preset with all sets.
+        Accepts optional 'startedAt' parameter to allow client-provided timestamp.
+        """
+        from django.utils import timezone
         preset = self.get_object()
+
+        # Get client-provided start time if available, otherwise use server time
+        started_at = request.data.get('startedAt')
+        if started_at:
+            # Parse ISO format datetime string
+            from datetime import datetime
+            if isinstance(started_at, str):
+                created_time = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            else:
+                created_time = started_at
+        else:
+            created_time = timezone.now()
 
         # Create the workout session
         session = WorkoutSession.objects.create(
             user=request.user,
             preset=preset,
             name=preset.name,
-            notes=preset.notes
+            notes=preset.notes,
+            created_at=created_time
         )
 
         # Prefetch and convert to list
@@ -426,9 +551,12 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
                             order=sup_item.order,
                         )
 
-            copied_presets.append(model_to_dict(new_preset))
+            copied_presets.append(new_preset)
+
+        # Serialize the copied presets with exercises
+        preset_serializer = WorkoutPresetSerializer(copied_presets, many=True)
 
         return Response({
             "message": f"Copied {len(copied_presets)} presets from plan '{plan.name}'",
-            "presets": copied_presets
+            "presets": preset_serializer.data
         }, status=201)

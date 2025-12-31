@@ -179,6 +179,16 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
   useEffect(() => {
     if (!resumingWorkout || exercises.length === 0) return;
 
+    // DEBUG: Log the resuming workout data
+    console.log('=== RESUME WORKOUT DEBUG ===');
+    console.log('resumingWorkout.id:', resumingWorkout.id);
+    console.log('resumingWorkout.sets:', resumingWorkout.sets);
+    console.log('Number of sets:', resumingWorkout.sets?.length);
+    if (resumingWorkout.sets && resumingWorkout.sets.length > 0) {
+      console.log('First set:', resumingWorkout.sets[0]);
+    }
+    console.log('=== END DEBUG ===');
+
     // Set the workout session ID so updates go to the existing workout
     setWorkoutSessionId(resumingWorkout.id);
     setStartTime(new Date(resumingWorkout.startedAt));
@@ -761,51 +771,24 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
     ...(showAllIncomplete ? incompleteSets : incompleteSets.slice(0, 3))
   ];
 
-  if (isFreestyle && setRows.length === 0) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Active Workout {preset.name !== 'Freestyle' && preset.name}</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-lg font-bold text-blue-600">{calculateCompletedSets()}/{calculateTotalSets()}</div>
-              <div className="text-xs text-gray-500">sets</div>
-            </div>
-            <button
-              onClick={handleDeleteWorkout}
-              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
-              title="Delete workout"
-            >
-              <FontAwesomeIcon icon={faTrash} />
-            </button>
-          </div>
-        </div>
-
-        <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">Freestyle mode - coming soon</p>
-          <p className="text-sm text-gray-400">Use a preset to start a workout</p>
-        </div>
-      </div>
-    );
-  }
+  // For freestyle mode with no sets, show a message prompting to add exercises
+  const showFreestyleEmpty = isFreestyle && setRows.length === 0;
 
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Active Workout {preset.name !== 'Freestyle' && preset.name}</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Active Workout {preset.name !== 'Freestyle' && preset.name}</h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-lg font-bold text-blue-600">{calculateCompletedSets()}/{calculateTotalSets()}</div>
-            <div className="text-xs text-gray-500">sets</div>
+            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{calculateCompletedSets()}/{calculateTotalSets()}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">sets</div>
           </div>
           <button
             onClick={handleDeleteWorkout}
-            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+            className="p-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
             title="Delete workout"
           >
             <FontAwesomeIcon icon={faTrash} />
@@ -817,10 +800,18 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
       {completedSets.length > 2 && (
         <button
           onClick={() => setShowAllCompleted(!showAllCompleted)}
-          className="w-full px-4 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors text-sm"
+          className="w-full px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm"
         >
           {showAllCompleted ? 'Show less' : `Show ${completedSets.length - 2} more completed`}
         </button>
+      )}
+
+      {/* Freestyle empty state message */}
+      {showFreestyleEmpty && (
+        <div className="text-center py-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
+          <p className="text-gray-600 dark:text-gray-300 mb-1">Freestyle mode - add exercises as you go</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Use the button below to add your first exercise</p>
+        </div>
       )}
 
       {/* Set Rows - using shared SetRow component */}
@@ -849,7 +840,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
       {incompleteSets.length > 3 && (
         <button
           onClick={() => setShowAllIncomplete(!showAllIncomplete)}
-          className="w-full px-4 py-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+          className="w-full px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
         >
           {showAllIncomplete ? 'Show less' : `Show ${incompleteSets.length - 3} more`}
         </button>
@@ -866,7 +857,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
           <button
             key={exerciseId}
             onClick={() => addExtraSet(exerciseId, info.name)}
-            className="px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors flex items-center gap-1"
+            className="px-3 py-1.5 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center gap-1"
           >
             <FontAwesomeIcon icon={faPlus} className="text-xs" /> Set for {info.name}
           </button>
@@ -878,7 +869,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
         <div className="space-y-2">
           <button
             onClick={() => setShowAddExercise(!showAddExercise)}
-            className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
+            className="w-full px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center justify-center gap-2"
           >
             <FontAwesomeIcon icon={faPlus} />
             Add Exercise
@@ -906,11 +897,11 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
       )}
 
       {/* Finish Button */}
-      <div className="flex justify-end pt-4 border-t border-gray-200">
+      <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={handleFinishWorkout}
           disabled={loading || calculateCompletedSets() === 0}
-          className="px-6 py-3 text-lg font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-3 text-lg font-medium text-white bg-green-600 dark:bg-green-700 rounded-lg hover:bg-green-700 dark:hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? 'Saving...' : `Finish Workout (${calculateCompletedSets()}/${calculateTotalSets()} sets)`}
         </button>

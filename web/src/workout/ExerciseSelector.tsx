@@ -9,9 +9,9 @@ interface ExerciseSelectorProps {
 
 // Category colors for badges
 const CATEGORY_COLORS: Record<string, string> = {
-  compound: 'bg-blue-100 text-blue-700',
-  isolation: 'bg-green-100 text-green-700',
-  cardio: 'bg-orange-100 text-orange-700',
+  compound: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
+  isolation: 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300',
+  cardio: 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300',
 };
 
 // Exercise types for single exercises (includes superset option)
@@ -27,10 +27,9 @@ const SUPERSET_EXERCISE_TYPES: { value: PresetExerciseType; label: string }[] = 
   { value: 'dropdown', label: 'Dropdown' },
 ];
 
-// Check if exercise is bodyweight (no equipment or only bodyweight)
+// Check if exercise is bodyweight
 const isBodyweight = (exercise: Exercise) => {
-  return exercise.equipment.length === 0 ||
-    (exercise.equipment.length === 1 && exercise.equipment[0].toLowerCase() === 'bodyweight');
+  return exercise.bodyweight === true;
 };
 
 // Reusable Exercise Picker Component
@@ -61,13 +60,13 @@ export function ExercisePicker({
   const categories = ['all', 'compound', 'isolation', 'cardio'];
 
   return (
-    <div className="border border-gray-200 rounded-md p-4 bg-white">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-md p-4 bg-white dark:bg-gray-800">
       <div className="flex items-center justify-between mb-3">
-        <h4 className="font-medium text-gray-900">{title}</h4>
+        <h4 className="font-medium text-gray-900 dark:text-gray-100">{title}</h4>
         <button
           type="button"
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600"
+          className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -82,7 +81,7 @@ export function ExercisePicker({
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search exercises by name or muscle..."
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           autoFocus
         />
       </div>
@@ -96,8 +95,8 @@ export function ExercisePicker({
             onClick={() => onFilterChange(cat)}
             className={`px-3 py-1 text-sm rounded-full transition-colors ${
               filterCategory === cat
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-blue-600 dark:bg-blue-700 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             {cat === 'all' ? 'All' : cat === 'upper' ? 'Upper Body' : cat === 'lower' ? 'Lower Body' : cat.charAt(0).toUpperCase() + cat.slice(1)}
@@ -108,7 +107,7 @@ export function ExercisePicker({
       {/* Exercise list */}
       <div className="max-h-64 overflow-y-auto space-y-1">
         {filteredExercises.length === 0 ? (
-          <div className="text-center py-4 text-gray-500 text-sm">
+          <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
             No exercises found. Try a different search.
           </div>
         ) : (
@@ -122,23 +121,23 @@ export function ExercisePicker({
                 disabled={isExcluded}
                 className={`w-full text-left p-2 rounded-md transition-colors flex items-center justify-between ${
                   isExcluded
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'hover:bg-gray-50 text-gray-900'
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100'
                 }`}
               >
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate flex items-center gap-2">
                     {exercise.name}
                     {exercise.bodyweight && (
-                      <span className="text-xs px-1 py-0.5 rounded bg-amber-100 text-amber-700 shrink-0">BW</span>
+                      <span className="text-xs px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 shrink-0">BW</span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-500 truncate">
-                    {exercise.muscleGroups.join(', ')} • {exercise.equipment.join(', ') || 'None'}
+                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {exercise.muscleGroups?.join(', ') || ''} • {exercise.equipment || 'None'}
                   </div>
                 </div>
-                <span className={`text-xs px-1.5 py-0.5 rounded ml-2 ${CATEGORY_COLORS[exercise.category] || 'bg-gray-100 text-gray-700'}`}>
-                  {exercise.category}
+                <span className={`text-xs px-1.5 py-0.5 rounded ml-2 ${CATEGORY_COLORS[exercise.category || 'compound'] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                  {exercise.category || 'Compound'}
                 </span>
               </button>
             );
@@ -334,10 +333,10 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
 
   const getTypeColor = (type: PresetExerciseType) => {
     switch (type) {
-      case 'normal': return 'bg-blue-100 text-blue-700';
-      case 'dropdown': return 'bg-orange-100 text-orange-700';
-      case 'superset': return 'bg-purple-100 text-purple-700';
-      default: return 'bg-gray-100 text-gray-700';
+      case 'normal': return 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300';
+      case 'dropdown': return 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300';
+      case 'superset': return 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
     }
   };
 
@@ -346,7 +345,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
       {/* Selected Exercises */}
       {selectedExercises.length > 0 && (
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Exercises ({selectedExercises.length})
           </label>
           <div className="space-y-2">
@@ -356,7 +355,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                 return (
                   <div
                     key={ex.id}
-                    className="border-2 border-purple-200 rounded-md p-3 bg-purple-50"
+                    className="border-2 border-purple-200 dark:border-purple-800 rounded-md p-3 bg-purple-50 dark:bg-purple-900/20"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       {/* Drag handle / Move buttons */}
@@ -383,7 +382,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                         </button>
                       </div>
 
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-200 text-purple-800 font-medium">
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200 font-medium">
                         Superset
                       </span>
 
@@ -431,8 +430,8 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                         const isEditing = editingSuperset?.supersetIndex === index && editingSuperset?.itemIndex === itemIndex;
 
                         return (
-                          <div key={item.exerciseId} className={`flex items-center gap-2 p-2 rounded border ${isEditing ? 'border-blue-300 bg-blue-50' : 'bg-white border-gray-200'}`}>
-                            <span className="text-xs font-mono text-purple-600">
+                          <div key={item.exerciseId} className={`flex items-center gap-2 p-2 rounded border ${isEditing ? 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                            <span className="text-xs font-mono text-purple-600 dark:text-purple-400">
                               {String.fromCharCode(65 + itemIndex)}{/* A, B, C... */}
                             </span>
 
@@ -441,7 +440,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                 <select
                                   value={item.exerciseId}
                                   onChange={(e) => updateSupersetExerciseItem(index, itemIndex, e.target.value)}
-                                  className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded"
+                                  className="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded"
                                   autoFocus
                                 >
                                   {exercises.filter(exc => {
@@ -469,11 +468,11 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                               </>
                             ) : (
                               <>
-                                <span className="font-medium text-gray-900 text-sm">{exercise.name}</span>
-                                <span className={`text-xs px-1 py-0.5 rounded ${CATEGORY_COLORS[exercise.category] || 'bg-gray-100 text-gray-700'}`}>
+                                <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{exercise.name}</span>
+                                <span className={`text-xs px-1 py-0.5 rounded ${CATEGORY_COLORS[exercise.category] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
                                   {exercise.category}
                                 </span>
-                                <span className={`text-xs px-1 py-0.5 rounded ${bodyweight ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`}>
+                                <span className={`text-xs px-1 py-0.5 rounded ${bodyweight ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
                                   {bodyweight ? 'BW' : 'Wt'}
                                 </span>
                               </>
@@ -485,7 +484,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                 <select
                                   value={item.type}
                                   onChange={(e) => updateSupersetExercise(index, itemIndex, 'type', e.target.value)}
-                                  className="w-20 px-1 py-0.5 text-xs border border-gray-300 rounded"
+                                  className="w-20 px-1 py-0.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded"
                                 >
                                   {availableTypes.map(type => (
                                     <option key={type.value} value={type.value}>{type.label}</option>
@@ -497,9 +496,9 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                   value={item.sets}
                                   onChange={(e) => updateSupersetExercise(index, itemIndex, 'sets', e.target.value)}
                                   min="1"
-                                  className="w-10 px-1 py-0.5 text-xs border border-gray-300 rounded text-center"
+                                  className="w-10 px-1 py-0.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center"
                                 />
-                                <span className="text-gray-400 text-xs">sets</span>
+                                <span className="text-gray-400 dark:text-gray-500 text-xs">sets</span>
 
                                 {item.type === 'dropdown' && (
                                   <>
@@ -508,18 +507,18 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                       value={item.dropdowns || 1}
                                       onChange={(e) => updateSupersetExercise(index, itemIndex, 'dropdowns', e.target.value)}
                                       min="1"
-                                      className="w-10 px-1 py-0.5 text-xs border border-gray-300 rounded text-center"
+                                      className="w-10 px-1 py-0.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center"
                                     />
-                                    <span className="text-gray-400 text-xs">drops/set</span>
+                                    <span className="text-gray-400 dark:text-gray-500 text-xs">drops/set</span>
                                   </>
                                 )}
 
-                                <label className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer ml-2">
+                                <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer ml-2">
                                   <input
                                     type="checkbox"
                                     checked={item.warmup !== false}
                                     onChange={(e) => updateSupersetExercise(index, itemIndex, 'warmup', e.target.checked)}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                                   />
                                   include warmup
                                 </label>
@@ -599,7 +598,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
               return (
                 <div
                   key={ex.id}
-                  className="flex items-center gap-2 p-3 bg-gray-50 rounded-md border border-gray-200"
+                  className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700"
                 >
                   {/* Drag handle / Move buttons */}
                   <div className="flex flex-col gap-0.5">
@@ -628,19 +627,19 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                   {/* Exercise name and info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-gray-900">{exercise.name}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${CATEGORY_COLORS[exercise.category] || 'bg-gray-100 text-gray-700'}`}>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{exercise.name}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${CATEGORY_COLORS[exercise.category] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
                         {exercise.category}
                       </span>
                       <span className={`text-xs px-1.5 py-0.5 rounded ${getTypeColor(ex.type)}`}>
                         {ex.type === 'normal' ? 'Normal' : ex.type === 'dropdown' ? 'Drop' : ex.type}
                       </span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${bodyweight ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${bodyweight ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
                         {bodyweight ? 'BW' : 'Weight'}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500 truncate">
-                      {exercise.muscleGroups.join(', ')} • {!bodyweight && exercise.equipment.length > 0 ? exercise.equipment.join(', ') : 'Bodyweight'}
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {exercise.muscleGroups?.join(', ') || ''} • {bodyweight ? 'Bodyweight' : (exercise.equipment || 'Weight')}
                     </div>
                   </div>
 
@@ -648,7 +647,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                   <select
                     value={ex.type}
                     onChange={(e) => handleTypeChange(e.target.value as PresetExerciseType)}
-                    className="w-28 px-2 py-1 text-sm border border-gray-300 rounded-md"
+                    className="w-28 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md"
                     title="Exercise type"
                   >
                     {availableTypes.map(type => (
@@ -663,10 +662,10 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                       value={ex.sets || 3}
                       onChange={(e) => updateExercise(index, 'sets', e.target.value)}
                       min="1"
-                      className="w-12 px-2 py-1 text-sm border border-gray-300 rounded-md text-center"
+                      className="w-12 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-center"
                       title="Sets"
                     />
-                    <span className="text-gray-400 text-sm">sets</span>
+                    <span className="text-gray-400 dark:text-gray-500 text-sm">sets</span>
                   </div>
 
                   {/* Dropdowns input (only for dropdown type) */}
@@ -677,20 +676,20 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                         value={ex.dropdowns || 1}
                         onChange={(e) => updateExercise(index, 'dropdowns', e.target.value)}
                         min="1"
-                        className="w-12 px-2 py-1 text-sm border border-gray-300 rounded-md text-center"
+                        className="w-12 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-center"
                         title="Drops per set"
                       />
-                      <span className="text-gray-400 text-sm">drops/set</span>
+                      <span className="text-gray-400 dark:text-gray-500 text-sm">drops/set</span>
                     </div>
                   )}
 
                   {/* Warmup checkbox */}
-                  <label className="flex items-center gap-1 text-sm text-gray-600 cursor-pointer">
+                  <label className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={ex.warmup !== false}
                       onChange={(e) => updateExercise(index, 'warmup', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                     />
                     include warmup
                   </label>
@@ -734,7 +733,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
         <button
           type="button"
           onClick={() => setShowAddPanel(true)}
-          className="w-full px-3 py-2 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+          className="w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors flex items-center justify-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -745,7 +744,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
 
       {/* Empty state */}
       {selectedExercises.length === 0 && !showAddPanel && (
-        <div className="text-center py-6 text-gray-500 text-sm border-2 border-dashed border-gray-200 rounded-md">
+        <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-md">
           <p>No exercises added yet.</p>
           <p className="text-xs mt-1">Click "Add Exercise" to build your preset.</p>
         </div>

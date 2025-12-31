@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartBar, faDumbbell, faAppleWhole, faBed, faBolt, faUser, faWeightScale, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { faChartBar, faDumbbell, faAppleWhole, faBed, faBolt, faUser, faWeightScale, faRightFromBracket, faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
 import { Link, NavLink, useLocation, Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -26,7 +26,7 @@ const tabs = [
 ];
 
 function App() {
-  const { user, logout } = useAuth();
+  const { user, logout, darkMode, toggleDarkMode } = useAuth();
   const location = useLocation();
   // Map pathname to Tab - /workouts maps to 'exercises'
   const getPathTab = (): Tab => {
@@ -48,11 +48,11 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-200">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors">
+            <Link to="/" className="text-xl font-bold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               Fitness Tracker
             </Link>
             <div className="flex items-center gap-4">
@@ -69,8 +69,8 @@ function App() {
                       to={path}
                       className={({ isActive }) =>
                         isActive
-                          ? 'px-3 py-2 rounded-md text-sm font-medium transition-colors bg-blue-100 text-blue-700'
-                          : 'px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100'
+                          ? 'px-3 py-2 rounded-md text-sm font-medium transition-colors bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                          : 'px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                       }
                     >
                       <FontAwesomeIcon icon={tab.icon} className="mr-1" />
@@ -79,11 +79,18 @@ function App() {
                   );
                 })}
               </nav>
-              <div className="flex items-center gap-3 border-l pl-4">
-                <span className="text-sm text-gray-600">{user?.username}</span>
+              <div className="flex items-center gap-3 border-l dark:border-gray-600 pl-4">
+                <button
+                  onClick={toggleDarkMode}
+                  className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                  <FontAwesomeIcon icon={darkMode ? faSun : faMoon} />
+                </button>
+                <span className="text-sm text-gray-600 dark:text-gray-300">{user?.username}</span>
                 <button
                   onClick={logout}
-                  className="p-2 rounded-md text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   title="Logout"
                 >
                   <FontAwesomeIcon icon={faRightFromBracket} />

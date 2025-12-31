@@ -3,9 +3,11 @@ from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
+    dark_mode = serializers.BooleanField(required=False)
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'email', 'dark_mode']
         read_only_fields = ['id']
 
 
@@ -28,3 +30,4 @@ class UserProfileResponseSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     username = serializers.CharField()
     email = serializers.EmailField()
+    dark_mode = serializers.BooleanField()

@@ -304,3 +304,146 @@ class TestStartWorkoutIntegration(TestCase):
         # Verify set order is sequential
         for i, s in enumerate(db_sets):
             self.assertEqual(s.set_order, i)
+
+
+class TestPresetExercisesInAPI(TestCase):
+    """Test that presets include exercises in API responses."""
+
+    @classmethod
+    def setUpTestData(cls):
+        """Set up test data once for the entire class."""
+        cls.user = User.objects.create_user(username="preset_api_user", password="testpass")
+        cls.exercise1 = Exercise.objects.create(name="Bench Press", is_bodyweight=False)
+        cls.exercise2 = Exercise.objects.create(name="Squats", is_bodyweight=False)
+
+    def setUp(self):
+        """Set up test client for each test."""
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_list_presets_includes_exercises(self):
+        """Test that listing presets returns exercises array."""
+        # Create a preset with an exercise
+        preset = WorkoutPreset.objects.create(user=self.user, name="Push Day")
+        WorkoutPresetExercise.objects.create(
+            preset=preset,
+            exercise=self.exercise1,
+            type="normal",
+            sets=3,
+            order=0
+        )
+
+        # List presets
+        response = self.client.get(reverse("workoutpreset-list"))
+        self.assertEqual(response.status_code, 200)
+
+        # Verify exercises are included
+        self.assertEqual(len(response.data), 1)
+        preset_data = response.data[0]
+        self.assertIn("exercises", preset_data)
+        self.assertIsInstance(preset_data["exercises"], list)
+        self.assertEqual(len(preset_data["exercises"]), 1)
+
+        # Verify exercise data structure
+        exercise_data = preset_data["exercises"][0]
+        self.assertEqual(exercise_data["type"], "normal")
+        self.assertEqual(exercise_data["sets"], 3)
+        self.assertEqual(exercise_data["exerciseId"], self.exercise1.id)
+
+    def test_get_preset_detail_includes_exercises(self):
+        """Test that getting a preset detail returns exercises array."""
+        # Create a preset with multiple exercises
+        preset = WorkoutPreset.objects.create(user=self.user, name="Full Body")
+        WorkoutPresetExercise.objects.create(
+            preset=preset,
+            exercise=self.exercise1,
+            type="normal",
+            sets=3,
+            order=0
+        )
+        WorkoutPresetExercise.objects.create(
+            preset=preset,
+            exercise=self.exercise2,
+            type="dropdown",
+            sets=4,
+            dropdowns=2,
+            order=1
+        )
+
+        # Get preset detail
+        response = self.client.get(reverse("workoutpreset-detail", kwargs={"pk": preset.id}))
+        self.assertEqual(response.status_code, 200)
+
+        # Verify exercises are included
+        preset_data = response.data
+        self.assertIn("exercises", preset_data)
+        self.assertEqual(len(preset_data["exercises"]), 2)
+
+        # Verify exercises are in correct order
+        self.assertEqual(preset_data["exercises"][0]["exerciseId"], self.exercise1.id)
+        self.assertEqual(preset_data["exercises"][1]["exerciseId"], self.exercise2.id)
+
+    def test_create_preset_then_get_includes_exercises(self):
+        """Test that creating a preset and then fetching it includes exercises."""
+        # Create a preset via API
+        preset_data = {"name": "Push Day", "notes": "Chest focused"}
+        response = self.client.post(reverse("workoutpreset-list"), preset_data, format="json")
+        self.assertEqual(response.status_code, 201)
+        preset_id = response.data["id"]
+
+        # Add an exercise to the preset
+        WorkoutPresetExercise.objects.create(
+            preset_id=preset_id,
+            exercise=self.exercise1,
+            type="normal",
+            sets=3,
+            order=0
+        )
+
+        # Fetch the preset
+        response = self.client.get(reverse("workoutpreset-detail", kwargs={"pk": preset_id}))
+        self.assertEqual(response.status_code, 200)
+
+        # Verify exercises are included
+        self.assertIn("exercises", response.data)
+        self.assertEqual(len(response.data["exercises"]), 1)
+
+    def test_superset_exercise_includes_superset_exercises(self):
+        """Test that superset exercises include nested superset_exercises array."""
+        # Create a preset with a superset
+        preset = WorkoutPreset.objects.create(user=self.user, name="Upper Body")
+        superset_ex = WorkoutPresetExercise.objects.create(
+            preset=preset,
+            type="superset",
+            sets=3,
+            order=0
+        )
+        SupersetExerciseItem.objects.create(
+            superset=superset_ex,
+            exercise=self.exercise1,
+            type="normal",
+            order=0
+        )
+        SupersetExerciseItem.objects.create(
+            superset=superset_ex,
+            exercise=self.exercise2,
+            type="normal",
+            order=1
+        )
+
+        # Get the preset
+        response = self.client.get(reverse("workoutpreset-detail", kwargs={"pk": preset.id}))
+        self.assertEqual(response.status_code, 200)
+
+        # Verify superset_exercises are included
+        exercises = response.data["exercises"]
+        self.assertEqual(len(exercises), 1)
+        superset_data = exercises[0]
+        self.assertEqual(superset_data["type"], "superset")
+        self.assertIn("supersetExercises", superset_data)
+        self.assertEqual(len(superset_data["supersetExercises"]), 2)
+
+        # Verify superset items have correct exercise IDs
+        superset_ids = [item["exerciseId"] for item in superset_data["supersetExercises"]]
+        self.assertIn(self.exercise1.id, superset_ids)
+        self.assertIn(self.exercise2.id, superset_ids)

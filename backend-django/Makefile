@@ -20,7 +20,7 @@ run:
 migrate:
 	uv run python manage.py migrate
 
-makemigrations:
+migrations: migrate
 	uv run python manage.py makemigrations
 
 test:

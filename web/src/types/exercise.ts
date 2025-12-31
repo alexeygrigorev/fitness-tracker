@@ -19,9 +19,9 @@ export type MuscleGroup =
 export interface Exercise {
   id: string;
   name: string;
-  category: 'compound' | 'isolation' | 'cardio';
-  muscleGroups: MuscleGroup[];
-  equipment: string[];
-  instructions: string[];
+  category?: 'compound' | 'isolation' | 'cardio'; // Optional - not always set from backend
+  muscleGroups?: string[]; // Optional - array of muscle group names
+  equipment?: string | null; // Single equipment name or null
+  instructions?: string[]; // Optional - not stored in backend yet
   bodyweight?: boolean; // True for exercises like pullups, pushups, dips
 }

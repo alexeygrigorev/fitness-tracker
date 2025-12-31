@@ -128,11 +128,11 @@ export default function NutritionPage() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case "protein": return "bg-red-100 text-red-700";
-      case "carb": return "bg-yellow-100 text-yellow-700";
-      case "fat": return "bg-green-100 text-green-700";
-      case "beverage": return "bg-blue-100 text-blue-700";
-      default: return "bg-gray-100 text-gray-700";
+      case "protein": return "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300";
+      case "carb": return "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300";
+      case "fat": return "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300";
+      case "beverage": return "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300";
+      default: return "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300";
     }
   };
 
@@ -153,7 +153,7 @@ export default function NutritionPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
@@ -168,7 +168,7 @@ export default function NutritionPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Nutrition Tracking</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Nutrition Tracking</h2>
         {activeTab === "meals" && (
           <button
             onClick={() => setShowLogMeal(true)}
@@ -186,7 +186,7 @@ export default function NutritionPage() {
           <div className="flex items-center justify-center gap-4">
             <button
               onClick={() => goToDate(-1)}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -195,11 +195,11 @@ export default function NutritionPage() {
             <div className="text-center">
               <button
                 onClick={goToToday}
-                className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                className="text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 {formatDate(selectedDate)}
               </button>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 {selectedDate.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
               </div>
             </div>
@@ -207,8 +207,8 @@ export default function NutritionPage() {
               onClick={() => goToDate(1)}
               disabled={isToday}
               className={"p-2 rounded-md transition-colors " + (isToday
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
               )}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -218,29 +218,29 @@ export default function NutritionPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">Calories</div>
-              <div className="text-xl font-bold text-gray-900">{totals.calories}</div>
-              <div className="text-xs text-gray-400">/ 2500 goal</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Calories</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{totals.calories}</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500">/ 2500 goal</div>
             </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">Protein</div>
-              <div className="text-xl font-bold text-blue-600">{totals.protein}g</div>
-              <div className="text-xs text-gray-400">/ 130g goal</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Protein</div>
+              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{totals.protein}g</div>
+              <div className="text-xs text-gray-400 dark:text-gray-500">/ 130g goal</div>
             </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">Carbs</div>
-              <div className="text-xl font-bold text-gray-900">{totals.carbs}g</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Carbs</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{totals.carbs}g</div>
             </div>
-            <div className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-500">Fat</div>
-              <div className="text-xl font-bold text-gray-900">{totals.fat}g</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">Fat</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{totals.fat}g</div>
             </div>
           </div>
         </>
       )}
 
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-8">
           {(["meals", "templates", "foods"] as Tab[]).map(tab => (
             <button
@@ -249,8 +249,8 @@ export default function NutritionPage() {
               className={
                 "py-2 px-1 border-b-2 font-medium text-sm " +
                 (activeTab === tab
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500")
+                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
               }
             >
               {tabLabels[tab]}
@@ -262,27 +262,27 @@ export default function NutritionPage() {
       {activeTab === "meals" && (
         <div className="space-y-3">
           {mealsForDate.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <p>No meals logged for {formatDate(selectedDate).toLowerCase()}</p>
               <button
                 onClick={() => setShowLogMeal(true)}
-                className="mt-2 text-blue-600 hover:text-blue-700"
+                className="mt-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
               >
                 Log a meal
               </button>
             </div>
           ) : (
             mealsForDate.map(meal => (
-              <div key={meal.id} className="bg-white rounded-lg shadow p-4">
+              <div key={meal.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">{meal.name}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{meal.name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 capitalize">
                         {meal.mealType.replace("_", " ")}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-500 mt-1">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       {meal.foods.map(f => {
                         const food = foodItems.find(fi => fi.id === f.foodId);
                         if (!food) return null;
@@ -296,10 +296,10 @@ export default function NutritionPage() {
                     </div>
                   </div>
                   <div className="text-right mr-4">
-                    <div className="font-medium text-gray-900">{Math.round(meal.totalCalories)} kcal</div>
-                    <div className="grid grid-cols-3 gap-3 text-xs text-gray-500">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{Math.round(meal.totalCalories)} kcal</div>
+                    <div className="grid grid-cols-3 gap-3 text-xs text-gray-500 dark:text-gray-400">
                       <div>
-                        <span className="text-blue-600 font-medium">{Math.round(meal.totalProtein)}g</span> protein
+                        <span className="text-blue-600 dark:text-blue-400 font-medium">{Math.round(meal.totalProtein)}g</span> protein
                       </div>
                       <div>
                         <span className="font-medium">{Math.round(meal.totalCarbs)}g</span> carbs
@@ -312,14 +312,14 @@ export default function NutritionPage() {
                   <div className="flex gap-1">
                     <button
                       onClick={() => handleEditMeal(meal)}
-                      className="text-gray-400 hover:text-blue-600 p-1"
+                      className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
                       title="Edit meal"
                     >
                       <FontAwesomeIcon icon={faPen} />
                     </button>
                     <button
                       onClick={() => handleDeleteMeal(meal.id)}
-                      className="text-gray-400 hover:text-red-600 p-1"
+                      className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                       title="Delete meal"
                     >
                       <FontAwesomeIcon icon={faTrash} />
@@ -346,7 +346,7 @@ export default function NutritionPage() {
             </button>
           </div>
           {templates.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               No meal templates yet. Create your first template for quick meal logging.
             </div>
           ) : (
@@ -369,16 +369,16 @@ export default function NutritionPage() {
                 }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
 
                 return (
-                  <div key={template.id} className="bg-white rounded-lg shadow p-4">
+                  <div key={template.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{template.name}</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{template.name}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 capitalize">
                             {template.category.replace("_", " ")}
                           </span>
                         </div>
-                        <div className="text-sm text-gray-500 mt-1">
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           {template.foods.map(f => {
                             const food = foodItems.find(fi => fi.id === f.foodId);
                             if (!food) return null;
@@ -392,10 +392,10 @@ export default function NutritionPage() {
                         </div>
                       </div>
                       <div className="text-right mr-4">
-                        <div className="text-sm font-medium text-gray-900">{Math.round(totals.calories)} kcal</div>
-                        <div className="grid grid-cols-3 gap-3 text-xs text-gray-500">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{Math.round(totals.calories)} kcal</div>
+                        <div className="grid grid-cols-3 gap-3 text-xs text-gray-500 dark:text-gray-400">
                           <div>
-                            <span className="text-blue-600 font-medium">{Math.round(totals.protein)}g</span> protein
+                            <span className="text-blue-600 dark:text-blue-400 font-medium">{Math.round(totals.protein)}g</span> protein
                           </div>
                           <div>
                             <span className="font-medium">{Math.round(totals.carbs)}g</span> carbs
@@ -408,7 +408,7 @@ export default function NutritionPage() {
                       <div className="flex gap-1">
                         <button
                           onClick={() => setShowLogMeal(true)}
-                          className="text-gray-400 hover:text-green-600 p-1"
+                          className="text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 p-1"
                           title="Log meal from template"
                         >
                           <FontAwesomeIcon icon={faPlus} />
@@ -418,14 +418,14 @@ export default function NutritionPage() {
                             setEditingTemplate(template);
                             setShowTemplateForm(true);
                           }}
-                          className="text-gray-400 hover:text-blue-600 p-1"
+                          className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
                           title="Edit template"
                         >
                           <FontAwesomeIcon icon={faPen} />
                         </button>
                         <button
                           onClick={() => handleDeleteTemplate(template.id)}
-                          className="text-gray-400 hover:text-red-600 p-1"
+                          className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                           title="Delete template"
                         >
                           <FontAwesomeIcon icon={faTrash} />
@@ -463,26 +463,26 @@ export default function NutritionPage() {
             </button>
           </div>
           {foodItems.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               No food items yet. Add your first food item to get started.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {foodItems.map(food => (
-                <div key={food.id} className="bg-white rounded-lg shadow p-4">
+                <div key={food.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{food.name}</span>
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{food.name}</span>
                         <span className={"text-xs px-1.5 py-0.5 rounded " + getCategoryColor(food.category)}>
                           {food.category}
                         </span>
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         1 serving: {food.servingSize}g ({food.servingType}, {food.caloriesPerPortion ?? Math.round(food.calories * food.servingSize / 100)} kcal)
                       </div>
                       {food.brand && (
-                        <div className="text-xs text-gray-400">{food.brand}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500">{food.brand}</div>
                       )}
                     </div>
                     <div className="flex gap-1">
@@ -491,14 +491,14 @@ export default function NutritionPage() {
                           setEditingFood(food);
                           setShowFoodForm(true);
                         }}
-                        className="text-gray-400 hover:text-blue-600 p-1"
+                        className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
                         title="Edit food"
                       >
                         <FontAwesomeIcon icon={faPen} />
                       </button>
                       <button
                         onClick={() => handleDeleteFood(food.id)}
-                        className="text-gray-400 hover:text-red-600 p-1"
+                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                         title="Delete food"
                       >
                         <FontAwesomeIcon icon={faTrash} />
@@ -506,39 +506,39 @@ export default function NutritionPage() {
                     </div>
                   </div>
                   <div className="mt-3 space-y-2">
-                    <div className="text-xs text-gray-500">Per 100g</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Per 100g</div>
                     <div className="grid grid-cols-4 gap-2 text-center">
                       <div>
-                        <div className="text-sm font-medium">{food.calories}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{food.calories}</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-blue-600">{food.protein}g</div>
+                        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">{food.protein}g</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium">{food.carbs}g</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{food.carbs}g</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium">{food.fat}g</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{food.fat}g</div>
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500 pt-1">Per serving ({food.servingSize}g)</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">Per serving ({food.servingSize}g)</div>
                     <div className="grid grid-cols-4 gap-2 text-center">
                       <div>
-                        <div className="text-sm font-medium">{food.caloriesPerPortion ?? Math.round(food.calories * food.servingSize / 100)}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{food.caloriesPerPortion ?? Math.round(food.calories * food.servingSize / 100)}</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-blue-600">{Math.round(food.protein * food.servingSize / 100)}g</div>
+                        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">{Math.round(food.protein * food.servingSize / 100)}g</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium">{Math.round(food.carbs * food.servingSize / 100)}g</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{Math.round(food.carbs * food.servingSize / 100)}g</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium">{Math.round(food.fat * food.servingSize / 100)}g</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{Math.round(food.fat * food.servingSize / 100)}g</div>
                       </div>
                     </div>
                   </div>
                   {(food.glycemicIndex !== undefined || food.absorptionSpeed || food.satietyScore || food.proteinQuality) && (
-                    <div className="mt-2 pt-2 border-t text-xs text-gray-500 flex gap-3">
+                    <div className="mt-2 pt-2 border-t dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex gap-3">
                       <span>GI: {food.glycemicIndex && food.glycemicIndex > 0 ? food.glycemicIndex : "-"}</span>
                       <span>Absorption: {food.absorptionSpeed || "-"}</span>
                       <span>Satiety: {food.satietyScore ? `${food.satietyScore}/10` : "-"}</span>

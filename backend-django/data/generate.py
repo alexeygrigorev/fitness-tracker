@@ -40,6 +40,16 @@ if created:
     admin_user.save()
     print(f"Created admin user: {admin_user.username}")
 
+# Create test user
+test_user, created = User.objects.get_or_create(
+    username="test", defaults={"email": "test@example.com"}
+)
+
+if created:
+    test_user.set_password("test")
+    test_user.save()
+    print(f"Created test user: {test_user.username}")
+
 # Create muscle regions
 chest_region, _ = MuscleRegion.objects.get_or_create(name="Chest")
 back_region, _ = MuscleRegion.objects.get_or_create(name="Back")
@@ -191,11 +201,11 @@ for name, is_bw, primary_muscles, secondary_muscles, equipment, tags in exercise
         print(f"Created exercise: {exercise.name}")
     exercise_objects[name] = exercise
 
-# Create workout presets
+# Create workout presets for admin user
 push_day_preset, _ = WorkoutPreset.objects.get_or_create(
     user=admin_user,
     name="Push Day",
-    defaults={"notes": "Weekly push workout for chest, shoulders, and triceps"}
+    defaults={"notes": "Weekly push workout for chest, shoulders, and triceps", "day_label": "Monday", "status": "active", "tags": ["strength"]}
 )
 
 # Add exercises to Push Day preset
@@ -251,7 +261,7 @@ WorkoutPresetExercise.objects.get_or_create(
 pull_day_preset, _ = WorkoutPreset.objects.get_or_create(
     user=admin_user,
     name="Pull Day",
-    defaults={"notes": "Weekly pull workout for back and biceps"}
+    defaults={"notes": "Weekly pull workout for back and biceps", "day_label": "Wednesday", "status": "active", "tags": ["strength"]}
 )
 
 WorkoutPresetExercise.objects.get_or_create(
@@ -293,7 +303,7 @@ WorkoutPresetExercise.objects.get_or_create(
 leg_day_preset, _ = WorkoutPreset.objects.get_or_create(
     user=admin_user,
     name="Leg Day",
-    defaults={"notes": "Weekly leg workout"}
+    defaults={"notes": "Weekly leg workout", "day_label": "Friday", "status": "active", "tags": ["strength"]}
 )
 
 WorkoutPresetExercise.objects.get_or_create(
@@ -341,8 +351,73 @@ for i in range(4):
     if created:
         print(f"Created session: {session.name}")
 
+# Create workout presets for test user (same exercises)
+test_push_preset, _ = WorkoutPreset.objects.get_or_create(
+    user=test_user,
+    name="Push Day",
+    defaults={"notes": "Weekly push workout for chest, shoulders, and triceps", "day_label": "Monday", "status": "active", "tags": ["strength"]}
+)
+
+for order, (ex_name, ex_type, ex_sets, ex_dropdowns, ex_warmup) in enumerate([
+    ("Bench Press", "dropdown", 4, 2, True),
+    ("Incline Dumbbell Press", "normal", 3, None, False),
+    ("Overhead Press", "normal", 3, None, False),
+    ("Lateral Raises", "normal", 3, None, False),
+    ("Tricep Pushdowns", "normal", 4, None, False),
+]):
+    if ex_type == "superset":
+        preset_ex, _ = WorkoutPresetExercise.objects.get_or_create(
+            preset=test_push_preset,
+            type=ex_type,
+            defaults={"sets": ex_sets, "include_warmup": ex_warmup, "order": order}
+        )
+    else:
+        WorkoutPresetExercise.objects.get_or_create(
+            preset=test_push_preset,
+            exercise=exercise_objects[ex_name],
+            defaults={"type": ex_type, "sets": ex_sets, "dropdowns": ex_dropdowns, "include_warmup": ex_warmup, "order": order}
+        )
+
+test_pull_preset, _ = WorkoutPreset.objects.get_or_create(
+    user=test_user,
+    name="Pull Day",
+    defaults={"notes": "Weekly pull workout for back and biceps", "day_label": "Wednesday", "status": "active", "tags": ["strength"]}
+)
+
+for order, (ex_name, ex_type, ex_sets, ex_dropdowns, ex_warmup) in enumerate([
+    ("Deadlifts", "normal", 3, None, True),
+    ("Barbell Rows", "dropdown", 4, 2, False),
+    ("Pull-ups", "normal", 3, None, False),
+    ("Bicep Curls", "normal", 4, None, False),
+]):
+    WorkoutPresetExercise.objects.get_or_create(
+        preset=test_pull_preset,
+        exercise=exercise_objects[ex_name],
+        defaults={"type": ex_type, "sets": ex_sets, "dropdowns": ex_dropdowns, "include_warmup": ex_warmup, "order": order}
+    )
+
+test_leg_preset, _ = WorkoutPreset.objects.get_or_create(
+    user=test_user,
+    name="Leg Day",
+    defaults={"notes": "Weekly leg workout", "day_label": "Friday", "status": "active", "tags": ["strength"]}
+)
+
+for order, (ex_name, ex_type, ex_sets, ex_dropdowns, ex_warmup) in enumerate([
+    ("Squats", "dropdown", 4, 2, True),
+    ("Leg Press", "normal", 3, None, False),
+    ("Leg Extensions", "normal", 3, None, False),
+    ("Leg Curls", "normal", 3, None, False),
+    ("Calf Raises", "normal", 4, None, False),
+]):
+    WorkoutPresetExercise.objects.get_or_create(
+        preset=test_leg_preset,
+        exercise=exercise_objects[ex_name],
+        defaults={"type": ex_type, "sets": ex_sets, "dropdowns": ex_dropdowns, "include_warmup": ex_warmup, "order": order}
+    )
+
 print("\nData generation complete!")
 print(f"Admin user: admin / admin")
+print(f"Test user: test / test")
 print(f"Created {Exercise.objects.count()} exercises")
 print(f"Created {WorkoutPreset.objects.count()} workout presets")
 print(f"Created {WorkoutSession.objects.count()} workout sessions")

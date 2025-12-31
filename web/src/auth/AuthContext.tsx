@@ -8,6 +8,7 @@ interface User {
   email: string;
   username: string;
   is_active: boolean;
+  dark_mode?: boolean;
 }
 
 interface AuthContextType {
@@ -17,6 +18,8 @@ interface AuthContextType {
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
+  darkMode: boolean;
+  toggleDarkMode: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,8 +28,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   useEffect(() => {
     // Check for stored token on mount
@@ -36,10 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(storedUser);
-      // Verify token is still valid
+      // Default to light mode, will update after API confirms
+      setDarkMode(false);
+      // Verify token is still valid and get fresh user data
       authApi.getMe()
         .then((data) => {
           setUser(data);
+          setDarkMode(data.dark_mode || false);
           authApi.setAuth(storedToken, data);
         })
         .catch(() => {
@@ -63,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userData = await authApi.getMe();
 
     setUser(userData);
+    setDarkMode(userData.dark_mode || false);
     authApi.setAuth(accessToken, userData);
 
     // Redirect to the page they were trying to access
@@ -79,12 +96,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setToken(null);
     setUser(null);
+    setDarkMode(false);
     authApi.clearAuth();
     navigate('/login', { replace: true });
   };
 
+  const toggleDarkMode = async () => {
+    const newDarkMode = !darkMode;
+    // Always update local state immediately - don't revert on API error
+    setDarkMode(newDarkMode);
+
+    // Update on server if user is logged in (best effort, don't block UI)
+    if (user && token) {
+      authApi.updateProfile({ dark_mode: newDarkMode })
+        .then((updatedUser) => {
+          setUser(updatedUser);
+          authApi.setAuth(token, updatedUser);
+        })
+        .catch((error) => {
+          console.error('Failed to save dark mode preference to server', error);
+        });
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, loading, darkMode, toggleDarkMode }}>
       {children}
     </AuthContext.Provider>
   );

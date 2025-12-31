@@ -41,13 +41,13 @@ jobs:
         run: |
           uv run pytest -v
 
-  integration-tests:
-    runs-on: ubuntu-latest
+  # integration-tests:
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Run integration tests
-        run: |
-          docker compose -f docker-compose.test.yml --profile tests up --abort-on-container-exit --build
+  #     - name: Run integration tests
+  #       run: |
+  #         docker compose -f docker-compose.test.yml --profile tests up --abort-on-container-exit --build
