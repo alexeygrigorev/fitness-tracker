@@ -19,14 +19,8 @@ RUN uv sync --dev
 # Copy application code
 COPY . .
 
-# Run migrations
-RUN uv run python manage.py migrate
-
-# Seed database with test data
-RUN uv run python data/generate.py
-
 # Expose port
 EXPOSE 8000
 
-# Run server
+# Run server (migrations and test data run at runtime for tests)
 CMD ["uv", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]

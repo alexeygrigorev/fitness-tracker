@@ -19,8 +19,41 @@ services:
       - DEBUG=True
       - SECRET_KEY=test-secret-key-for-testing
       - ALLOWED_HOSTS=*
+    command: >
+      sh -c "
+        uv run python manage.py migrate &&
+        uv run python data/generate.py &&
+        uv run python manage.py runserver 0.0.0.0:8000
+      "
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
+    networks:
+      - test-network
+
+  # ============================================
+  # Frontend Service (for UI tests)
+  # ============================================
+  frontend:
+    image: node:22-slim
+    container_name: fitness-frontend-test
+    working_dir: /app
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    command: >
+      sh -c "
+        apt-get update && apt-get install -y curl &&
+        npm install &&
+        npm run dev -- --host 0.0.0.0
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -32,25 +65,27 @@ services:
   # E2E Tests (Playwright)
   # ============================================
   e2e-test:
-    image: mcr.microsoft.com/playwright:v1.49.0-jammy
+    image: mcr.microsoft.com/playwright:v1.57.0-jammy
     container_name: fitness-e2e-test
     working_dir: /app
     volumes:
       - ./web:/app
     environment:
       - CI=true
-      - BASE_URL=http://backend:8000
+      - VITE_API_URL=http://backend:8000
+      - BASE_URL=http://frontend:5173
     depends_on:
       backend:
+        condition: service_healthy
+      frontend:
         condition: service_healthy
     command: >
       sh -c "
         echo '🧪 Fitness Tracker - E2E Tests' &&
         echo '==================================' &&
         echo '' &&
-        npm install &&
         npx playwright install --with-deps chromium &&
-        npx playwright test || true
+        npx playwright test
       "
     networks:
       - test-network
