@@ -642,7 +642,7 @@ export default function ExercisesPage() {
                   const isTodaysPreset = getDayOfWeek(preset.dayLabel) === currentDayOfWeek;
 
                   return (
-                    <div key={preset.id} className={`bg-white dark:bg-gray-700 rounded-lg shadow p-4 ${preset.status === 'archived' ? 'opacity-60' : ''} ${isTodaysPreset ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}>
+                    <div key={preset.id} data-preset-id={preset.id} className={`bg-white dark:bg-gray-700 rounded-lg shadow p-4 ${preset.status === 'archived' ? 'opacity-60' : ''} ${isTodaysPreset ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap">

@@ -401,6 +401,10 @@ test_pull_preset, _ = WorkoutPreset.objects.get_or_create(
     name="Pull Day",
     defaults={"notes": "Weekly pull workout for back and biceps", "day_label": "Wednesday", "status": "active", "tags": ["strength"]}
 )
+# Ensure day_label is Wednesday even if preset already existed
+test_pull_preset.day_label = "Wednesday"
+test_pull_preset.status = "active"
+test_pull_preset.save()
 
 for order, (ex_name, ex_type, ex_sets, ex_dropdowns, ex_warmup) in enumerate([
     ("Deadlifts", "normal", 3, None, True),
@@ -419,6 +423,10 @@ test_leg_preset, _ = WorkoutPreset.objects.get_or_create(
     name="Leg Day",
     defaults={"notes": "Weekly leg workout", "day_label": "Friday", "status": "active", "tags": ["strength"]}
 )
+# Ensure day_label is Friday even if preset already existed
+test_leg_preset.day_label = "Friday"
+test_leg_preset.status = "active"
+test_leg_preset.save()
 
 for order, (ex_name, ex_type, ex_sets, ex_dropdowns, ex_warmup) in enumerate([
     ("Squats", "dropdown", 4, 2, True),

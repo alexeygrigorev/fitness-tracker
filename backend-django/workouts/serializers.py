@@ -105,7 +105,7 @@ class WritableWorkoutPresetExerciseSerializer(serializers.ModelSerializer):
 class WorkoutPresetSerializer(serializers.ModelSerializer):
     exercises = WorkoutPresetExerciseSerializer(many=True, read_only=True)
     user_id = serializers.ReadOnlyField()
-    dayLabel = serializers.ReadOnlyField(source='day_label')
+    dayLabel = serializers.CharField(source='day_label', required=False, allow_blank=True, allow_null=True)
     status = serializers.CharField(read_only=True)
 
     class Meta:

@@ -159,31 +159,34 @@ test.describe('Preset Management', () => {
     await page.goto('/workouts/presets');
     await page.waitForLoadState('networkidle');
 
-    // Find a preset card
-    const presetCards = page.locator('[data-preset-id]').filter({ hasText: /sets/i });
-    const count = await presetCards.count();
+    // Find a preset card that has a day label (purple badge)
+    const presetWithDay = page.locator('[data-preset-id]').filter({ hasText: /Push Day|Pull Day|Leg Day/i }).first();
+    const count = await presetWithDay.count();
 
     if (count === 0) {
-      test.skip(true, 'No presets found to edit');
+      test.skip(true, 'No editable presets found');
       return;
     }
 
-    const firstCard = presetCards.first();
     // Get the preset ID for reliable re-selection later
-    const presetId = await firstCard.getAttribute('data-preset-id');
+    const presetId = await presetWithDay.getAttribute('data-preset-id');
     expect(presetId).not.toBeNull();
 
     // Click edit button (use first())
-    await firstCard.getByTitle('Edit').first().click();
+    await presetWithDay.getByTitle('Edit').first().click();
 
     // Wait for modal
     await expect(page.locator('form')).toBeVisible();
 
-    // Find the day dropdown and select Monday
-    const daySelect = page.locator('select').filter({ hasText: /Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|None/i }).first();
+    // Find the day dropdown by its label
+    const dayLabel = page.getByText('Day of Week');
+    const hasDaySelector = await dayLabel.count() > 0;
 
-    const daySelectExists = await daySelect.count() > 0;
-    if (daySelectExists) {
+    if (hasDaySelector) {
+      // Find the select element near the label
+      const daySelect = page.locator('label:has-text("Day of Week") + select');
+      const originalDay = await daySelect.inputValue();
+
       await daySelect.selectOption('Monday');
 
       // Save changes
@@ -193,7 +196,11 @@ test.describe('Preset Management', () => {
       // Wait for save to complete
       await page.waitForTimeout(500);
 
-      // Find the same preset card again by ID and click edit
+      // Reload to see updated data
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+
+      // Find the same preset card again by ID
       const sameCard = page.locator(`[data-preset-id="${presetId}"]`);
       await expect(sameCard).toBeVisible();
       await sameCard.getByTitle('Edit').first().click();
@@ -201,6 +208,11 @@ test.describe('Preset Management', () => {
 
       // Verify Monday is still selected
       await expect(daySelect).toHaveValue('Monday');
+
+      // Restore the original day value to clean up test data
+      await daySelect.selectOption(originalDay);
+      await page.getByRole('button', { name: 'Save Changes' }).click();
+      await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
 
       // Close modal
       await page.keyboard.press('Escape');
