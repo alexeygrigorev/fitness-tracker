@@ -420,6 +420,7 @@ export default function ExercisesPage() {
                       return (
                         <button
                           key={preset.id}
+                          data-preset-id={preset.id}
                           onClick={() => startWorkout(preset)}
                           className="text-left p-4 rounded-lg border-2 border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all"
                         >
@@ -485,6 +486,7 @@ export default function ExercisesPage() {
                       return (
                         <button
                           key={preset.id}
+                          data-preset-id={preset.id}
                           onClick={() => startWorkout(preset)}
                           className="text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                         >

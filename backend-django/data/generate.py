@@ -217,6 +217,10 @@ push_day_preset, _ = WorkoutPreset.objects.get_or_create(
     name="Push Day",
     defaults={"notes": "Weekly push workout for chest, shoulders, and triceps", "day_label": "Monday", "status": "active", "tags": ["strength"]}
 )
+# Ensure day_label is Monday even if preset already existed
+push_day_preset.day_label = "Monday"
+push_day_preset.status = "active"
+push_day_preset.save()
 
 # Add exercises to Push Day preset
 WorkoutPresetExercise.objects.get_or_create(
@@ -362,11 +366,15 @@ for i in range(4):
         print(f"Created session: {session.name}")
 
 # Create workout presets for test user (same exercises)
-test_push_preset, _ = WorkoutPreset.objects.get_or_create(
+test_push_preset, created = WorkoutPreset.objects.get_or_create(
     user=test_user,
     name="Push Day",
     defaults={"notes": "Weekly push workout for chest, shoulders, and triceps", "day_label": "Monday", "status": "active", "tags": ["strength"]}
 )
+# Ensure day_label is Monday even if preset already existed
+test_push_preset.day_label = "Monday"
+test_push_preset.status = "active"
+test_push_preset.save()
 
 for order, (ex_name, ex_type, ex_sets, ex_dropdowns, ex_warmup) in enumerate([
     ("Bench Press", "dropdown", 4, 2, True),

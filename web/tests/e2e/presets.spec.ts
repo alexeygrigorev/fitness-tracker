@@ -159,8 +159,8 @@ test.describe('Preset Management', () => {
     await page.goto('/workouts/presets');
     await page.waitForLoadState('networkidle');
 
-    // Find a preset card - use a more specific selector for preset cards
-    const presetCards = page.locator('[class*="rounded"]').filter({ hasText: /sets/i });
+    // Find a preset card
+    const presetCards = page.locator('[data-preset-id]').filter({ hasText: /sets/i });
     const count = await presetCards.count();
 
     if (count === 0) {
@@ -169,8 +169,9 @@ test.describe('Preset Management', () => {
     }
 
     const firstCard = presetCards.first();
-    // Get the preset name for reliable re-selection later
-    const presetName = await firstCard.textContent() || '';
+    // Get the preset ID for reliable re-selection later
+    const presetId = await firstCard.getAttribute('data-preset-id');
+    expect(presetId).not.toBeNull();
 
     // Click edit button (use first())
     await firstCard.getByTitle('Edit').first().click();
@@ -192,8 +193,9 @@ test.describe('Preset Management', () => {
       // Wait for save to complete
       await page.waitForTimeout(500);
 
-      // Find the same preset card again by name and click edit
-      const sameCard = page.locator('[class*="rounded"]').filter({ hasText: presetName }).first();
+      // Find the same preset card again by ID and click edit
+      const sameCard = page.locator(`[data-preset-id="${presetId}"]`);
+      await expect(sameCard).toBeVisible();
       await sameCard.getByTitle('Edit').first().click();
       await expect(page.locator('form')).toBeVisible();
 
