@@ -70,6 +70,7 @@ services:
     working_dir: /app
     volumes:
       - ./web:/app
+      - /app/node_modules
     environment:
       - CI=true
       - VITE_API_URL=http://backend:8000
