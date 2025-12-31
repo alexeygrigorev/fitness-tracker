@@ -236,7 +236,9 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         obj.finished_at = timezone.now()
         obj.save()
-        return Response(model_to_dict(obj))
+        # Use serializer to ensure all fields are included
+        serializer = WorkoutSessionSerializer(obj)
+        return Response(serializer.data)
 
 
 class WorkoutPresetViewSet(viewsets.ModelViewSet):

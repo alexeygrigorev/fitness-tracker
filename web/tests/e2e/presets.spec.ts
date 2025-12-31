@@ -42,8 +42,10 @@ test.describe('Preset Management', () => {
     const nameInput = page.locator('input[placeholder*="Upper Body"], input[placeholder*="Push"]').first();
     const nameInputVisible = await nameInput.count() > 0;
 
+    let originalName = '';
+
     if (nameInputVisible) {
-      const originalName = await nameInput.inputValue();
+      originalName = await nameInput.inputValue();
       const timestamp = Date.now().toString().slice(-4);
       const newName = `Updated ${originalName} ${timestamp}`;
       await nameInput.fill(newName);
@@ -62,7 +64,7 @@ test.describe('Preset Management', () => {
       const hasLabelInput = await labeledInput.count() > 0;
 
       if (hasLabelInput) {
-        const originalName = await labeledInput.inputValue();
+        originalName = await labeledInput.inputValue();
         const timestamp = Date.now().toString().slice(-4);
         const newName = `Updated ${originalName || 'Preset'} ${timestamp}`;
         await labeledInput.fill(newName);
@@ -73,8 +75,28 @@ test.describe('Preset Management', () => {
       } else {
         // Close modal if no input found
         await page.keyboard.press('Escape');
+        test.skip(true, 'Could not find name input to test');
+        return;
       }
     }
+
+    // Rename it back to the original name to clean up
+    await firstCard.getByTitle('Edit').first().click();
+    await expect(page.locator('form')).toBeVisible();
+
+    const restoreNameInput = page.locator('input[placeholder*="Upper Body"], input[placeholder*="Push"]').first();
+    const restoreNameVisible = await restoreNameInput.count() > 0;
+
+    if (restoreNameVisible) {
+      await restoreNameInput.fill(originalName);
+    } else {
+      const labeledInput = page.getByLabel(/Preset Name/i);
+      await labeledInput.fill(originalName);
+    }
+
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+    await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator(`text="${originalName}"`)).toBeVisible();
   });
 
   test('can edit exercise dropdowns and save changes', async ({ page }) => {
@@ -137,7 +159,7 @@ test.describe('Preset Management', () => {
     await page.goto('/workouts/presets');
     await page.waitForLoadState('networkidle');
 
-    // Find a preset card
+    // Find a preset card - use a more specific selector for preset cards
     const presetCards = page.locator('[class*="rounded"]').filter({ hasText: /sets/i });
     const count = await presetCards.count();
 
@@ -147,6 +169,8 @@ test.describe('Preset Management', () => {
     }
 
     const firstCard = presetCards.first();
+    // Get the preset name for reliable re-selection later
+    const presetName = await firstCard.textContent() || '';
 
     // Click edit button (use first())
     await firstCard.getByTitle('Edit').first().click();
@@ -165,8 +189,12 @@ test.describe('Preset Management', () => {
       await page.getByRole('button', { name: 'Save Changes' }).click();
       await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
 
-      // Reopen to verify
-      await firstCard.getByTitle('Edit').first().click();
+      // Wait for save to complete
+      await page.waitForTimeout(500);
+
+      // Find the same preset card again by name and click edit
+      const sameCard = page.locator('[class*="rounded"]').filter({ hasText: presetName }).first();
+      await sameCard.getByTitle('Edit').first().click();
       await expect(page.locator('form')).toBeVisible();
 
       // Verify Monday is still selected
