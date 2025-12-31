@@ -50,6 +50,16 @@ if created:
     test_user.save()
     print(f"Created test user: {test_user.username}")
 
+# Create test2 user
+test2_user, created = User.objects.get_or_create(
+    username="test2", defaults={"email": "test2@example.com"}
+)
+
+if created:
+    test2_user.set_password("test2")
+    test2_user.save()
+    print(f"Created test2 user: {test2_user.username}")
+
 # Create muscle regions
 chest_region, _ = MuscleRegion.objects.get_or_create(name="Chest")
 back_region, _ = MuscleRegion.objects.get_or_create(name="Back")
