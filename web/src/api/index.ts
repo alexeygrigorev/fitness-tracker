@@ -37,6 +37,10 @@ async function handleResponse(response: Response) {
     const error = await response.json().catch(() => ({ detail: response.statusText }));
     throw new Error(error.detail || `HTTP ${response.status}`);
   }
+  // 204 No Content responses have no body (e.g., DELETE)
+  if (response.status === 204) {
+    return null;
+  }
   return response.json();
 }
 

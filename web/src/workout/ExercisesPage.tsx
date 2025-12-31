@@ -184,8 +184,10 @@ export default function ExercisesPage() {
   };
 
   const handleDeleteWorkout = async (id: string) => {
-    await workoutsApi.delete(id);
-    setWorkouts(prev => prev.filter(w => w.id !== id));
+    if (confirm('Are you sure you want to delete this workout?')) {
+      await workoutsApi.delete(id);
+      setWorkouts(prev => prev.filter(w => w.id !== id));
+    }
   };
 
   const handleWorkoutComplete = (workout: WorkoutSession) => {
@@ -553,7 +555,7 @@ export default function ExercisesPage() {
             ) : (
             <div className="space-y-3">
               {workoutsForDate.map(workout => (
-                <div key={workout.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div key={workout.id} data-workout-id={workout.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="font-medium text-gray-900 dark:text-gray-100">{workout.name}</div>
