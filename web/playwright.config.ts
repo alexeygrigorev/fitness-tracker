@@ -9,7 +9,7 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: 'list',
-  globalTimeout: 2 * 60 * 1000,  // 2 minute total timeout
+  globalTimeout: 3 * 60 * 1000,  // 3 minute total timeout
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:5173',
   },

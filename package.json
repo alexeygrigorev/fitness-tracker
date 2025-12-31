@@ -4,15 +4,9 @@
   "version": "1.0.0",
   "scripts": {
     "test": "cd tests && npm test",
-    "test:api": "cd tests && npm run test:api",
-    "test:watch": "cd tests && npm run test:watch",
-    "test:ui": "cd tests && npm run test:ui",
-    "test:e2e": "cd tests && npm run test:e2e",
-    "test:api:full": "cd tests && npm run test:api:full",
-    "test:e2e:full": "cd tests && npm run test:e2e:full",
-    "web:dev": "cd web && npm run dev",
-    "web:build": "cd web && npm run build",
-    "backend:serve": "cd backend && uv run uvicorn main:app --reload --port 8000",
+    "test:e2e": "cd web && npx playwright test tests/e2e/",
+    "web": "cd web && npm run dev",
+    "backend": "cd backend && uv run uvicorn main:app --reload --port 8000",
     "backend:test": "cd backend && python test_server.py"
   }
 }

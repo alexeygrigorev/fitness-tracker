@@ -179,16 +179,6 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
   useEffect(() => {
     if (!resumingWorkout || exercises.length === 0) return;
 
-    // DEBUG: Log the resuming workout data
-    console.log('=== RESUME WORKOUT DEBUG ===');
-    console.log('resumingWorkout.id:', resumingWorkout.id);
-    console.log('resumingWorkout.sets:', resumingWorkout.sets);
-    console.log('Number of sets:', resumingWorkout.sets?.length);
-    if (resumingWorkout.sets && resumingWorkout.sets.length > 0) {
-      console.log('First set:', resumingWorkout.sets[0]);
-    }
-    console.log('=== END DEBUG ===');
-
     // Set the workout session ID so updates go to the existing workout
     setWorkoutSessionId(resumingWorkout.id);
     setStartTime(new Date(resumingWorkout.startedAt));

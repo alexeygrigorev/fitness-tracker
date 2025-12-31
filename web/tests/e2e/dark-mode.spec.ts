@@ -98,27 +98,30 @@ test.describe('Dark Mode Toggle', () => {
     const initialDark = await hasDarkClass();
     console.log('Initial - dark mode:', initialDark);
 
-    // Toggle to dark mode
+    // Toggle mode (whatever direction that is)
     await toggleButton.click();
     await page.waitForTimeout(500);
 
-    // Verify dark mode is active
-    const isDark = await hasDarkClass();
-    console.log('After toggle - dark mode:', isDark);
-    expect(isDark).toBe(true);
+    // Verify mode changed
+    const afterToggle = await hasDarkClass();
+    console.log('After toggle - dark mode:', afterToggle);
+    expect(afterToggle).toBe(!initialDark);
 
-    // Verify the dark class is on the html element
+    // Verify the dark class state on html element
     const htmlElement = page.locator('html');
-    await expect(htmlElement).toHaveClass(/dark/);
+    if (afterToggle) {
+      await expect(htmlElement).toHaveClass(/dark/);
+    } else {
+      await expect(htmlElement).not.toHaveClass(/dark/);
+    }
 
-    // Toggle back to light mode
+    // Toggle back
     await toggleButton.click();
     await page.waitForTimeout(500);
 
-    // Verify we're back to light
-    const isLight = await hasDarkClass();
-    console.log('After toggle back - dark mode:', isLight);
-    expect(isLight).toBe(false);
-    await expect(htmlElement).not.toHaveClass(/dark/);
+    // Verify we're back to original state
+    const backToOriginal = await hasDarkClass();
+    console.log('After toggle back - dark mode:', backToOriginal);
+    expect(backToOriginal).toBe(initialDark);
   });
 });

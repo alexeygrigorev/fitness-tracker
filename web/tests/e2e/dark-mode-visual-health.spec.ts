@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Dark Mode Visual - Main Pages', () => {
+test.describe('Dark Mode Visual - Health Pages', () => {
   test.beforeEach(async ({ page }) => {
-    // Login once per test
     await page.goto('/login');
     await page.getByPlaceholder('Enter your username').fill('test');
     await page.getByPlaceholder('Enter your password').fill('test');
@@ -36,15 +35,15 @@ test.describe('Dark Mode Visual - Main Pages', () => {
     expect(afterDark).toBe(!initialDark);
   };
 
-  test('dashboard page dark mode', async ({ page }) => {
-    await checkPageDarkMode(page, '/', 'dashboard');
+  test('exercises page dark mode', async ({ page }) => {
+    await checkPageDarkMode(page, '/workouts/library', 'exercises');
   });
 
-  test('workouts page dark mode', async ({ page }) => {
-    await checkPageDarkMode(page, '/workouts', 'workouts');
+  test('nutrition page dark mode', async ({ page }) => {
+    await checkPageDarkMode(page, '/nutrition', 'nutrition');
   });
 
-  test('presets page dark mode', async ({ page }) => {
-    await checkPageDarkMode(page, '/workouts/presets', 'presets');
+  test('weight page dark mode', async ({ page }) => {
+    await checkPageDarkMode(page, '/weight', 'weight');
   });
 });
