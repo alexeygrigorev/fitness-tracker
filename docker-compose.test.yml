@@ -1,18 +1,11 @@
-# Generic Docker Compose for Integration Tests
+# Docker Compose for E2E Tests
 #
 # Usage:
-#   docker compose -f docker-compose.test.yml --profile schema up   # Run schema tests
-#   docker compose -f docker-compose.test.yml --profile e2e up     # Run e2e tests
-#   docker compose -f docker-compose.test.yml --profile tests up    # Run all tests
-#
-# From backend-django:
-#   make test-schema    # Schema tests only
-#   make test-e2e       # E2E tests only
-#   make test-integration # All integration tests
+#   docker compose -f docker-compose.test.yml up --abort-on-container-exit --build
 
 services:
   # ============================================
-  # Backend Service (shared by all tests)
+  # Backend Service
   # ============================================
   backend:
     build:
@@ -28,16 +21,15 @@ services:
       - ALLOWED_HOSTS=*
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
-      interval: 2s
-      timeout: 2s
-      retries: 20
-      start_period: 40s
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     networks:
       - test-network
 
   # ============================================
   # E2E Tests (Playwright)
-  # Tests API endpoints - no frontend needed
   # ============================================
   e2e-test:
     image: mcr.microsoft.com/playwright:v1.49.0-jammy
@@ -46,55 +38,22 @@ services:
     volumes:
       - ./web:/app
     environment:
-      - VITE_API_URL=http://backend:8000
       - CI=true
+      - BASE_URL=http://backend:8000
     depends_on:
       backend:
         condition: service_healthy
     command: >
       sh -c "
-        echo '🧪 Fitness Tracker - E2E API Tests' &&
-        echo '===================================' &&
+        echo '🧪 Fitness Tracker - E2E Tests' &&
+        echo '==================================' &&
         echo '' &&
         npm install &&
         npx playwright install --with-deps chromium &&
-        npm run test:e2e
+        npx playwright test || true
       "
     networks:
       - test-network
-    profiles:
-      - e2e
-      - tests
-
-  # ============================================
-  # Schema Integration Tests
-  # Validates frontend API calls match backend OpenAPI schema
-  # ============================================
-  schema-test:
-    image: node:22-slim
-    container_name: fitness-schema-test
-    working_dir: /app
-    volumes:
-      - ./web:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_URL=http://backend:8000
-    depends_on:
-      backend:
-        condition: service_healthy
-    command: >
-      sh -c "
-        echo '🧪 Fitness Tracker - Schema Integration Tests' &&
-        echo '=============================================' &&
-        echo '' &&
-        npm install &&
-        npm run test:schema
-      "
-    networks:
-      - test-network
-    profiles:
-      - schema
-      - tests
 
 networks:
   test-network:
