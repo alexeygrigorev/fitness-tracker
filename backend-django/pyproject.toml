@@ -10,6 +10,7 @@ dependencies = [
     "djangorestframework-simplejwt>=5.5.1",
     "drf-spectacular>=0.28.0",
     "pydantic>=2.12.5",
+    "whitenoise>=6.11.0",
 ]
 
 [dependency-groups]
@@ -17,3 +18,9 @@ dev = [
     "pytest>=9.0.2",
     "pytest-django>=4.11.1",
 ]
+
+[tool.setuptools]
+py-modules = []
+
+[tool.setuptools.packages.find]
+include = ["ai*", "config*", "data*", "food*", "users*", "workouts*"]

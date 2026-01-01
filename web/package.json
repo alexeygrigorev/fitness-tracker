@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:only": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "node --max-old-space-size=4096 ./node_modules/vitest/vitest.mjs --run",

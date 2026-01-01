@@ -1,0 +1,74 @@
+# Docker Compose for E2E Tests - Single Container
+#
+# Usage:
+#   docker compose -f docker-compose.single.yml up --build
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e
+    container_name: fitness-e2e-single
+    ports:
+      - "8000:8000"
+      - "5173:5173"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -f http://localhost:8000/api/health/ && curl -f http://localhost:5173/"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+    networks:
+      - test-network
+
+  e2e-test:
+    image: mcr.microsoft.com/playwright:v1.57.0-jammy
+    container_name: fitness-e2e-test
+    working_dir: /app
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    environment:
+      - CI=true
+      - VITE_API_URL=http://app:8000
+      - BASE_URL=http://app:5173
+    depends_on:
+      app:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo '🧪 Fitness Tracker - E2E Tests' &&
+        echo '==================================' &&
+        echo '' &&
+        cd /app &&
+        npm ci &&
+        echo '✓ npm ci complete' &&
+        echo 'Waiting for services...' &&
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+          if curl -f http://app:8000/api/health/ > /dev/null 2>&1; then
+            echo '✓ Backend is ready!'
+            break
+          fi
+          echo '  Waiting for backend... (attempt '$i')'
+          sleep 2
+        done &&
+        for i in 1 2 3 4 5 6 7 8 9 10; do
+          if curl -f http://app:5173/ > /dev/null 2>&1; then
+            echo '✓ Frontend is ready!'
+            break
+          fi
+          echo '  Waiting for frontend... (attempt '$i')'
+          sleep 2
+        done &&
+        echo 'Installing Playwright browsers...' &&
+        npx playwright install --with-deps chromium &&
+        echo '✓ Browsers installed' &&
+        echo 'Starting tests...' &&
+        npx playwright test
+      "
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
