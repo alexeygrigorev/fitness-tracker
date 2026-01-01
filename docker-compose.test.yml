@@ -86,6 +86,9 @@ services:
         echo '==================================' &&
         echo '' &&
         npm ci &&
+        echo 'Waiting for frontend...' &&
+        timeout 60 sh -c 'until curl -f http://frontend:5173 > /dev/null 2>&1; do sleep 2; done' &&
+        echo 'Frontend is ready!' &&
         npx playwright install --with-deps chromium &&
         npx playwright test
       "
