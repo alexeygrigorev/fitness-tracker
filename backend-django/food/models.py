@@ -68,11 +68,34 @@ class Meal(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='meals')
     name = models.CharField(max_length=255)
-    meal_type = models.CharField(max_length=50)
+
+    MEAL_TYPE_CHOICES = [
+        ('breakfast', 'Breakfast'),
+        ('lunch', 'Lunch'),
+        ('dinner', 'Dinner'),
+        ('snack', 'Snack'),
+        ('post_workout', 'Post Workout'),
+        ('beverage', 'Beverage'),
+    ]
+    meal_type = models.CharField(max_length=20, choices=MEAL_TYPE_CHOICES)
+
+    # Date the meal was consumed (for filtering/grouping)
     date = models.DateField()
+
+    # When the meal was logged (timestamp)
+    logged_at = models.DateTimeField(auto_now_add=True)
+
+    # Optional: specific time the meal was consumed
+    event_time = models.TimeField(blank=True, null=True)
+
     notes = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+
+    # Source of the meal entry
+    SOURCE_CHOICES = [
+        ('manual', 'Manual'),
+        ('ai_assisted', 'AI Assisted'),
+    ]
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='manual')
 
     def __str__(self):
         return f"{self.name} - {self.date}"
@@ -93,6 +116,18 @@ class MealTemplate(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='meal_templates')
     name = models.CharField(max_length=255)
+
+    # Category: breakfast, lunch, dinner, snack, post_workout, beverage
+    MEAL_TYPE_CHOICES = [
+        ('breakfast', 'Breakfast'),
+        ('lunch', 'Lunch'),
+        ('dinner', 'Dinner'),
+        ('snack', 'Snack'),
+        ('post_workout', 'Post Workout'),
+        ('beverage', 'Beverage'),
+    ]
+    category = models.CharField(max_length=20, choices=MEAL_TYPE_CHOICES)
+
     notes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
