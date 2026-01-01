@@ -28,11 +28,12 @@ const tabs = [
 function App() {
   const { user, logout, darkMode, toggleDarkMode } = useAuth();
   const location = useLocation();
-  // Map pathname to Tab - /workouts maps to 'exercises'
+  // Map pathname to Tab - /workouts maps to 'exercises', /nutrition/* maps to 'nutrition'
   const getPathTab = (): Tab => {
     const path = location.pathname;
     if (path === '/' || path === '') return 'dashboard';
     if (path.startsWith('/workouts')) return 'exercises';
+    if (path.startsWith('/nutrition')) return 'nutrition';
     return path.slice(1) as Tab;
   };
   const currentTab = getPathTab();
@@ -104,8 +105,8 @@ function App() {
       <main className="max-w-6xl mx-auto px-4 py-6">
         <ProtectedRoute>
           {currentTab === 'dashboard' && <Dashboard />}
-          {(currentTab === 'exercises' || currentTab.startsWith('exercises/')) && <ExercisesPage />}
-          {currentTab === 'nutrition' && <NutritionPage />}
+          {location.pathname.startsWith('/workouts') && <ExercisesPage />}
+          {location.pathname.startsWith('/nutrition') && <NutritionPage />}
           {currentTab === 'sleep' && <SleepPage />}
           {currentTab === 'metabolism' && <MetabolismPage />}
           {currentTab === 'weight' && <Weight />}

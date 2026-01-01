@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPen, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
 import { foodApi, mealsApi, mealTemplatesApi } from "../api";
@@ -9,7 +10,7 @@ import LogMealModal from "./LogMealModal";
 import AddFoodWithAIModal from "./AddFoodWithAIModal";
 import type { FoodItem, Meal, MealTemplate } from "../types";
 
-type Tab = "meals" | "templates" | "foods";
+type Tab = "meals" | "templates" | "items";
 
 // Helper to check if dates are the same day
 const isSameDay = (date1: Date, date2: Date) => {
@@ -30,11 +31,34 @@ const formatDate = (date: Date) => {
 };
 
 export default function NutritionPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("meals");
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Derive active tab from URL path
+  const getTabFromPath = (): Tab => {
+    const path = location.pathname;
+    if (path === '/nutrition/templates') return 'templates';
+    if (path === '/nutrition/items') return 'items';
+    return 'meals'; // default for /nutrition
+  };
+
+  const [activeTab, setActiveTab] = useState<Tab>(getTabFromPath());
   const [meals, setMeals] = useState<Meal[]>([]);
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [templates, setTemplates] = useState<MealTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Sync tab with URL changes
+  useEffect(() => {
+    setActiveTab(getTabFromPath());
+  }, [location.pathname]);
+
+  const handleTabChange = (tab: Tab) => {
+    const path = tab === 'meals' ? '/nutrition'
+                 : tab === 'templates' ? '/nutrition/templates'
+                 : '/nutrition/items';
+    navigate(path);
+  };
 
   // Date navigation state
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -161,8 +185,8 @@ export default function NutritionPage() {
   // Tab labels
   const tabLabels: Record<Tab, string> = {
     meals: "Meals",
-    templates: "Meal Templates",
-    foods: "Food Items"
+    templates: "Templates",
+    items: "Items"
   };
 
   return (
@@ -242,10 +266,10 @@ export default function NutritionPage() {
 
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-8">
-          {(["meals", "templates", "foods"] as Tab[]).map(tab => (
+          {(["meals", "templates", "items"] as Tab[]).map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className={
                 "py-2 px-1 border-b-2 font-medium text-sm " +
                 (activeTab === tab
