@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from datetime import timedelta
 
@@ -58,7 +59,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        # Configure via DB_PATH env var, defaults to BASE_DIR / 'db.sqlite3'
+        # Docker: set DB_PATH=/app/backend/db/db.sqlite3 for persistent volume
+        'NAME': Path(os.environ.get('DB_PATH', BASE_DIR / 'db.sqlite3')),
     }
 }
 
