@@ -1,4 +1,4 @@
-.PHONY: run migrate test seed makemigrations install
+.PHONY: run migrate migrations data test install
 
 run:
 	uv run python manage.py runserver
