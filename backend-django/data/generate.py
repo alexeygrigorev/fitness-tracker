@@ -452,9 +452,85 @@ print(f"Created {WorkoutSession.objects.count()} workout sessions")
 # Create canonical food items (available to all users)
 from decimal import Decimal  # noqa: E402
 
+# Helper to infer metabolism attributes based on food characteristics
+def get_metabolism_attrs(name, category, protein, carbs, fat, fiber, sugar, glycemic_index=None):
+    """Infer metabolism attributes based on food type and macros"""
+    food_name = name.lower()
+    absorption_speed = 'moderate'
+    satiety_score = None
+    protein_quality = None
+    insulin_response = None
+    gi = glycemic_index
+
+    # High fat foods -> slower absorption, lower GI
+    if fat > 15 or food_name in ['oil', 'butter', 'cheese', 'almonds', 'peanut butter', 'walnuts', 'avocado', 'olive oil']:
+        absorption_speed = 'slow'
+        insulin_response = 20 + int(fat * 2)
+        satiety_score = 7
+    # High sugar foods -> fast absorption, high GI
+    elif (sugar and sugar > 10) or food_name in ['orange juice']:
+        absorption_speed = 'fast'
+        if not gi:
+            gi = 65 + (10 if category == 'beverage' else 0)
+        insulin_response = 75 + (5 if category == 'beverage' else 0)
+        satiety_score = 2
+    # High fiber foods -> slower absorption
+    elif fiber > 5 or food_name in ['lentils', 'black beans', 'chickpeas', 'edamame', 'oats']:
+        absorption_speed = 'slow'
+        if not gi:
+            gi = 40 + (10 if food_name in ['lentils', 'black beans'] else 0)
+        insulin_response = 40
+        satiety_score = 7
+    # Protein foods -> moderate absorption
+    elif protein > 15 or food_name in ['chicken', 'beef', 'fish', 'salmon', 'tuna', 'egg', 'eggs', 'whey', 'yogurt', 'cottage']:
+        absorption_speed = 'moderate'
+        insulin_response = 30 + 10
+        satiety_score = 8
+    # Carb foods
+    elif carbs > 20:
+        if food_name in ['rice', 'bread', 'pasta', 'quinoa']:
+            absorption_speed = 'moderate'
+            if not gi:
+                gi = 50 + (25 if food_name in ['white rice', 'pasta'] else 0)
+            insulin_response = 55
+            satiety_score = 5
+        elif 'fruit' in food_name or food_name == 'banana':
+            absorption_speed = 'fast'
+            if not gi:
+                gi = 40 + 20
+            insulin_response = 50
+            satiety_score = 4
+        else:
+            absorption_speed = 'moderate'
+            if not gi:
+                gi = 50
+            insulin_response = 50
+            satiety_score = 5
+
+    # Infer protein quality based on food type
+    complete_proteins = ['chicken', 'beef', 'turkey', 'fish', 'salmon', 'tuna', 'egg', 'eggs', 'whey', 'yogurt', 'cottage', 'cheese']
+    moderate_proteins = ['oat', 'beans', 'lentils', 'quinoa', 'soy', 'nuts', 'almond', 'walnut', 'bread', 'hummus', 'chickpeas', 'edamame']
+
+    if any(p in food_name for p in complete_proteins):
+        protein_quality = 3  # Complete proteins, best for muscle building
+    elif any(p in food_name for p in moderate_proteins):
+        protein_quality = 2  # Moderate quality plant proteins
+    elif protein > 5:
+        protein_quality = 2  # Decent protein content
+    else:
+        protein_quality = 1  # Low/incomplete protein
+
+    return {
+        'glycemic_index': gi,
+        'absorption_speed': absorption_speed,
+        'insulin_response': insulin_response,
+        'satiety_score': satiety_score,
+        'protein_quality': protein_quality,
+    }
+
 food_items_data = [
-    # Proteins
-    ("Chicken Breast", "protein", "100.00", "g", "165", "31", "0", "3.6", "0", "0", None),
+    # Proteins (name, category, serving_size, serving_unit, calories, protein, carbs, fat, fiber, sugar, glycemic_index)
+    ("Chicken Breast", "protein", "100", "g", "165", "31", "0", "3.6", "0", "0", None),
     ("Salmon Fillet", "protein", "100", "g", "208", "20", "0", "13", "0", "0", None),
     ("Eggs", "protein", "100", "g", "155", "13", "1.1", "11", "0", "0", None),
     ("Greek Yogurt", "protein", "100", "g", "59", "10", "3.6", "0.4", "0", "3.6", None),
@@ -499,6 +575,12 @@ food_items_data = [
 
 for (name, category, serving_size, serving_unit, calories, protein,
      carbs, fat, fiber, sugar, glycemic_index) in food_items_data:
+    # Get metabolism attributes based on food type
+    metabolism = get_metabolism_attrs(
+        name, category, float(protein), float(carbs), float(fat),
+        float(fiber), float(sugar), glycemic_index
+    )
+
     food, created = FoodItem.objects.get_or_create(
         name=name,
         source='canonical',
@@ -512,10 +594,23 @@ for (name, category, serving_size, serving_unit, calories, protein,
             "fat": Decimal(fat),
             "fiber": Decimal(fiber) if fiber != "0" else Decimal(0),
             "sugar": Decimal(sugar) if sugar != "0" else Decimal(0),
-            "glycemic_index": int(glycemic_index) if glycemic_index else None,
+            "glycemic_index": metabolism['glycemic_index'],
+            "absorption_speed": metabolism['absorption_speed'],
+            "insulin_response": metabolism['insulin_response'],
+            "satiety_score": metabolism['satiety_score'],
+            "protein_quality": metabolism['protein_quality'],
         }
     )
-    if created:
+    # Update existing food items with metabolism data
+    if not created:
+        food.glycemic_index = metabolism['glycemic_index']
+        food.absorption_speed = metabolism['absorption_speed']
+        food.insulin_response = metabolism['insulin_response']
+        food.satiety_score = metabolism['satiety_score']
+        food.protein_quality = metabolism['protein_quality']
+        food.save()
+        print(f"Updated food item: {food.name}")
+    else:
         print(f"Created food item: {food.name}")
 
 # Create some sample meals for admin user
