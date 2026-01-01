@@ -3,35 +3,6 @@
 /* Force class-based dark mode only - ignore browser's prefers-color-scheme */
 @import "tailwindcss/preflight" layer(base);
 
-/* Reset dark mode to be class-only, not media-query based */
-@media (prefers-color-scheme: dark) {
-  /* When browser prefers dark but app is in light mode, force light styles */
-  html:not(.dark) {
-    color-scheme: light;
-  }
-
-  /* Tailwind v4's gray classes respond to prefers-color-scheme, override for light mode */
-  html:not(.dark) .bg-gray-50 {
-    background-color: #f9fafb !important;
-  }
-
-  html:not(.dark) .bg-white {
-    background-color: #ffffff !important;
-  }
-
-  html:not(.dark) .bg-gray-100 {
-    background-color: #f3f4f6 !important;
-  }
-
-  html:not(.dark) .bg-blue-50 {
-    background-color: #eff6ff !important;
-  }
-
-  html:not(.dark) .bg-blue-100 {
-    background-color: #dbeafe !important;
-  }
-}
-
 /* When app is in dark mode, tell the browser we're using dark scheme */
 html.dark {
   color-scheme: dark;
@@ -45,11 +16,6 @@ html:not(.dark) {
 body {
   margin: 0;
   min-height: 100vh;
-}
-
-/* Light mode - explicit light background (required when browser prefers dark) */
-html:not(.dark) body {
-  background-color: #fafafa;
 }
 
 /* Dark mode - subtle neutral theme */
