@@ -33,7 +33,7 @@ describe('authApi', () => {
     it('should send login request with FormData', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ access_token: 'test-token' }),
+        json: async () => ({ access: 'test-token', refresh: 'refresh-token' }),
       } as Response);
 
       const token = await authApi.login('testuser', 'password123');

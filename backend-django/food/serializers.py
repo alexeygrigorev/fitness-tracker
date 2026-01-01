@@ -84,7 +84,7 @@ class NutritionCalculationRequestSerializer(serializers.Serializer):
     """Request serializer for nutrition calculation endpoint"""
     food_items = serializers.ListField(
         child=serializers.DictField(),
-        help_text="List of food items with food_id and servings"
+        help_text="List of food items with food_id and grams"
     )
 
 

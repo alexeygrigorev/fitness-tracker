@@ -20,9 +20,10 @@ class FoodItemViewSet(viewsets.ModelViewSet):
     serializer_class = FoodItemSerializer
     
     def get_queryset(self):
+        # User can see their own foods and canonical foods
         return FoodItem.objects.filter(
             user=self.request.user
-        ) | FoodItem.objects.filter(is_custom=False)
+        ) | FoodItem.objects.filter(source='canonical')
 
     def get_permissions(self):
         if self.action in ["list", "retrieve"]:
@@ -38,7 +39,7 @@ class FoodItemViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         data["user_id"] = request.user.id
-        data["is_custom"] = True
+        data["source"] = "user"
         obj = FoodItem.objects.create(**data)
         return Response(model_to_dict(obj), status=201)
 
@@ -98,6 +99,8 @@ class MealViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="daily/totals/(?P<date_str>[^/.]+)")
     def daily_totals(self, request, date_str=None):
         from datetime import datetime
+        from decimal import Decimal
+
         try:
             date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
@@ -105,25 +108,38 @@ class MealViewSet(viewsets.ModelViewSet):
 
         meals = Meal.objects.filter(user=request.user, date=date_obj)
 
-        totals = meals.aggregate(
-            total_calories=Sum(F("food_items__servings") * F("food_items__food__calories_per_serving")),
-            total_protein=Sum(F("food_items__servings") * F("food_items__food__protein_g")),
-            total_carbs=Sum(F("food_items__servings") * F("food_items__food__carbs_g")),
-            total_fat=Sum(F("food_items__servings") * F("food_items__food__fat_g")),
-            total_fiber=Sum(F("food_items__servings") * F("food_items__food__fiber_g")),
-            total_sugar=Sum(F("food_items__servings") * F("food_items__food__sugar_g")),
-            total_sodium=Sum(F("food_items__servings") * F("food_items__food__sodium_mg")),
-        )
+        # Calculate totals from meal food items using grams instead of servings
+        meal_food_items = MealFoodItem.objects.filter(meal__in=meals).select_related('food')
+
+        total_calories = Decimal(0)
+        total_protein = Decimal(0)
+        total_carbs = Decimal(0)
+        total_fat = Decimal(0)
+        total_fiber = Decimal(0)
+        total_sugar = Decimal(0)
+        total_sodium = Decimal(0)
+
+        for mfi in meal_food_items:
+            # Calculate multiplier based on serving size (grams in meal / serving_size in food)
+            multiplier = mfi.grams / mfi.food.serving_size
+            total_calories += mfi.food.calories * multiplier
+            total_protein += mfi.food.protein * multiplier
+            total_carbs += mfi.food.carbs * multiplier
+            total_fat += mfi.food.fat * multiplier
+            total_fiber += mfi.food.fiber * multiplier
+            total_sugar += mfi.food.sugar * multiplier
+            if mfi.food.sodium:
+                total_sodium += mfi.food.sodium * multiplier
 
         return Response({
             "date": date_str,
-            "calories": totals["total_calories"] or 0,
-            "protein_g": totals["total_protein"] or 0,
-            "carbs_g": totals["total_carbs"] or 0,
-            "fat_g": totals["total_fat"] or 0,
-            "fiber_g": totals["total_fiber"] or 0,
-            "sugar_g": totals["total_sugar"] or 0,
-            "sodium_mg": totals["total_sodium"] or 0,
+            "calories": float(total_calories),
+            "protein_g": float(total_protein),
+            "carbs_g": float(total_carbs),
+            "fat_g": float(total_fat),
+            "fiber_g": float(total_fiber),
+            "sugar_g": float(total_sugar),
+            "sodium_mg": float(total_sodium),
         })
 
 class MealTemplateViewSet(viewsets.ModelViewSet):
@@ -271,37 +287,42 @@ def infer_metabolism(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def calculate_nutrition(request):
+    from decimal import Decimal
+
     items = request.data.get("food_items", [])
-    total_calories = 0
-    total_protein = 0
-    total_carbs = 0
-    total_fat = 0
-    total_fiber = 0
-    total_sugar = 0
-    total_sodium = 0
+    total_calories = Decimal(0)
+    total_protein = Decimal(0)
+    total_carbs = Decimal(0)
+    total_fat = Decimal(0)
+    total_fiber = Decimal(0)
+    total_sugar = Decimal(0)
+    total_sodium = Decimal(0)
 
     for item in items:
         food_id = item.get("food_id")
-        servings = item.get("servings", 1)
+        grams = item.get("grams", 0)
 
         try:
             food = FoodItem.objects.get(id=food_id)
-            total_calories += food.calories_per_serving * servings
-            total_protein += food.protein_g * servings
-            total_carbs += food.carbs_g * servings
-            total_fat += food.fat_g * servings
-            total_fiber += food.fiber_g * servings
-            total_sugar += food.sugar_g * servings
-            total_sodium += food.sodium_mg * servings
+            # Calculate multiplier based on grams vs serving size
+            multiplier = Decimal(grams) / food.serving_size
+            total_calories += food.calories * multiplier
+            total_protein += food.protein * multiplier
+            total_carbs += food.carbs * multiplier
+            total_fat += food.fat * multiplier
+            total_fiber += food.fiber * multiplier
+            total_sugar += food.sugar * multiplier
+            if food.sodium:
+                total_sodium += food.sodium * multiplier
         except FoodItem.DoesNotExist:
             continue
 
     return Response({
-        "total_calories": round(total_calories, 2),
-        "total_protein_g": round(total_protein, 2),
-        "total_carbs_g": round(total_carbs, 2),
-        "total_fat_g": round(total_fat, 2),
-        "total_fiber_g": round(total_fiber, 2),
-        "total_sugar_g": round(total_sugar, 2),
-        "total_sodium_mg": round(total_sodium, 2)
+        "total_calories": float(round(total_calories, 2)),
+        "total_protein_g": float(round(total_protein, 2)),
+        "total_carbs_g": float(round(total_carbs, 2)),
+        "total_fat_g": float(round(total_fat, 2)),
+        "total_fiber_g": float(round(total_fiber, 2)),
+        "total_sugar_g": float(round(total_sugar, 2)),
+        "total_sodium_mg": float(round(total_sodium, 2))
     })
