@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { AuthProvider, useAuth } from '@/auth/AuthContext';
+import { AuthProvider } from '@/auth/AuthContext';
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -15,46 +15,14 @@ global.fetch = mockFetch as any;
 // Test component to render inside ProtectedRoute
 const TestComponent = () => <div>Protected Content</div>;
 
-const renderWithAuthProvider = (
-  ui: React.ReactElement,
-  { user = null, loading = false }: { user?: any; loading?: boolean }
-) => {
-  // Mock auth state
-  vi.spyOn(require('@/contexts/AuthContext'), 'useAuth').mockReturnValue({
-    user,
-    token: user ? 'test-token' : null,
-    login: vi.fn(),
-    register: vi.fn(),
-    logout: vi.fn(),
-    loading,
-  });
-
-  return render(
-    <MemoryRouter initialEntries={['/protected']}>
-      <Routes>
-        <Route
-          path="/protected"
-          element={
-            <ProtectedRoute>
-              {ui}
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/login" element={<div>Login Page</div>} />
-      </Routes>
-    </MemoryRouter>
-  );
-};
-
 describe('ProtectedRoute Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.resetModules();
+    localStorage.clear();
   });
 
   describe('when loading', () => {
     it('should show loading state', () => {
-      // We need to render with actual AuthProvider for this test
       const { container } = render(
         <MemoryRouter initialEntries={['/protected']}>
           <AuthProvider>
