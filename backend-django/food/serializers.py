@@ -9,27 +9,39 @@ class FoodItemSerializer(serializers.ModelSerializer):
 
 
 class MealFoodItemSerializer(serializers.ModelSerializer):
+    # Frontend expects foodId (string), not nested food object
+    foodId = serializers.IntegerField(source='food_id')
+
     class Meta:
         model = MealFoodItem
-        fields = '__all__'
+        fields = ['id', 'foodId', 'grams', 'order']
 
 
 class MealSerializer(serializers.ModelSerializer):
+    # Include nested food items with frontend-friendly format
+    food_items = MealFoodItemSerializer(many=True, read_only=True)
+
     class Meta:
         model = Meal
-        fields = '__all__'
+        fields = ['id', 'name', 'meal_type', 'date', 'logged_at', 'event_time', 'notes', 'source', 'food_items']
 
 
 class MealTemplateFoodItemSerializer(serializers.ModelSerializer):
+    # Frontend expects foodId (string), not nested food object
+    foodId = serializers.IntegerField(source='food_id')
+
     class Meta:
         model = MealTemplateFoodItem
-        fields = '__all__'
+        fields = ['id', 'foodId', 'grams', 'order']
 
 
 class MealTemplateSerializer(serializers.ModelSerializer):
+    # Include nested food items with frontend-friendly format
+    food_items = MealTemplateFoodItemSerializer(many=True, read_only=True)
+
     class Meta:
         model = MealTemplate
-        fields = '__all__'
+        fields = ['id', 'name', 'category', 'notes', 'food_items']
 
 
 # Serializers for function-based views

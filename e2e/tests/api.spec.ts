@@ -156,12 +156,12 @@ test.describe('Food API', () => {
 
     const foodData = {
       name: `E2E Test Food ${uniqueId}`,
-      serving_size: 100,
+      serving_size: '100.00',
       serving_unit: 'g',
-      calories_per_serving: 100,
-      protein_g: 20,
-      carbs_g: 10,
-      fat_g: 5
+      calories: '100.00',
+      protein: '20.00',
+      carbs: '10.00',
+      fat: '5.00'
     };
 
     const response = await request.post(`${API_BASE}/api/food/foods/`, {
