@@ -13,7 +13,7 @@ django.setup()
 
 from django.contrib.auth import get_user_model  # noqa: E402
 from workouts.models import ( # noqa: E402
-    ExerciseMuscleGroup, 
+    ExerciseMuscleGroup,
     MuscleRegion,
     MuscleGroup,
     Equipment,
@@ -25,6 +25,7 @@ from workouts.models import ( # noqa: E402
     WorkoutSession,
     WorkoutSet,
 )
+from food.models import FoodItem, Meal, MealFoodItem  # noqa: E402
 
 User = get_user_model()
 
@@ -447,3 +448,153 @@ print(f"Test user: test / test")
 print(f"Created {Exercise.objects.count()} exercises")
 print(f"Created {WorkoutPreset.objects.count()} workout presets")
 print(f"Created {WorkoutSession.objects.count()} workout sessions")
+
+# Create canonical food items (available to all users)
+from decimal import Decimal  # noqa: E402
+
+food_items_data = [
+    # Proteins
+    ("Chicken Breast", "protein", "100.00", "g", "165", "31", "0", "3.6", "0", "0", None),
+    ("Salmon Fillet", "protein", "100", "g", "208", "20", "0", "13", "0", "0", None),
+    ("Eggs", "protein", "100", "g", "155", "13", "1.1", "11", "0", "0", None),
+    ("Greek Yogurt", "protein", "100", "g", "59", "10", "3.6", "0.4", "0", "3.6", None),
+    ("Cottage Cheese", "protein", "100", "g", "98", "11", "3.4", "4.3", "0", "1.2", None),
+    ("Lean Beef", "protein", "100", "g", "250", "26", "0", "15", "0", "0", None),
+    ("Tuna", "protein", "100", "g", "116", "26", "0", "1", "0", "0", None),
+    ("Whey Protein", "protein", "30", "g", "120", "24", "3", "1", "0", "0", None),
+
+    # Carbs
+    ("Brown Rice", "carb", "100", "g", "111", "2.6", "23", "0.9", "1.8", "0.3", None),
+    ("Oats", "carb", "100", "g", "389", "16.9", "66", "6.9", "10.6", "0.8", "54"),
+    ("Sweet Potato", "carb", "100", "g", "86", "1.6", "20", "0.1", "3", "4.2", "45"),
+    ("Banana", "carb", "100", "g", "89", "1.1", "23", "0.3", "2.6", "12", "51"),
+    ("White Rice", "carb", "100", "g", "130", "2.7", "28", "0.3", "0.4", "0.1", "73"),
+    ("Pasta", "carb", "100", "g", "131", "5", "25", "1.1", "1.5", "0.5", "45"),
+    ("Quinoa", "carb", "100", "g", "120", "4.4", "21", "1.9", "2.8", "0.9", "53"),
+    ("Whole Wheat Bread", "carb", "100", "g", "247", "13", "41", "3.4", "6", "5", "71"),
+
+    # Fats
+    ("Almonds", "fat", "100", "g", "579", "21", "22", "50", "12.5", "3.9", None),
+    ("Peanut Butter", "fat", "100", "g", "588", "25", "20", "50", "6", "9", None),
+    ("Avocado", "fat", "100", "g", "160", "2", "9", "15", "7", "0.7", None),
+    ("Olive Oil", "fat", "100", "g", "884", "0", "0", "100", "0", "0", None),
+    ("Cheese", "fat", "100", "g", "402", "25", "1.3", "33", "0", "1.3", None),
+    ("Walnuts", "fat", "100", "g", "654", "15", "14", "65", "6.7", "2.6", "15"),
+
+    # Mixed
+    ("Hummus", "mixed", "100", "g", "166", "8", "14", "9.6", "6", "0.3", None),
+    ("Lentils", "mixed", "100", "g", "116", "9", "20", "0.4", "7.9", "1.8", None),
+    ("Black Beans", "mixed", "100", "g", "132", "8.9", "20", "0.5", "8.7", "1.1", None),
+    ("Chickpeas", "mixed", "100", "g", "164", "8.9", "27", "2.6", "7.6", "4.8", None),
+    ("Edamame", "mixed", "100", "g", "121", "12", "9", "5", "5", "2.2", "50"),
+
+    # Beverages
+    ("Water", "beverage", "100", "ml", "0", "0", "0", "0", "0", "0", None),
+    ("Black Coffee", "beverage", "100", "ml", "2", "0.1", "0", "0", "0", "0", None),
+    ("Green Tea", "beverage", "100", "ml", "1", "0", "0", "0", "0", "0", None),
+    ("Orange Juice", "beverage", "100", "ml", "45", "0.7", "10", "0.2", "0.2", "8", "50"),
+    ("Milk (Whole)", "beverage", "100", "ml", "61", "3.2", "4.8", "3.3", "0", "4.8", None),
+    ("Protein Shake", "beverage", "300", "ml", "150", "25", "5", "2", "0", "2", None),
+]
+
+for (name, category, serving_size, serving_unit, calories, protein,
+     carbs, fat, fiber, sugar, glycemic_index) in food_items_data:
+    food, created = FoodItem.objects.get_or_create(
+        name=name,
+        source='canonical',
+        defaults={
+            "category": category,
+            "serving_size": Decimal(serving_size),
+            "serving_unit": serving_unit,
+            "calories": Decimal(calories),
+            "protein": Decimal(protein),
+            "carbs": Decimal(carbs),
+            "fat": Decimal(fat),
+            "fiber": Decimal(fiber) if fiber != "0" else Decimal(0),
+            "sugar": Decimal(sugar) if sugar != "0" else Decimal(0),
+            "glycemic_index": int(glycemic_index) if glycemic_index else None,
+        }
+    )
+    if created:
+        print(f"Created food item: {food.name}")
+
+# Create some sample meals for admin user
+today = datetime.now().date()
+
+breakfast, _ = Meal.objects.get_or_create(
+    user=admin_user,
+    name="Breakfast",
+    date=today,
+    defaults={
+        "meal_type": "breakfast",
+        "source": "manual"
+    }
+)
+
+# Add foods to breakfast meal
+eggs = FoodItem.objects.get(name="Eggs")
+oats = FoodItem.objects.get(name="Oats")
+banana = FoodItem.objects.get(name="Banana")
+
+MealFoodItem.objects.get_or_create(
+    meal=breakfast,
+    food=eggs,
+    defaults={"grams": Decimal("100"), "order": 0}
+)
+MealFoodItem.objects.get_or_create(
+    meal=breakfast,
+    food=oats,
+    defaults={"grams": Decimal("80"), "order": 1}
+)
+MealFoodItem.objects.get_or_create(
+    meal=breakfast,
+    food=banana,
+    defaults={"grams": Decimal("120"), "order": 2}
+)
+
+lunch, _ = Meal.objects.get_or_create(
+    user=admin_user,
+    name="Lunch",
+    date=today,
+    defaults={
+        "meal_type": "lunch",
+        "source": "manual"
+    }
+)
+
+chicken = FoodItem.objects.get(name="Chicken Breast")
+rice = FoodItem.objects.get(name="Brown Rice")
+broccoli = FoodItem.objects.get_or_create(
+    name="Broccoli",
+    source='canonical',
+    defaults={
+        "category": "mixed",
+        "serving_size": Decimal("100"),
+        "serving_unit": "g",
+        "calories": Decimal("34"),
+        "protein": Decimal("2.8"),
+        "carbs": Decimal("7"),
+        "fat": Decimal("0.4"),
+        "fiber": Decimal("2.6"),
+        "sugar": Decimal("1.5"),
+    }
+)[0]
+
+MealFoodItem.objects.get_or_create(
+    meal=lunch,
+    food=chicken,
+    defaults={"grams": Decimal("150"), "order": 0}
+)
+MealFoodItem.objects.get_or_create(
+    meal=lunch,
+    food=rice,
+    defaults={"grams": Decimal("100"), "order": 1}
+)
+MealFoodItem.objects.get_or_create(
+    meal=lunch,
+    food=broccoli,
+    defaults={"grams": Decimal("100"), "order": 2}
+)
+
+print(f"Created {Meal.objects.count()} meals")
+print(f"Created {FoodItem.objects.count()} food items")
