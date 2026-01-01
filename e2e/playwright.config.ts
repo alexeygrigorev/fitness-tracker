@@ -18,7 +18,7 @@ import { defineConfig, devices } from '@playwright/test';
  *   BASE_URL=http://localhost:8000 npm run test:ui
  */
 export default defineConfig({
-  testDir: './',
+  testDir: './tests',
   timeout: 30 * 1000,
   expect: {
     timeout: 10 * 1000,
