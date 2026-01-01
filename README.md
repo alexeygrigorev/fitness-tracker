@@ -1,155 +1,194 @@
 # Fitness Tracker
 
-A full-stack fitness tracking application with workout logging, nutrition tracking, and more.
+A full-stack fitness tracking application with workout logging, nutrition tracking, sleep tracking, and more.
 
 ## Tech Stack
 
-- **Backend**: FastAPI (Python) with SQLite database
+- **Backend**: Django REST Framework (Python 3.13) with SQLite
 - **Frontend**: React + TypeScript + Vite
-- **Authentication**: JWT tokens with bcrypt password hashing
-- **Styling**: Tailwind CSS
+- **Authentication**: JWT tokens with Django auth
+- **Styling**: Tailwind CSS v4
 - **Icons**: FontAwesome
+- **Testing**: Vitest (frontend), Playwright (E2E), pytest (backend)
+- **Package Management**: uv (Python), npm (Node.js)
 
 ## Quick Start
 
 ### Prerequisites
 
-- Python 3.12+
-- Node.js 18+
-- `uv` (Python package manager)
+- Python 3.13+
+- Node.js 22+
+- `uv` (Python package manager) - install with `pip install uv`
+- Docker (optional, for single-container deployment)
 
-### 1. Install Dependencies
-
-```bash
-# Backend
-cd backend
-uv sync
-
-# Frontend
-cd ../web
-npm install
-```
-
-### 2. Initialize Database
+### Option 1: Docker (Recommended)
 
 ```bash
-cd backend
-uv run seed_data.py
+# Build and run
+docker build -t fitness-tracker .
+docker run -p 8000:8000 -v $(pwd)/db:/app/backend/db fitness-tracker
 ```
 
-This creates a demo user account:
+Access at http://localhost:8000
 
-| Field | Value |
-|-------|-------|
-| **Username** | `demo` |
-| **Password** | `demo123` |
+### Option 2: Development Mode
 
-### 3. Start Servers
-
-**Terminal 1 - Backend:**
+**1. Backend Setup**
 ```bash
-cd backend
-uv run uvicorn main:app --port 8001
+cd backend-django
+uv sync --all-extras --dev
+uv run python manage.py migrate
+uv run python -m data.generate
+uv run python manage.py runserver
 ```
 
-**Terminal 2 - Frontend:**
+**2. Frontend Setup (separate terminal)**
 ```bash
 cd web
+npm install
 npm run dev
 ```
 
-### 4. Access the App
+Access at http://localhost:5173
 
-Open http://localhost:5174 in your browser.
+### Demo Accounts
 
-Login with:
-- Username: `demo`
-- Password: `demo123`
+| Username | Password |
+|----------|----------|
+| `admin`  | `admin`  |
+| `test`   | `test`   |
 
 ## Project Structure
 
 ```
 fitness-tracker/
-├── backend/              # FastAPI backend
-│   ├── app/
-│   │   ├── api/         # API endpoints
-│   │   ├── core/        # Config, security, database
-│   │   ├── models/      # Database models
-│   │   └── schemas/     # Pydantic schemas
-│   ├── main.py          # FastAPI app entry point
-│   └── seed_data.py     # Database seeding script
-├── web/                 # React frontend
+├── backend-django/      # Django REST Framework backend
+│   ├── config/          # Django settings
+│   ├── data/            # Data generation scripts
+│   ├── food/            # Food & nutrition app
+│   ├── users/           # User management app
+│   ├── workouts/        # Workout & exercise app
+│   └── manage.py        # Django entry point
+├── web/                 # React + Vite frontend
 │   ├── src/
 │   │   ├── components/  # React components
 │   │   ├── contexts/    # Auth context
-│   │   ├── lib/         # API client, types, mocks
+│   │   ├── lib/         # API client, types
 │   │   └── pages/       # Page components
-│   └── .env             # Environment variables
-└── tests/               # E2E and integration tests
+│   └── tests/           # Frontend unit tests
+├── e2e/                 # Playwright E2E tests
+└── Dockerfile           # Single-container deployment
 ```
 
 ## API Endpoints
 
 ### Public Routes
-- `GET /` - API info
-- `GET /api/v1/health` - Health check
-- `POST /api/v1/auth/register` - Register new user
-- `POST /api/v1/auth/login` - Login (OAuth2 password flow)
+- `GET /api/health/` - Health check
+- `POST /api/auth/register/` - Register new user
+- `POST /api/auth/login/` - Login
 
 ### Protected Routes (require authentication)
-- `GET /api/v1/auth/me` - Get current user
-- `GET /api/v1/exercises` - List exercises
-- `POST /api/v1/exercises` - Create exercise
-- `GET /api/v1/workouts/sessions` - List workout sessions
-- `POST /api/v1/workouts/sessions` - Create workout session
-- `GET /api/v1/workouts/presets` - List workout presets
-- `POST /api/v1/workouts/presets` - Create workout preset
+- `GET /api/auth/me/` - Get current user
+- `GET /api/workouts/exercises/` - List exercises
+- `POST /api/workouts/exercises/` - Create exercise
+- `GET /api/workouts/sessions/` - List workout sessions
+- `GET /api/workouts/presets/` - List workout presets
+- `GET /api/food/foods/` - List food items
+- `POST /api/food/foods/` - Create food item
+- `GET /api/food/meals/` - List meals
 
-## Authentication
+### API Documentation
+- Swagger UI: `http://localhost:8000/api/docs/`
+- ReDoc: `http://localhost:8000/api/redoc/`
+- OpenAPI Schema: `http://localhost:8000/api/schema/`
 
-The app uses JWT token-based authentication:
+## Data Models
 
-1. Login returns an access token (30 min expiry)
-2. Token is stored in localStorage
-3. All protected API calls include `Authorization: Bearer <token>` header
-4. 401 responses trigger redirect to login page
+### Exercises
+- Exercise with muscle groups, equipment, tags
+- Workout Presets (template workouts)
+- Workout Sessions (logged workouts)
+- Sets (weight, reps, RPE)
+
+### Nutrition
+- Food Items (macros, micros, serving sizes)
+- Meals (food items with gram amounts)
+- Meal Templates (reusable meal templates)
+
+### Users
+- Custom user model with dark mode preference
+- JWT-based authentication
 
 ## Development
 
 ### Running Tests
 
 ```bash
-# API connectivity tests (fast)
-cd tests
-npm run test:api
+# Backend tests
+cd backend-django
+uv run pytest -v
 
-# E2E tests with Playwright (slower)
-npm run test:e2e
+# Frontend unit tests
+cd web
+npm test
+
+# E2E tests (requires running app)
+cd e2e
+npm ci
+npm run install:browsers
+npm test
 ```
 
 ### Environment Variables
 
-**Backend** (`backend/.env`):
-```
-SECRET_KEY=your-secret-key-here
-DATABASE_URL=sqlite:///./fitness_tracker.db
+**Backend** (`backend-django/.env`):
+```bash
+SECRET_KEY=your-secret-key
+DB_PATH=db/db.sqlite3
+ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
 **Frontend** (`web/.env`):
-```
-VITE_API_URL=http://127.0.0.1:8001
+```bash
+VITE_API_URL=http://127.0.0.1:8000
 ```
 
-## Seeding Fake Data
-
-To reset the database with fresh mock data:
+### Database Management
 
 ```bash
-cd backend
-uv run seed_data.py
+# Run migrations
+cd backend-django
+uv run python manage.py migrate
+
+# Create migrations after model changes
+uv run python manage.py makemigrations
+
+# Generate sample data
+uv run python -m data.generate
 ```
 
-This creates:
-- 1 demo user (`demo` / `demo123`)
-- Sample exercises (if models are available)
-- Sample workouts (if models are available)
+### Data Generation
+
+The `data.generate` module creates:
+- 3 demo users (admin, test, test2)
+- 42 exercises across all muscle groups
+- 6 workout presets (Push Day, Pull Day, Leg Day)
+- 4 historical workout sessions
+- 34 canonical food items
+- 2 sample meals
+
+## Deployment
+
+The Dockerfile builds a production-ready single container serving both the React frontend (static files) and Django backend.
+
+```bash
+docker build -t fitness-tracker .
+docker run -d -p 8000:8000 -v fitness-db:/app/backend/db fitness-tracker
+```
+
+## CI/CD
+
+GitHub Actions runs on every push:
+- Backend tests (pytest)
+- Frontend tests (vitest)
+- E2E tests (Playwright in Docker)
