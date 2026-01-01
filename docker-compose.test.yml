@@ -48,16 +48,21 @@ services:
       - "5173:5173"
     command: >
       sh -c "
-        apt-get update && apt-get install -y curl &&
-        npm install &&
+        echo '🌐 Frontend - Setting up...' &&
+        apt-get update -qq && apt-get install -yqq curl &&
+        echo '✓ curl installed' &&
+        echo 'Installing dependencies...' &&
+        npm ci --silent &&
+        echo '✓ Dependencies installed' &&
+        echo 'Starting dev server...' &&
         npm run dev -- --host 0.0.0.0
       "
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5173/"]
       interval: 5s
       timeout: 5s
-      retries: 10
-      start_period: 60s
+      retries: 20
+      start_period: 90s
     networks:
       - test-network
 
