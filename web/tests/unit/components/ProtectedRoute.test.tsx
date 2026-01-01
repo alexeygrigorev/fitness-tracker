@@ -3,14 +3,18 @@
  * Tests for route protection and redirection behavior
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { AuthProvider } from '@/auth/AuthContext';
+import * as AuthContext from '@/auth/AuthContext';
 
-// Mock fetch
-const mockFetch = vi.fn();
-global.fetch = mockFetch as any;
+// Mock the AuthContext
+vi.mock('@/auth/AuthContext', () => ({
+  useAuth: vi.fn(),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+const mockUseAuth = vi.spyOn(AuthContext, 'useAuth');
 
 // Test component to render inside ProtectedRoute
 const TestComponent = () => <div>Protected Content</div>;
@@ -18,18 +22,31 @@ const TestComponent = () => <div>Protected Content</div>;
 describe('ProtectedRoute Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
   });
 
   describe('when loading', () => {
     it('should show loading state', () => {
-      const { container } = render(
+      mockUseAuth.mockReturnValue({
+        user: null,
+        token: null,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        loading: true,
+      });
+
+      render(
         <MemoryRouter initialEntries={['/protected']}>
-          <AuthProvider>
-            <ProtectedRoute>
-              <TestComponent />
-            </ProtectedRoute>
-          </AuthProvider>
+          <Routes>
+            <Route
+              path="/protected"
+              element={
+                <ProtectedRoute>
+                  <TestComponent />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
         </MemoryRouter>
       );
 
@@ -39,97 +56,99 @@ describe('ProtectedRoute Component', () => {
   });
 
   describe('when authenticated', () => {
-    it('should render children when user is logged in', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: 1, username: 'test', email: 'test@test.com', is_active: true }),
-      } as Response);
+    it('should render children when user is logged in', () => {
+      mockUseAuth.mockReturnValue({
+        user: { id: 1, username: 'test' },
+        token: 'test-token',
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        loading: false,
+      });
 
-      localStorage.setItem('token', 'test-token');
-      localStorage.setItem('user', JSON.stringify({ id: 1, username: 'test' }));
-
-      const { container } = render(
+      render(
         <MemoryRouter initialEntries={['/protected']}>
-          <AuthProvider>
-            <ProtectedRoute>
-              <TestComponent />
-            </ProtectedRoute>
-          </AuthProvider>
+          <Routes>
+            <Route
+              path="/protected"
+              element={
+                <ProtectedRoute>
+                  <TestComponent />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
         </MemoryRouter>
       );
 
-      await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText('Protected Content')).toBeInTheDocument();
-      });
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.getByText('Protected Content')).toBeInTheDocument();
     });
   });
 
   describe('when not authenticated', () => {
-    it('should redirect to login when user is not logged in', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('No auth'));
+    it('should redirect to login when user is not logged in', () => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        token: null,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        loading: false,
+      });
 
-      const { container } = render(
+      render(
         <MemoryRouter initialEntries={['/protected']}>
-          <AuthProvider>
-            <Routes>
-              <Route
-                path="/protected"
-                element={
-                  <ProtectedRoute>
-                    <TestComponent />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/login" element={<div>Login Page</div>} />
-            </Routes>
-          </AuthProvider>
+          <Routes>
+            <Route
+              path="/protected"
+              element={
+                <ProtectedRoute>
+                  <TestComponent />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/login" element={<div>Login Page</div>} />
+          </Routes>
         </MemoryRouter>
       );
 
-      await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText('Login Page')).toBeInTheDocument();
-      });
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.getByText('Login Page')).toBeInTheDocument();
+      expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
     });
 
-    it('should pass current location to login redirect', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('No auth'));
+    it('should pass current location to login redirect', () => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        token: null,
+        login: vi.fn(),
+        register: vi.fn(),
+        logout: vi.fn(),
+        loading: false,
+      });
 
-      const { container } = render(
+      render(
         <MemoryRouter initialEntries={['/protected']}>
-          <AuthProvider>
-            <Routes>
-              <Route
-                path="/protected"
-                element={
-                  <ProtectedRoute>
-                    <TestComponent />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/login"
-                element={<div data-testid="login-page">Login Page</div>}
-              />
-            </Routes>
-          </AuthProvider>
+          <Routes>
+            <Route
+              path="/protected"
+              element={
+                <ProtectedRoute>
+                  <TestComponent />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/login"
+              element={<div data-testid="login-page">Login Page</div>}
+            />
+          </Routes>
         </MemoryRouter>
       );
 
-      await waitFor(() => {
-        expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('login-page')).toBeInTheDocument();
-      });
+      expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
+      expect(screen.getByTestId('login-page')).toBeInTheDocument();
     });
   });
 });
