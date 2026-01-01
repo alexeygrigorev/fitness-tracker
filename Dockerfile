@@ -6,7 +6,8 @@ WORKDIR /app/web
 COPY web/package*.json ./
 RUN npm install
 COPY web/ ./
-RUN npm run build:only
+# Build with relative API URL (same origin) for production
+RUN VITE_API_URL="" npm run build:only
 
 # Stage 2: Backend with Python, serving both API and frontend
 FROM python:3.13-slim
