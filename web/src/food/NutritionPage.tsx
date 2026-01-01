@@ -464,7 +464,7 @@ export default function NutritionPage() {
         </div>
       )}
 
-      {activeTab === "foods" && (
+      {activeTab === "items" && (
         <div className="space-y-4">
           <div className="flex justify-end">
             <button
