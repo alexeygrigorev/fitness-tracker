@@ -14,7 +14,28 @@ from .serializers import (
 )
 
 def model_to_dict(instance):
-    return {k: v for k, v in instance.__dict__.items() if not k.startswith("_")}
+    # Convert Django model to dict with camelCase keys for frontend
+    field_mapping = {
+        'serving_size': 'servingSize',
+        'serving_unit': 'servingType',
+        'glycemic_index': 'glycemicIndex',
+        'absorption_speed': 'absorptionSpeed',
+        'insulin_response': 'insulinResponse',
+        'satiety_score': 'satietyScore',
+        'protein_quality': 'proteinQuality',
+        'saturated_fat': 'saturatedFat',
+    }
+    result = {}
+    for k, v in instance.__dict__.items():
+        if k.startswith('_'):
+            continue
+        # Convert Decimal to float for JSON serialization
+        if hasattr(v, 'float'):
+            v = float(v)
+        # Map snake_case to camelCase
+        key = field_mapping.get(k, k)
+        result[key] = v
+    return result
 
 class FoodItemViewSet(viewsets.ModelViewSet):
     serializer_class = FoodItemSerializer
