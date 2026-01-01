@@ -428,7 +428,6 @@ test.describe('Monday Push Day Workout', () => {
     // Get the workout ID using the data attribute
     const workoutId = await loggedWorkout.getAttribute('data-workout-id');
     expect(workoutId).not.toBeNull();
-    console.log('Created workout ID:', workoutId);
 
     // Click the play button to resume the workout
     const resumeButton = loggedWorkout.getByRole('button').filter({ hasText: '' }).locator('.fa-play').locator('..');

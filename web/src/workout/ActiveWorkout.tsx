@@ -279,28 +279,33 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
 
         const bodyweight = isBodyweight(ex);
         const numberOfSets = presetEx.sets || 3;
+        const numberOfDropdowns = presetEx.dropdowns || 2;
         let baseWeight = 60;
 
-        // Create dropdown set containing W + D1 + D2
-        items.push(new DropdownSetItem({
-          id: `dropdown-${presetEx.id}`,
-          exerciseId: presetEx.exerciseId,
-          exerciseName: ex.name,
-          exercise: ex,
-          setNumber: 1,
-          baseWeight,
-          reps: 10,
-          completed: false,
-          isBodyweight: bodyweight,
-          subSets: Array.from({ length: numberOfSets }, (_, i) => ({
+        // Create multiple dropdown set rows (one per set number)
+        for (let i = 0; i < numberOfSets; i++) {
+          const subSets: Array<{ weight: number; reps: number; completed: boolean; completedAt?: Date }> = [
+            { weight: baseWeight, reps: 10, completed: false } // Working set
+          ];
+          for (let d = 1; d <= numberOfDropdowns; d++) {
+            const dropWeight = baseWeight - (d * 2.5);
+            subSets.push({ weight: dropWeight, reps: 10, completed: false });
+          }
+
+          items.push(new DropdownSetItem({
             id: `dropdown-${presetEx.id}-${i}`,
-            setType: i === 0 ? 'working' : 'drop',
-            dropNumber: i === 0 ? undefined : i,
-            weight: bodyweight ? undefined : baseWeight - (i * 2.5),
+            exerciseId: presetEx.exerciseId,
+            exerciseName: ex.name,
+            exercise: ex,
+            setNumber: i + 1,
+            weight: baseWeight,
             reps: 10,
-            completed: false
-          }))
-        }));
+            completed: false,
+            isBodyweight: bodyweight,
+            suggestedWeight: baseWeight,
+            subSets
+          }));
+        }
 
         return;
       }
@@ -391,6 +396,9 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
   useEffect(() => {
     if (!resumingWorkout || exercises.length === 0) return;
 
+    // Only run once per resumingWorkout to avoid re-processing
+    if (isRestored) return;
+
     // Set the workout session ID so updates go to the existing workout
     setWorkoutSessionId(resumingWorkout.id);
     setStartTime(new Date(resumingWorkout.startedAt));
@@ -400,62 +408,82 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
 
     // Then overlay the completed status from saved sets
     if (resumingWorkout.sets && resumingWorkout.sets.length > 0) {
-      // Create a map of saved sets by exerciseId and setType for quick lookup
+      // Group saved sets by exerciseId for easier matching
       const savedSetsByExercise = new Map<string, WorkoutSet[]>();
       resumingWorkout.sets.forEach(savedSet => {
-        const key = `${savedSet.exerciseId}-${savedSet.setType || 'normal'}`;
-        if (!savedSetsByExercise.has(key)) {
-          savedSetsByExercise.set(key, []);
+        if (!savedSetsByExercise.has(savedSet.exerciseId)) {
+          savedSetsByExercise.set(savedSet.exerciseId, []);
         }
-        savedSetsByExercise.get(key)!.push(savedSet);
+        savedSetsByExercise.get(savedSet.exerciseId)!.push(savedSet);
       });
 
-      // Match saved sets to built sets and update their status
-      items = items.map(item => {
-        // For dropdown sets, backend stores as 'normal' type
-        const setTypeKey = item.setType === 'dropdown' ? 'normal' : item.setType;
-        const key = `${item.exerciseId}-${setTypeKey}`;
-        const savedSets = savedSetsByExercise.get(key);
+      // Track used indices locally (not mutating saved sets)
+      const usedIndices = new Set<string>();
 
-        if (!savedSets || savedSets.length === 0) {
-          return item; // No saved data for this set, leave as incomplete
+      // For each item, try to find a matching saved set
+      items = items.map(item => {
+        const savedSetsForExercise = savedSetsByExercise.get(item.exerciseId);
+        if (!savedSetsForExercise || savedSetsForExercise.length === 0) {
+          return item; // No saved sets for this exercise
         }
 
-        // Try to find a matching saved set for this specific set
-        const matchingSavedSet = savedSets.find((savedSet, idx) => {
-          // For warmup sets, match by setType
-          if (item.setType === 'warmup' && savedSet.setType === 'warmup') {
-            return true;
+        // Find an unused saved set that matches this item's type
+        const matchingIndex = savedSetsForExercise.findIndex((savedSet, idx) => {
+          const usedKey = `${item.exerciseId}-${idx}`;
+          if (usedIndices.has(usedKey)) return false;
+
+          // For dropdown sets, backend saves as 'normal' type
+          if (item.setType === 'dropdown') {
+            return savedSet.setType === 'normal' || !savedSet.setType;
           }
-          // For dropdown sets, match by 'normal' type from backend
-          if (item.setType === 'dropdown' && (savedSet.setType === 'normal' || !savedSet.setType)) {
-            const savedIndex = savedSets.findIndex(s => !s._matched);
-            if (savedIndex !== -1) {
-              savedSets[savedIndex]._matched = true;
-              return true;
-            }
+          // For warmup sets
+          if (item.setType === 'warmup') {
+            return savedSet.setType === 'warmup';
           }
-          // For working sets, match by set number (approximate)
-          if (item.setType === 'normal' || item.setType === 'bodyweight') {
-            // Find a saved set that hasn't been matched yet
-            const savedIndex = savedSets.findIndex(s => !s._matched);
-            if (savedIndex !== -1) {
-              savedSets[savedIndex]._matched = true;
-              return true;
-            }
+          // For bodyweight sets
+          if (item.setType === 'bodyweight') {
+            return savedSet.setType === 'bodyweight' || !savedSet.setType;
+          }
+          // For normal sets
+          if (item.setType === 'normal') {
+            return savedSet.setType === 'normal' || !savedSet.setType;
           }
           return false;
         });
 
-        if (matchingSavedSet && matchingSavedSet.loggedAt) {
-          // Update this set with the saved data
+        if (matchingIndex !== -1) {
+          const savedSet = savedSetsForExercise[matchingIndex];
+          // Mark as used locally
+          usedIndices.add(`${item.exerciseId}-${matchingIndex}`);
+
+          // For dropdown sets, we also need to mark all sub-sets as completed
+          if (item.setType === 'dropdown' && 'subSets' in item) {
+            const now = savedSet.loggedAt ? new Date(savedSet.loggedAt) : new Date();
+            const updatedSubSets = item.subSets.map((s: any) => ({
+              ...s,
+              completed: true,
+              completedAt: now
+            }));
+            return {
+              ...item,
+              weight: savedSet.weight,
+              reps: savedSet.reps,
+              completed: true,
+              completedAt: now,
+              subSets: updatedSubSets,
+              originalWorkoutSetId: savedSet.id,
+              alreadySaved: true
+            };
+          }
+
+          // Return the item with completed status
           return {
             ...item,
-            weight: matchingSavedSet.weight,
-            reps: matchingSavedSet.reps,
+            weight: savedSet.weight,
+            reps: savedSet.reps,
             completed: true,
-            completedAt: new Date(matchingSavedSet.loggedAt),
-            originalWorkoutSetId: matchingSavedSet.id,
+            completedAt: savedSet.loggedAt ? new Date(savedSet.loggedAt) : undefined,
+            originalWorkoutSetId: savedSet.id,
             alreadySaved: true
           };
         }
@@ -471,7 +499,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
     });
     setSetRows(itemsWithIndex);
     setIsRestored(true);
-  }, [resumingWorkout, exercises, preset]);
+  }, [resumingWorkout, exercises, preset, isRestored]);
 
   // Build default set rows after restoration check
   useEffect(() => {

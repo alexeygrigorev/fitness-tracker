@@ -207,26 +207,37 @@ export default function ExercisesPage() {
   };
 
   const handleEditWorkout = (workout: WorkoutSession) => {
-    // Resume the workout - create a temporary preset from the workout's exercises
-    const exerciseIds = [...new Set(workout.sets.map(s => s.exerciseId))];
-    const presetExercises = exerciseIds.map(exerciseId => ({
-      id: `resume-${workout.id}-${exerciseId}`,
-      exerciseId,
-      type: 'normal' as const,
-      sets: workout.sets.filter(s => s.exerciseId === exerciseId).length,
-      warmup: workout.sets.some(s => s.exerciseId === exerciseId && s.setType === 'warmup')
-    }));
+    // Resume the workout - try to find the original preset by name first
+    // This ensures we get ALL the sets from the original preset, not just completed ones
+    const originalPreset = presets.find(p => p.name === workout.name);
 
-    const resumePreset: WorkoutPreset = {
-      id: `resume-${workout.id}`,
-      name: workout.name,
-      exercises: presetExercises,
-      status: 'active',
-      tags: []
-    };
+    if (originalPreset) {
+      // Use the original preset with all its sets
+      setActivePreset(originalPreset);
+      setResumingWorkout(workout);
+    } else {
+      // Fallback: create a temporary preset from the workout's exercises
+      // This only has the completed sets, so not ideal but preserves functionality
+      const exerciseIds = [...new Set(workout.sets.map(s => s.exerciseId))];
+      const presetExercises = exerciseIds.map(exerciseId => ({
+        id: `resume-${workout.id}-${exerciseId}`,
+        exerciseId,
+        type: 'normal' as const,
+        sets: workout.sets.filter(s => s.exerciseId === exerciseId).length,
+        warmup: workout.sets.some(s => s.exerciseId === exerciseId && s.setType === 'warmup')
+      }));
 
-    setActivePreset(resumePreset);
-    setResumingWorkout(workout);
+      const resumePreset: WorkoutPreset = {
+        id: `resume-${workout.id}`,
+        name: workout.name,
+        exercises: presetExercises,
+        status: 'active',
+        tags: []
+      };
+
+      setActivePreset(resumePreset);
+      setResumingWorkout(workout);
+    }
   };
 
   const handlePresetSaved = (preset: WorkoutPreset) => {
