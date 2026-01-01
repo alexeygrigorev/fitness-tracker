@@ -20,7 +20,6 @@ export default defineConfig({
     pool: 'forks',
     poolOptions: {
       forks: {
-        singleFork: true,
         execArgv: ['--max-old-space-size=4096'],
       },
     },
