@@ -191,7 +191,16 @@ export default function ExercisesPage() {
   };
 
   const handleWorkoutComplete = (workout: WorkoutSession) => {
-    setWorkouts(prev => [workout, ...prev]);
+    setWorkouts(prev => {
+      // Check if this workout already exists in the list (update scenario)
+      const existingIndex = prev.findIndex(w => w.id === workout.id);
+      if (existingIndex !== -1) {
+        // Update existing workout in place and move to top
+        return [workout, ...prev.filter(w => w.id !== workout.id)];
+      }
+      // New workout - add to the beginning of the list
+      return [workout, ...prev];
+    });
     setActivePreset(null);
     setResumingWorkout(undefined);
   };

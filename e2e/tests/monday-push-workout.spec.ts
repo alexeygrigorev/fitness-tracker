@@ -482,4 +482,102 @@ test.describe('Monday Push Day Workout', () => {
     const deletedWorkout = page.locator(`[data-workout-id="${workoutId}"]`);
     await expect(deletedWorkout).not.toBeVisible({ timeout: 5000 });
   });
+
+  test('resuming and finishing workout updates instead of duplicating', async ({ page }) => {
+    // Set up auto-accept for all confirmation dialogs
+    page.on('dialog', dialog => dialog.accept());
+
+    // Set the date to Monday
+    const mondayDate = new Date('2025-01-06T09:00:00');
+    await page.clock.install({ time: mondayDate.getTime() });
+
+    await login(page);
+    await page.goto('/workouts');
+    await page.waitForLoadState('networkidle');
+
+    // Count workouts BEFORE starting the workout (there may be existing workouts from previous tests)
+    const initialWorkoutCount = await page.locator('[data-workout-id]').count();
+
+    // Start Push Day workout
+    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    await pushDayPreset.click();
+
+    // Wait for active workout mode
+    const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
+    await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Complete first dropdown set of Bench Press (Set 1)
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
+    await expect(firstSetRow).toBeVisible();
+    await firstSetRow.click();
+
+    // Fill in the dropdown set
+    await page.locator('input[placeholder="kg"]').nth(0).fill('60');
+    await page.locator('input[placeholder="reps"]').nth(0).fill('10');
+    await page.locator('input[placeholder="kg"]').nth(1).fill('57.5');
+    await page.locator('input[placeholder="reps"]').nth(1).fill('10');
+    await page.locator('input[placeholder="kg"]').nth(2).fill('55');
+    await page.locator('input[placeholder="reps"]').nth(2).fill('10');
+
+    // Save the set
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+
+    // Finish the workout with just 1 set completed
+    const finishButton = page.getByRole('button', { name: /Finish Workout/ });
+    await expect(finishButton).toBeVisible();
+    await finishButton.click();
+
+    // Wait for the active workout to disappear
+    await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
+    await page.waitForLoadState('networkidle');
+
+    // Count workouts after first finish - should be initial + 1
+    let workoutCount = await page.locator('[data-workout-id]').count();
+    expect(workoutCount).toBe(initialWorkoutCount + 1);
+
+    // Get the first workout ID (the newly created one)
+    const firstWorkoutId = await page.locator('[data-workout-id]').first().getAttribute('data-workout-id');
+    expect(firstWorkoutId).not.toBeNull();
+
+    // Click the play button to resume the workout
+    const loggedWorkout = page.locator(`[data-workout-id="${firstWorkoutId}"]`);
+    const resumeButton = loggedWorkout.getByRole('button').filter({ hasText: '' }).locator('.fa-play').locator('..');
+    await resumeButton.click();
+
+    // Active workout mode should appear again
+    await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Complete a SECOND dropdown set (Set 2)
+    const secondSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 2/ });
+    await expect(secondSetRow).toBeVisible();
+    await secondSetRow.click();
+
+    // Fill in the dropdown set
+    await page.locator('input[placeholder="kg"]').nth(0).fill('60');
+    await page.locator('input[placeholder="reps"]').nth(0).fill('10');
+    await page.locator('input[placeholder="kg"]').nth(1).fill('57.5');
+    await page.locator('input[placeholder="reps"]').nth(1).fill('10');
+    await page.locator('input[placeholder="kg"]').nth(2).fill('55');
+    await page.locator('input[placeholder="reps"]').nth(2).fill('10');
+
+    // Save the set
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(secondSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+
+    // Finish the workout again
+    await page.getByRole('button', { name: /Finish Workout/ }).click();
+
+    // Wait for the active workout to disappear
+    await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
+    await page.waitForLoadState('networkidle');
+
+    // CRITICAL TEST: Count workouts after second finish - should STILL be initial + 1 (not duplicated)
+    workoutCount = await page.locator('[data-workout-id]').count();
+    expect(workoutCount).toBe(initialWorkoutCount + 1);
+
+    // Verify the same workout ID still exists (was updated, not duplicated)
+    const updatedWorkout = page.locator(`[data-workout-id="${firstWorkoutId}"]`);
+    await expect(updatedWorkout).toBeVisible();
+  });
 });
