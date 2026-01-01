@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* Force class-based dark mode only - ignore browser's prefers-color-scheme */
+@import "tailwindcss/preflight" layer(base);
+
+/* Reset dark mode to be class-only, not media-query based */
+@media (prefers-color-scheme: dark) {
+  /* When browser prefers dark but app is in light mode, force light styles */
+  html:not(.dark) {
+    color-scheme: light;
+  }
+}
+
+/* When app is in dark mode, tell the browser we're using dark scheme */
+html.dark {
+  color-scheme: dark;
+}
+
+/* When app is in light mode, tell the browser we're using light scheme */
+html:not(.dark) {
+  color-scheme: light;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
