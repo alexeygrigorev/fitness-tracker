@@ -3,9 +3,25 @@ from .models import FoodItem, Meal, MealFoodItem, MealTemplate, MealTemplateFood
 
 
 class FoodItemSerializer(serializers.ModelSerializer):
+    # Map snake_case model fields to camelCase for frontend
+    servingSize = serializers.DecimalField(source='serving_size', max_digits=10, decimal_places=2)
+    servingType = serializers.CharField(source='serving_unit')
+    glycemicIndex = serializers.IntegerField(source='glycemic_index', required=False)
+    absorptionSpeed = serializers.CharField(source='absorption_speed', required=False)
+    satietyScore = serializers.IntegerField(source='satiety_score', required=False)
+    proteinQuality = serializers.IntegerField(source='protein_quality', required=False)
+
     class Meta:
         model = FoodItem
-        fields = '__all__'
+        fields = [
+            'id', 'user', 'name', 'brand', 'barcode', 'source',
+            'servingSize', 'servingType',
+            'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar',
+            'glycemicIndex', 'absorptionSpeed', 'satietyScore', 'proteinQuality',
+            'category'
+        ]
+        # Mark user as read-only for canonical foods
+        read_only_fields = ['user']
 
 
 class MealFoodItemSerializer(serializers.ModelSerializer):
@@ -20,10 +36,14 @@ class MealFoodItemSerializer(serializers.ModelSerializer):
 class MealSerializer(serializers.ModelSerializer):
     # Include nested food items with frontend-friendly format
     food_items = MealFoodItemSerializer(many=True, read_only=True)
+    # Map snake_case to camelCase
+    mealType = serializers.CharField(source='meal_type')
+    loggedAt = serializers.DateTimeField(source='logged_at')
+    eventTime = serializers.TimeField(source='event_time', required=False)
 
     class Meta:
         model = Meal
-        fields = ['id', 'name', 'meal_type', 'date', 'logged_at', 'event_time', 'notes', 'source', 'food_items']
+        fields = ['id', 'name', 'mealType', 'date', 'loggedAt', 'eventTime', 'notes', 'source', 'food_items']
 
 
 class MealTemplateFoodItemSerializer(serializers.ModelSerializer):

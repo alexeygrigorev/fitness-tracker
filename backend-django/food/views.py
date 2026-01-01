@@ -13,32 +13,9 @@ from .serializers import (
     NutritionCalculationRequestSerializer, NutritionCalculationResponseSerializer
 )
 
-def model_to_dict(instance):
-    # Convert Django model to dict with camelCase keys for frontend
-    field_mapping = {
-        'serving_size': 'servingSize',
-        'serving_unit': 'servingType',
-        'glycemic_index': 'glycemicIndex',
-        'absorption_speed': 'absorptionSpeed',
-        'insulin_response': 'insulinResponse',
-        'satiety_score': 'satietyScore',
-        'protein_quality': 'proteinQuality',
-        'saturated_fat': 'saturatedFat',
-    }
-    result = {}
-    for k, v in instance.__dict__.items():
-        if k.startswith('_'):
-            continue
-        # Convert Decimal to float for JSON serialization
-        if hasattr(v, 'float'):
-            v = float(v)
-        # Map snake_case to camelCase
-        key = field_mapping.get(k, k)
-        result[key] = v
-    return result
-
 class FoodItemViewSet(viewsets.ModelViewSet):
     serializer_class = FoodItemSerializer
+    permission_classes = []  # AllowAny for list/retrieve, will override in get_permissions
     
     def get_queryset(self):
         # User can see their own foods and canonical foods
@@ -52,58 +29,63 @@ class FoodItemViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def list(self, request, *args, **kwargs):
-        return Response([model_to_dict(obj) for obj in self.get_queryset()])
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        return Response(model_to_dict(self.get_object()))
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        data["user_id"] = request.user.id
-        data["source"] = "user"
-        obj = FoodItem.objects.create(**data)
-        return Response(model_to_dict(obj), status=201)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user, source='user')
+        return Response(serializer.data, status=201)
 
     def partial_update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        for k, v in request.data.items():
-            setattr(obj, k, v)
-        obj.save()
-        return Response(model_to_dict(obj))
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
-        obj = self.get_object()
-        obj.delete()
+        instance = self.get_object()
+        instance.delete()
         return Response(status=204)
 
 class MealViewSet(viewsets.ModelViewSet):
     serializer_class = MealSerializer
-    
+
     def get_queryset(self):
         return Meal.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
-        return Response([model_to_dict(obj) for obj in self.get_queryset()])
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        return Response(model_to_dict(self.get_object()))
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        data["user_id"] = request.user.id
-        obj = Meal.objects.create(**data)
-        return Response(model_to_dict(obj), status=201)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=201)
 
     def partial_update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        for k, v in request.data.items():
-            setattr(obj, k, v)
-        obj.save()
-        return Response(model_to_dict(obj))
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
-        obj = self.get_object()
-        obj.delete()
+        instance = self.get_object()
+        instance.delete()
         return Response(status=204)
 
     @action(detail=False, methods=["get"], url_path="date/(?P<date_str>[^/.]+)")
@@ -115,7 +97,8 @@ class MealViewSet(viewsets.ModelViewSet):
             return Response({"error": "Invalid date format. Use YYYY-MM-DD"}, status=400)
 
         meals = self.get_queryset().filter(date=date_obj)
-        return Response([model_to_dict(obj) for obj in meals])
+        serializer = self.get_serializer(meals, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"], url_path="daily/totals/(?P<date_str>[^/.]+)")
     def daily_totals(self, request, date_str=None):
@@ -165,32 +148,35 @@ class MealViewSet(viewsets.ModelViewSet):
 
 class MealTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = MealTemplateSerializer
-    
+
     def get_queryset(self):
         return MealTemplate.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
-        return Response([model_to_dict(obj) for obj in self.get_queryset()])
+        serializer = self.get_serializer(self.get_queryset(), many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        return Response(model_to_dict(self.get_object()))
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        data = request.data.copy()
-        data["user_id"] = request.user.id
-        obj = MealTemplate.objects.create(**data)
-        return Response(model_to_dict(obj), status=201)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=201)
 
     def partial_update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        for k, v in request.data.items():
-            setattr(obj, k, v)
-        obj.save()
-        return Response(model_to_dict(obj))
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
-        obj = self.get_object()
-        obj.delete()
+        instance = self.get_object()
+        instance.delete()
         return Response(status=204)
 
 @extend_schema(
