@@ -93,6 +93,7 @@ urlpatterns = [
 ]
 
 # Catch-all for SPA (assets, vite.svg, and all frontend routes)
-# Must be last so API routes are matched first
-# The (.*?) captures everything except api/ and admin/ paths
-urlpatterns += [re_path(r'^(?!api/|admin/)(.*)$', serve_spa)]
+# Only added when frontend is built (Docker/production mode)
+# In dev mode, frontend runs separately on Vite dev server
+if getattr(settings, 'FRONTEND_BUILD', None):
+    urlpatterns += [re_path(r'^(?!api/|admin/)(.*)$', serve_spa)]

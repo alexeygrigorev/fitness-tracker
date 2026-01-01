@@ -78,9 +78,10 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Frontend static files (React build)
-# In Docker, frontend is at /app/frontend/dist
-# BASE_DIR is /app/backend, so we go up one level
-FRONTEND_BUILD = BASE_DIR.parent / 'frontend' / 'dist'
+# Only set if the build exists (Docker/production mode)
+# In dev mode, frontend runs separately on Vite dev server
+_frontend_build_path = BASE_DIR.parent / 'frontend' / 'dist'
+FRONTEND_BUILD = _frontend_build_path if _frontend_build_path.exists() else None
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
