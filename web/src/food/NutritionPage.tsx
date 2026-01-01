@@ -12,6 +12,12 @@ import type { FoodItem, Meal, MealTemplate } from "../types";
 
 type Tab = "meals" | "templates" | "items";
 
+// Helper to safely calculate per-serving values (handles 0 or undefined servingSize)
+const calcPerServing = (valuePer100g: number, servingSize: number | undefined): number => {
+  if (!servingSize || servingSize <= 0) return 0;
+  return Math.round(valuePer100g * servingSize / 100);
+};
+
 // Helper to check if dates are the same day
 const isSameDay = (date1: Date, date2: Date) => {
   return date1.getFullYear() === date2.getFullYear() &&
@@ -503,7 +509,7 @@ export default function NutritionPage() {
                         </span>
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        1 serving: {food.servingSize}g ({food.servingType}, {food.caloriesPerPortion ?? Math.round(food.calories * food.servingSize / 100)} kcal)
+                        1 serving: {food.servingSize || '-'}g ({food.servingType}, {food.caloriesPerPortion ?? calcPerServing(food.calories, food.servingSize)} kcal)
                       </div>
                       {food.brand && (
                         <div className="text-xs text-gray-400 dark:text-gray-500">{food.brand}</div>
@@ -545,19 +551,19 @@ export default function NutritionPage() {
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{food.fat}g</div>
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">Per serving ({food.servingSize}g)</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 pt-1">Per serving ({food.servingSize || '-'}g)</div>
                     <div className="grid grid-cols-4 gap-2 text-center">
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{food.caloriesPerPortion ?? Math.round(food.calories * food.servingSize / 100)}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{food.caloriesPerPortion ?? calcPerServing(food.calories, food.servingSize)}</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">{Math.round(food.protein * food.servingSize / 100)}g</div>
+                        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">{calcPerServing(food.protein, food.servingSize)}g</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{Math.round(food.carbs * food.servingSize / 100)}g</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{calcPerServing(food.carbs, food.servingSize)}g</div>
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{Math.round(food.fat * food.servingSize / 100)}g</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{calcPerServing(food.fat, food.servingSize)}g</div>
                       </div>
                     </div>
                   </div>
