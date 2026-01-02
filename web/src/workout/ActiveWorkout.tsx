@@ -444,9 +444,9 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
           const usedKey = `${item.exerciseId}-${idx}`;
           if (usedIndices.has(usedKey)) return false;
 
-          // For dropdown sets, backend saves as 'normal' type
+          // For dropdown sets, backend saves as 'dropdown' or 'normal' type (for compatibility)
           if (item.setType === 'dropdown') {
-            return savedSet.setType === 'normal' || !savedSet.setType;
+            return savedSet.setType === 'dropdown' || savedSet.setType === 'normal' || !savedSet.setType;
           }
           // For warmup sets
           if (item.setType === 'warmup') {

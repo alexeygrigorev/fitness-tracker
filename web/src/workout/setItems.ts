@@ -342,10 +342,12 @@ export class DropdownSetItem extends BaseSetItem {
 
   override toWorkoutSets(startTime: Date): WorkoutSet[] {
     if (!this.completed) return [];
+    // Save as a single set representing the entire dropdown
+    // The backend will handle storing individual sub-sets with set_order
     return [{
       id: this.originalWorkoutSetId || this.id,
       exerciseId: this.exerciseId,
-      setType: 'normal',
+      setType: 'dropdown',
       weight: this.subSets[0]?.weight,
       reps: this.subSets[0]?.reps || 10,
       loggedAt: this.completedAt || startTime

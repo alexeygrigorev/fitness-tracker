@@ -156,8 +156,8 @@ test.describe('Food API', () => {
 
     const foodData = {
       name: `E2E Test Food ${uniqueId}`,
-      serving_size: '100.00',
-      serving_unit: 'g',
+      servingSize: '100.00',
+      servingType: 'g',
       calories: '100.00',
       protein: '20.00',
       carbs: '10.00',

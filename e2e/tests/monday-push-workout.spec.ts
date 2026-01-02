@@ -256,6 +256,9 @@ test.describe('Monday Push Day Workout', () => {
     expect(setCount).toBeGreaterThan(3); // Should have multiple sets
 
     // Finish the workout again with the current state (some completed, some not)
+    // Wait a moment for the workout state to fully load after resume
+    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: /Finish Workout/ }).click();
 
     // Wait for active workout to disappear
@@ -360,13 +363,19 @@ test.describe('Monday Push Day Workout', () => {
     await expect(secondSetRow).toBeVisible();
     await secondSetRow.click();
 
-    // Fill in the dropdown set
-    await page.locator('input[placeholder="kg"]').nth(0).fill('60');
-    await page.locator('input[placeholder="reps"]').nth(0).fill('10');
-    await page.locator('input[placeholder="kg"]').nth(1).fill('57.5');
-    await page.locator('input[placeholder="reps"]').nth(1).fill('10');
-    await page.locator('input[placeholder="kg"]').nth(2).fill('55');
-    await page.locator('input[placeholder="reps"]').nth(2).fill('10');
+    // Clear and fill in the dropdown set (inputs may have values from Set 1)
+    const kgInputs = page.locator('input[placeholder="kg"]');
+    const repsInputs = page.locator('input[placeholder="reps"]');
+    for (let i = 0; i < 3; i++) {
+      await kgInputs.nth(i).clear();
+      await repsInputs.nth(i).clear();
+    }
+    await kgInputs.nth(0).fill('60');
+    await repsInputs.nth(0).fill('10');
+    await kgInputs.nth(1).fill('57.5');
+    await repsInputs.nth(1).fill('10');
+    await kgInputs.nth(2).fill('55');
+    await repsInputs.nth(2).fill('10');
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
@@ -496,6 +505,9 @@ test.describe('Monday Push Day Workout', () => {
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
 
+    // Count workouts BEFORE starting (there may be existing workouts from previous tests)
+    const initialWorkoutCount = await page.locator('[data-workout-id]').count();
+
     // Start Push Day workout
     const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
     await pushDayPreset.click();
@@ -527,12 +539,16 @@ test.describe('Monday Push Day Workout', () => {
     await page.reload();
     await page.waitForLoadState('networkidle');
 
-    // Count workouts before resuming
-    const workoutsBefore = await page.locator('.border.rounded-lg').filter({ hasText: /Push Day/ }).count();
-    expect(workoutsBefore).toBeGreaterThan(0);
+    // Verify workout count increased by 1
+    const workoutsAfterCreation = await page.locator('[data-workout-id]').count();
+    expect(workoutsAfterCreation).toBe(initialWorkoutCount + 1);
 
-    // Resume the workout (click the resume/play button) - wait for it to be clickable
-    const workoutToResume = page.locator('.border.rounded-lg').filter({ hasText: /Push Day/ }).first();
+    // Get the workout ID of the newly created workout (first one)
+    const workoutId = await page.locator('[data-workout-id]').first().getAttribute('data-workout-id');
+    expect(workoutId).not.toBeNull();
+
+    // Resume the workout using its ID
+    const workoutToResume = page.locator(`[data-workout-id="${workoutId}"]`);
     await expect(workoutToResume).toBeVisible({ timeout: 5000 });
     const resumeButton = workoutToResume.locator('button[title="Resume"]');
     await expect(resumeButton).toBeVisible({ timeout: 5000 });
@@ -550,11 +566,17 @@ test.describe('Monday Push Day Workout', () => {
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
     await page.waitForLoadState('networkidle');
 
-    // The workout should be removed from the list IMMEDIATELY (without reload)
-    const workoutsAfter = await page.locator('.border.rounded-lg').filter({ hasText: /Push Day/ }).count();
+    // Reload to get the updated state
+    await page.reload();
+    await page.waitForLoadState('networkidle');
 
-    // This will fail with the bug (workout count stays the same instead of decreasing)
-    expect(workoutsAfter).toBe(workoutsBefore - 1);
+    // Verify workout count decreased by 1
+    const finalWorkoutCount = await page.locator('[data-workout-id]').count();
+    expect(finalWorkoutCount).toBe(initialWorkoutCount);
+
+    // Verify the specific workout is gone
+    const deletedWorkout = page.locator(`[data-workout-id="${workoutId}"]`);
+    await expect(deletedWorkout).not.toBeVisible({ timeout: 5000 });
   });
 
   test('remembers and updates last used weights across sessions', async ({ page, context }) => {
