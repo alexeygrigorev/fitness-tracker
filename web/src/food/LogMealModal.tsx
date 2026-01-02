@@ -457,14 +457,14 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
 
           {/* Selected template indicator */}
           {selectedTemplate && !editingMeal && (
-            <div className="flex items-center justify-between p-2 bg-blue-50 rounded-md">
-              <span className="text-sm text-blue-700">
+            <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+              <span className="text-sm text-blue-700 dark:text-blue-300">
                 Using template: <strong>{templates.find(t => t.id === selectedTemplate)?.name}</strong>
               </span>
               <button
                 type="button"
                 onClick={handleClearTemplate}
-                className="text-blue-600 hover:text-blue-800 text-sm"
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm"
               >
                 Change
               </button>
@@ -523,26 +523,26 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
               <div className="text-sm">
-                <span className="font-medium text-gray-700">Save as food item</span>
-                <p className="text-gray-500">Save this meal as a reusable food item in your database</p>
+                <span className="font-medium text-gray-700 dark:text-gray-300">Save as food item</span>
+                <p className="text-gray-500 dark:text-gray-400">Save this meal as a reusable food item in your database</p>
               </div>
             </label>
           )}
 
           <NutritionPreview />
 
-          <div className="flex justify-end gap-3 pt-4 border-t">
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || foods.length === 0}
-              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Saving...' : (editingMeal ? 'Update Meal' : (saveAsFoodItem ? 'Save & Log Meal' : 'Log Meal'))}
             </button>

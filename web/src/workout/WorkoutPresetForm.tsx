@@ -64,30 +64,30 @@ export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutP
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
         {preset ? 'Edit Workout Preset' : 'New Workout Preset'}
       </h3>
 
       {/* Name and Day Label */}
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Preset Name *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preset Name *</label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="e.g., Upper Body A, Push Day"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
             required
             autoFocus
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Day of Week</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day of Week</label>
           <select
             value={dayLabel}
             onChange={e => setDayLabel(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
           >
             {DAYS_OF_WEEK.map(day => (
               <option key={day} value={day}>{day || 'None'}</option>
@@ -98,11 +98,11 @@ export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutP
 
       {/* Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
         <select
           value={workoutType}
           onChange={e => setWorkoutType(e.target.value as WorkoutTag | '')}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
         >
           <option value="">None</option>
           {WORKOUT_TYPES.map(type => (
@@ -118,11 +118,11 @@ export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutP
       />
 
       {/* Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t">
+      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+          className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           Cancel
         </button>

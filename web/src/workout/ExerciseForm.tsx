@@ -113,16 +113,16 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
         {exercise ? 'Edit Exercise' : 'New Exercise'}
       </h3>
 
       {/* AI Auto-fill */}
       {!exercise && (
-        <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Auto-fill with AI
-            <span className="text-gray-400 font-normal"> (optional)</span>
+            <span className="text-gray-400 dark:text-gray-500 font-normal"> (optional)</span>
           </label>
           <div className="flex gap-2">
             <input
@@ -130,14 +130,14 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
               value={aiDescription}
               onChange={e => setAiDescription(e.target.value)}
               placeholder="e.g., Barbell Bench Press, Goblet Squat..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
               disabled={analyzing}
             />
             <button
               type="button"
               onClick={handleAIAutoFill}
               disabled={analyzing || !aiDescription.trim()}
-              className="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed"
             >
               {analyzing ? 'Analyzing...' : 'Auto-fill'}
             </button>

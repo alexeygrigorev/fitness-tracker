@@ -506,7 +506,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Complete one set
     const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
-    await expect(firstSetRow).toBeVisible();
+    await expect(firstSetRow).toBeVisible({ timeout: 5000 });
     await firstSetRow.click();
 
     await page.locator('input[placeholder="kg"]').nth(0).fill('60');
@@ -531,15 +531,20 @@ test.describe('Monday Push Day Workout', () => {
     const workoutsBefore = await page.locator('.border.rounded-lg').filter({ hasText: /Push Day/ }).count();
     expect(workoutsBefore).toBeGreaterThan(0);
 
-    // Resume the workout (click the resume/play button)
+    // Resume the workout (click the resume/play button) - wait for it to be clickable
     const workoutToResume = page.locator('.border.rounded-lg').filter({ hasText: /Push Day/ }).first();
-    await workoutToResume.locator('button[title="Resume"]').click();
+    await expect(workoutToResume).toBeVisible({ timeout: 5000 });
+    const resumeButton = workoutToResume.locator('button[title="Resume"]');
+    await expect(resumeButton).toBeVisible({ timeout: 5000 });
+    await resumeButton.click();
 
     // Wait for active workout mode
-    await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+    await expect(activeWorkout).toBeVisible({ timeout: 10000 });
 
-    // Delete the workout
-    await page.locator('button[title="Delete workout"]').click();
+    // Delete the workout - wait for delete button to be available
+    const deleteButton = page.locator('button[title="Delete workout"]');
+    await expect(deleteButton).toBeVisible({ timeout: 5000 });
+    await deleteButton.click();
 
     // Wait for active workout to disappear
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
