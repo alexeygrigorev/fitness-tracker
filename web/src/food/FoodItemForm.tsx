@@ -120,13 +120,13 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Line 1: Food Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Food Name *</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Food Name *</label>
         <input
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="e.g., Chicken Breast, Cola, Brown Rice"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
           required
           autoFocus
         />
@@ -134,70 +134,70 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
 
       {/* Lines 2-3: Nutrition per 100g */}
       <div>
-        <h4 className="text-sm font-medium text-gray-700 mb-2">Nutrition per 100g</h4>
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Nutrition per 100g</h4>
         <div className="grid grid-cols-2 gap-3">
           {/* Fats */}
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Total Fat (g)</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Total Fat (g)</label>
             <input
               type="text"
               inputMode="decimal"
               value={fat}
               onChange={e => setFat(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Saturated Fat (g)</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Saturated Fat (g)</label>
             <input
               type="text"
               inputMode="decimal"
               value={saturatedFat}
               onChange={e => setSaturatedFat(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           {/* Carbs */}
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Total Carbs (g)</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Total Carbs (g)</label>
             <input
               type="text"
               inputMode="decimal"
               value={carbs}
               onChange={e => setCarbs(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Sugars (g)</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Sugars (g)</label>
             <input
               type="text"
               inputMode="decimal"
               value={sugar}
               onChange={e => setSugar(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           {/* Fiber */}
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Fiber (g)</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Fiber (g)</label>
             <input
               type="text"
               inputMode="decimal"
               value={fiber}
               onChange={e => setFiber(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           {/* Protein */}
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Protein (g)</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Protein (g)</label>
             <input
               type="text"
               inputMode="decimal"
               value={protein}
               onChange={e => setProtein(parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
         </div>
@@ -205,7 +205,7 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
 
       {/* Line 4: Calories per 100g */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Calories (per 100g)</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Calories (per 100g)</label>
         <input
           type="text"
           inputMode="decimal"
@@ -214,17 +214,17 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
             setCalories(parseFloat(e.target.value) || 0);
             setCaloriesEdited(true);
           }}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
         />
         {!caloriesEdited && (
-          <p className="text-xs text-gray-500 mt-1">Auto-calculated from macros (4×protein + 4×carbs + 9×fat)</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Auto-calculated from macros (4×protein + 4×carbs + 9×fat)</p>
         )}
       </div>
 
       {/* Serving Size (always in grams) and Serving Type (description) */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Serving Size (g)</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Serving Size (g)</label>
           <input
             type="text"
             inputMode="decimal"
@@ -235,30 +235,30 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
               const parsed = parseFloat(val);
               setServingSize(!isNaN(parsed) ? parsed : 0);
             }}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Serving Description</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Serving Description</label>
           <input
             type="text"
             value={servingType}
             onChange={e => setServingType(e.target.value)}
             placeholder="e.g. 100g, 1 scoop, 2 slices, 4 pieces"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
           />
         </div>
       </div>
 
       {/* Metabolism Section */}
-      <div className="border-t pt-4">
+      <div className="border-t dark:border-gray-700 pt-4">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-medium text-gray-700">Metabolism</h4>
+          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200">Metabolism</h4>
           <button
             type="button"
             onClick={handleInfer}
             disabled={inferring}
-            className="px-3 py-1 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+            className="px-3 py-1 text-sm bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
           >
             {inferring ? (
               <>
@@ -280,22 +280,22 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Glycemic Index</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Glycemic Index</label>
             <input
               type="text"
               inputMode="decimal"
               placeholder="0-100"
               value={glycemicIndex ?? ''}
               onChange={e => setGlycemicIndex(e.target.value ? parseFloat(e.target.value) : undefined)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Absorption Speed</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Absorption Speed</label>
             <select
               value={absorptionSpeed}
               onChange={e => setAbsorptionSpeed(e.target.value as 'slow' | 'moderate' | 'fast')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="slow">Slow</option>
               <option value="moderate">Moderate</option>
@@ -303,33 +303,33 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
             </select>
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Insulin Response (0-100)</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Insulin Response (0-100)</label>
             <input
               type="text"
               inputMode="decimal"
               placeholder="0-100"
               value={insulinResponse ?? ''}
               onChange={e => setInsulinResponse(e.target.value ? parseFloat(e.target.value) : undefined)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Satiety Score (0-10)</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Satiety Score (0-10)</label>
             <input
               type="text"
               inputMode="decimal"
               placeholder="0-10"
               value={satietyScore ?? ''}
               onChange={e => setSatietyScore(e.target.value ? parseFloat(e.target.value) : undefined)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Protein Quality</label>
+            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Protein Quality</label>
             <select
               value={proteinQuality ?? ''}
               onChange={e => setProteinQuality(e.target.value ? parseInt(e.target.value) as 1 | 2 | 3 : undefined)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="">Not set</option>
               <option value="1">1 - Low (incomplete)</option>
@@ -344,7 +344,7 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+          className="px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           Cancel
         </button>

@@ -68,3 +68,9 @@ uv run python manage.py makemigrations
 uv run python manage.py migrate
 uv run python manage.py test
 ```
+
+
+## One-time tests and debug scripts
+
+
+One-time scripts and temporary files should be in .tmp. It's in .gitignore so we won't accidentally commit it to git.

@@ -285,12 +285,12 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
       <div
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">{editingMeal ? 'Edit Meal' : 'Log Meal'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{editingMeal ? 'Edit Meal' : 'Log Meal'}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -305,12 +305,12 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
               {templates.length > 0 && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">Quick add from template</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Quick add from template</label>
                     {selectedTemplate && (
                       <button
                         type="button"
                         onClick={handleClearTemplate}
-                        className="text-xs text-blue-600 hover:text-blue-700"
+                        className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         Clear selection
                       </button>
@@ -322,10 +322,10 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
                         key={t.id}
                         type="button"
                         onClick={() => setSelectedTemplate(t.id)}
-                        className={"px-3 py-2 text-sm rounded-md border transition-colors " + (selectedTemplate === t.id ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:bg-gray-50 text-gray-700')}
+                        className={"px-3 py-2 text-sm rounded-md border transition-colors " + (selectedTemplate === t.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300')}
                       >
                         <div className="font-medium">{t.name}</div>
-                        <div className="text-xs text-gray-500">{t.foods.length} items</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{t.foods.length} items</div>
                       </button>
                     ))}
                   </div>
@@ -335,7 +335,7 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
               {/* AI Quick Add */}
               <div>
                 {showAiSection ? (
-                  <div className="space-y-3 p-3 bg-purple-50 rounded-md border border-purple-200">
+                  <div className="space-y-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-md border border-purple-200 dark:border-purple-700">
                     {/* Text input with dictation */}
                     <div className="relative">
                       <textarea
@@ -343,7 +343,7 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
                         onChange={e => setAiDescription(e.target.value)}
                         placeholder="e.g., 'chicken breast with rice and broccoli for lunch' or '2 eggs with bread for breakfast'"
                         rows={2}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-white dark:bg-gray-700 dark:text-gray-100"
                       />
                       {/* Dictation button */}
                       {hasSpeechSupport && (
@@ -429,7 +429,7 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
                       <button
                         type="button"
                         onClick={() => setShowAiSection(false)}
-                        className="px-3 py-2 text-sm text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                        className="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                       >
                         Cancel
                       </button>
@@ -439,7 +439,7 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
                   <button
                     type="button"
                     onClick={() => setShowAiSection(true)}
-                    className="w-full px-3 py-2 text-sm text-purple-700 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors flex items-center justify-center gap-2"
+                    className="w-full px-3 py-2 text-sm text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-md hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors flex items-center justify-center gap-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -449,8 +449,8 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
                 )}
               </div>
 
-              <div className="border-t border-gray-200 pt-3">
-                <p className="text-xs text-gray-500 text-center">Or manually fill in the form below</p>
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Or manually fill in the form below</p>
               </div>
             </div>
           )}
@@ -472,22 +472,22 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Meal Name *</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meal Name *</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Meal Type</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meal Type</label>
             <select
               value={mealType}
               onChange={e => setMealType(e.target.value as MealCategory)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="breakfast">Breakfast</option>
               <option value="lunch">Lunch</option>
@@ -499,23 +499,23 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Foods</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foods</label>
             <FoodSelector selectedFoods={foods} onChange={setFoods} />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional)</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
 
           {/* Save as Food Item checkbox */}
           {!editingMeal && foods.length > 0 && (
-            <label className="flex items-center gap-2 p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+            <label className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-md cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <input
                 type="checkbox"
                 checked={saveAsFoodItem}
