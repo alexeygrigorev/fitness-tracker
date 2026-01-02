@@ -215,6 +215,11 @@ export default function ExercisesPage() {
     setResumingWorkout(undefined);
   };
 
+  const handleDeleteActiveWorkout = (workoutId: string) => {
+    // Remove the deleted workout from the list
+    setWorkouts(prev => prev.filter(w => w.id !== workoutId));
+  };
+
   const handleEditWorkout = (workout: WorkoutSession) => {
     // Resume the workout - try to find the original preset by name first
     // This ensures we get ALL the sets from the original preset, not just completed ones
@@ -417,6 +422,7 @@ export default function ExercisesPage() {
                 preset={activePreset}
                 onComplete={handleWorkoutComplete}
                 onCancel={cancelWorkout}
+                onDelete={handleDeleteActiveWorkout}
                 resumingWorkout={resumingWorkout}
               />
             </div>
@@ -568,7 +574,7 @@ export default function ExercisesPage() {
           {/* Logged Workouts */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-              Workouts for {formatDate(selectedDate).toLowerCase()}
+              Workouts {formatDate(selectedDate).toLowerCase()}
             </h3>
             {workoutsForDate.length === 0 ? (
               <div className="text-center py-8 text-gray-500 dark:text-gray-400">

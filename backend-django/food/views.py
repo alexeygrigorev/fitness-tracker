@@ -19,9 +19,11 @@ class FoodItemViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         # User can see their own foods and canonical foods
-        return FoodItem.objects.filter(
-            user=self.request.user
-        ) | FoodItem.objects.filter(source='canonical')
+        if self.request.user.is_authenticated:
+            return FoodItem.objects.filter(
+                user=self.request.user
+            ) | FoodItem.objects.filter(source='canonical')
+        return FoodItem.objects.filter(source='canonical')
 
     def get_permissions(self):
         if self.action in ["list", "retrieve"]:

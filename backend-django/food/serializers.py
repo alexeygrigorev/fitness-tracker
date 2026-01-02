@@ -2,14 +2,35 @@ from rest_framework import serializers
 from .models import FoodItem, Meal, MealFoodItem, MealTemplate, MealTemplateFoodItem
 
 
+class FloatWithoutTrailingZerosField(serializers.FloatField):
+    """Float field that returns int for whole numbers to avoid .0 in JSON"""
+
+    def to_representation(self, value):
+        if value is None:
+            return None
+        # Convert to float first
+        float_value = float(value)
+        # If it's a whole number, return as int
+        if float_value == int(float_value):
+            return int(float_value)
+        return float_value
+
+
 class FoodItemSerializer(serializers.ModelSerializer):
     # Map snake_case model fields to camelCase for frontend
-    servingSize = serializers.DecimalField(source='serving_size', max_digits=10, decimal_places=2)
+    # Use custom field to avoid trailing zeros (e.g., 1.00 -> 1, 1.5 -> 1.5)
+    servingSize = FloatWithoutTrailingZerosField(source='serving_size')
     servingType = serializers.CharField(source='serving_unit')
-    glycemicIndex = serializers.IntegerField(source='glycemic_index', required=False)
-    absorptionSpeed = serializers.CharField(source='absorption_speed', required=False)
-    satietyScore = serializers.IntegerField(source='satiety_score', required=False)
-    proteinQuality = serializers.IntegerField(source='protein_quality', required=False)
+    calories = FloatWithoutTrailingZerosField()
+    protein = FloatWithoutTrailingZerosField()
+    carbs = FloatWithoutTrailingZerosField()
+    fat = FloatWithoutTrailingZerosField()
+    fiber = FloatWithoutTrailingZerosField(required=False, allow_null=True)
+    sugar = FloatWithoutTrailingZerosField(required=False, allow_null=True)
+    glycemicIndex = serializers.IntegerField(source='glycemic_index', required=False, allow_null=True)
+    absorptionSpeed = serializers.CharField(source='absorption_speed', required=False, allow_null=True)
+    satietyScore = serializers.IntegerField(source='satiety_score', required=False, allow_null=True)
+    proteinQuality = serializers.IntegerField(source='protein_quality', required=False, allow_null=True)
 
     class Meta:
         model = FoodItem
@@ -27,6 +48,7 @@ class FoodItemSerializer(serializers.ModelSerializer):
 class MealFoodItemSerializer(serializers.ModelSerializer):
     # Frontend expects foodId (string), not nested food object
     foodId = serializers.IntegerField(source='food_id')
+    grams = FloatWithoutTrailingZerosField()
 
     class Meta:
         model = MealFoodItem
@@ -49,6 +71,7 @@ class MealSerializer(serializers.ModelSerializer):
 class MealTemplateFoodItemSerializer(serializers.ModelSerializer):
     # Frontend expects foodId (string), not nested food object
     foodId = serializers.IntegerField(source='food_id')
+    grams = FloatWithoutTrailingZerosField()
 
     class Meta:
         model = MealTemplateFoodItem

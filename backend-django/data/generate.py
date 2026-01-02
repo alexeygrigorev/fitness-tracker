@@ -530,47 +530,48 @@ def get_metabolism_attrs(name, category, protein, carbs, fat, fiber, sugar, glyc
 
 food_items_data = [
     # Proteins (name, category, serving_size, serving_unit, calories, protein, carbs, fat, fiber, sugar, glycemic_index)
-    ("Chicken Breast", "protein", "100", "g", "165", "31", "0", "3.6", "0", "0", None),
-    ("Salmon Fillet", "protein", "100", "g", "208", "20", "0", "13", "0", "0", None),
-    ("Eggs", "protein", "100", "g", "155", "13", "1.1", "11", "0", "0", None),
-    ("Greek Yogurt", "protein", "100", "g", "59", "10", "3.6", "0.4", "0", "3.6", None),
-    ("Cottage Cheese", "protein", "100", "g", "98", "11", "3.4", "4.3", "0", "1.2", None),
-    ("Lean Beef", "protein", "100", "g", "250", "26", "0", "15", "0", "0", None),
-    ("Tuna", "protein", "100", "g", "116", "26", "0", "1", "0", "0", None),
-    ("Whey Protein", "protein", "30", "g", "120", "24", "3", "1", "0", "0", None),
+    # Note: All nutrition values are PER 100g/100ml. serving_size is the typical serving in grams/ml.
+    ("Chicken Breast", "protein", "120", "120g cooked (1 palm-sized portion)", "165", "31", "0", "3.6", "0", "0", None),
+    ("Salmon Fillet", "protein", "150", "150g fillet", "208", "20", "0", "13", "0", "0", None),
+    ("Eggs", "protein", "50", "1 large egg (50g)", "155", "13", "1.1", "11", "0", "0", None),
+    ("Greek Yogurt", "protein", "170", "170g container (1 cup)", "59", "10", "3.6", "0.4", "0", "3.6", None),
+    ("Cottage Cheese", "protein", "100", "100g (1/2 cup)", "98", "11", "3.4", "4.3", "0", "1.2", None),
+    ("Lean Beef", "protein", "100", "100g cooked (palm-sized)", "250", "26", "0", "15", "0", "0", None),
+    ("Tuna", "protein", "100", "100g canned (1/2 can)", "116", "26", "0", "1", "0", "0", None),
+    ("Whey Protein", "protein", "30", "1 scoop (30g)", "120", "24", "3", "1", "0", "0", None),
 
     # Carbs
-    ("Brown Rice", "carb", "100", "g", "111", "2.6", "23", "0.9", "1.8", "0.3", None),
-    ("Oats", "carb", "100", "g", "389", "16.9", "66", "6.9", "10.6", "0.8", "54"),
-    ("Sweet Potato", "carb", "100", "g", "86", "1.6", "20", "0.1", "3", "4.2", "45"),
-    ("Banana", "carb", "100", "g", "89", "1.1", "23", "0.3", "2.6", "12", "51"),
-    ("White Rice", "carb", "100", "g", "130", "2.7", "28", "0.3", "0.4", "0.1", "73"),
-    ("Pasta", "carb", "100", "g", "131", "5", "25", "1.1", "1.5", "0.5", "45"),
-    ("Quinoa", "carb", "100", "g", "120", "4.4", "21", "1.9", "2.8", "0.9", "53"),
-    ("Whole Wheat Bread", "carb", "100", "g", "247", "13", "41", "3.4", "6", "5", "71"),
+    ("Brown Rice", "carb", "150", "150g cooked (1 cup)", "111", "2.6", "23", "0.9", "1.8", "0.3", None),
+    ("Oats", "carb", "50", "50g dry (5 tbsp)", "389", "16.9", "66", "6.9", "10.6", "0.8", "54"),
+    ("Sweet Potato", "carb", "150", "150g cooked (1 medium)", "86", "1.6", "20", "0.1", "3", "4.2", "45"),
+    ("Banana", "carb", "120", "1 medium (120g)", "89", "1.1", "23", "0.3", "2.6", "12", "51"),
+    ("White Rice", "carb", "150", "150g cooked (1 cup)", "130", "2.7", "28", "0.3", "0.4", "0.1", "73"),
+    ("Pasta", "carb", "100", "100g cooked (1 cup)", "131", "5", "25", "1.1", "1.5", "0.5", "45"),
+    ("Quinoa", "carb", "150", "150g cooked (1 cup)", "120", "4.4", "21", "1.9", "2.8", "0.9", "53"),
+    ("Whole Wheat Bread", "carb", "30", "1 slice (30g)", "247", "13", "41", "3.4", "6", "5", "71"),
 
     # Fats
-    ("Almonds", "fat", "100", "g", "579", "21", "22", "50", "12.5", "3.9", None),
-    ("Peanut Butter", "fat", "100", "g", "588", "25", "20", "50", "6", "9", None),
-    ("Avocado", "fat", "100", "g", "160", "2", "9", "15", "7", "0.7", None),
-    ("Olive Oil", "fat", "100", "g", "884", "0", "0", "100", "0", "0", None),
-    ("Cheese", "fat", "100", "g", "402", "25", "1.3", "33", "0", "1.3", None),
-    ("Walnuts", "fat", "100", "g", "654", "15", "14", "65", "6.7", "2.6", "15"),
+    ("Almonds", "fat", "28", "28g (small handful)", "579", "21", "22", "50", "12.5", "3.9", None),
+    ("Peanut Butter", "fat", "32", "32g (2 tbsp)", "588", "25", "20", "50", "6", "9", None),
+    ("Avocado", "fat", "150", "150g (1 whole)", "160", "2", "9", "15", "7", "0.7", None),
+    ("Olive Oil", "fat", "15", "15ml (1 tbsp)", "884", "0", "0", "100", "0", "0", None),
+    ("Cheese", "fat", "28", "28g (1 oz cube)", "402", "25", "1.3", "33", "0", "1.3", None),
+    ("Walnuts", "fat", "28", "28g (small handful)", "654", "15", "14", "65", "6.7", "2.6", "15"),
 
     # Mixed
-    ("Hummus", "mixed", "100", "g", "166", "8", "14", "9.6", "6", "0.3", None),
-    ("Lentils", "mixed", "100", "g", "116", "9", "20", "0.4", "7.9", "1.8", None),
-    ("Black Beans", "mixed", "100", "g", "132", "8.9", "20", "0.5", "8.7", "1.1", None),
-    ("Chickpeas", "mixed", "100", "g", "164", "8.9", "27", "2.6", "7.6", "4.8", None),
-    ("Edamame", "mixed", "100", "g", "121", "12", "9", "5", "5", "2.2", "50"),
+    ("Hummus", "mixed", "100", "100g (1/3 cup)", "166", "8", "14", "9.6", "6", "0.3", None),
+    ("Lentils", "mixed", "100", "100g cooked (1/2 cup)", "116", "9", "20", "0.4", "7.9", "1.8", None),
+    ("Black Beans", "mixed", "100", "100g cooked (1/2 cup)", "132", "8.9", "20", "0.5", "8.7", "1.1", None),
+    ("Chickpeas", "mixed", "100", "100g cooked (1/2 cup)", "164", "8.9", "27", "2.6", "7.6", "4.8", None),
+    ("Edamame", "mixed", "100", "100g (1/2 cup)", "121", "12", "9", "5", "5", "2.2", "50"),
 
     # Beverages
-    ("Water", "beverage", "100", "ml", "0", "0", "0", "0", "0", "0", None),
-    ("Black Coffee", "beverage", "100", "ml", "2", "0.1", "0", "0", "0", "0", None),
-    ("Green Tea", "beverage", "100", "ml", "1", "0", "0", "0", "0", "0", None),
-    ("Orange Juice", "beverage", "100", "ml", "45", "0.7", "10", "0.2", "0.2", "8", "50"),
-    ("Milk (Whole)", "beverage", "100", "ml", "61", "3.2", "4.8", "3.3", "0", "4.8", None),
-    ("Protein Shake", "beverage", "300", "ml", "150", "25", "5", "2", "0", "2", None),
+    ("Water", "beverage", "250", "250ml glass", "0", "0", "0", "0", "0", "0", None),
+    ("Black Coffee", "beverage", "250", "250ml cup", "2", "0.1", "0", "0", "0", "0", None),
+    ("Green Tea", "beverage", "250", "250ml cup", "1", "0", "0", "0", "0", "0", None),
+    ("Orange Juice", "beverage", "250", "250ml glass", "45", "0.7", "10", "0.2", "0.2", "8", "50"),
+    ("Milk (Whole)", "beverage", "250", "250ml glass", "61", "3.2", "4.8", "3.3", "0", "4.8", None),
+    ("Protein Shake", "beverage", "300", "300ml shaker", "120", "25", "5", "2", "0", "2", None),
 ]
 
 for (name, category, serving_size, serving_unit, calories, protein,
@@ -601,8 +602,10 @@ for (name, category, serving_size, serving_unit, calories, protein,
             "protein_quality": metabolism['protein_quality'],
         }
     )
-    # Update existing food items with metabolism data
+    # Update existing food items with all data including serving size
     if not created:
+        food.serving_size = Decimal(serving_size)
+        food.serving_unit = serving_unit
         food.glycemic_index = metabolism['glycemic_index']
         food.absorption_speed = metabolism['absorption_speed']
         food.insulin_response = metabolism['insulin_response']

@@ -13,6 +13,7 @@ interface ActiveWorkoutProps {
   preset: WorkoutPreset;
   onComplete: (workout: WorkoutSession) => void;
   onCancel: () => void;
+  onDelete?: (workoutId: string) => void; // Called when a workout is deleted
   resumingWorkout?: WorkoutSession; // If provided, resume this workout instead of starting fresh
 }
 
@@ -33,7 +34,7 @@ interface StoredWorkoutState {
   lastUsed: Record<string, LastUsedData>;
 }
 
-export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWorkout }: ActiveWorkoutProps) {
+export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, resumingWorkout }: ActiveWorkoutProps) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [setRows, setSetRows] = useState<SetItem[]>([]);
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
@@ -726,19 +727,16 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
   const calculateCompletedSets = () => {
     return setRows.reduce((count, item) => {
       if (item.setType === 'dropdown') {
-        return count + (item as DropdownSetItem).completedSubSets;
+        // Count dropdown as 1 if all sub-sets are completed, otherwise 0
+        return count + ((item as DropdownSetItem).allSubSetsCompleted ? 1 : 0);
       }
       return count + (item.completed ? 1 : 0);
     }, 0);
   };
 
   const calculateTotalSets = () => {
-    return setRows.reduce((count, item) => {
-      if (item.setType === 'dropdown') {
-        return count + (item as DropdownSetItem).totalSubSets;
-      }
-      return count + 1;
-    }, 0);
+    // Count each row as 1 set (dropdown rows count as 1, not by sub-sets)
+    return setRows.length;
   };
 
   const handleFinishWorkout = async () => {
@@ -807,9 +805,14 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, resumingWo
 
   const handleDeleteWorkout = () => {
     if (confirm('Cancel and delete this workout? All progress will be lost.')) {
-      // If we have an auto-saved session, delete it
+      // If we have an auto-saved session, delete it and notify parent
       if (workoutSessionId) {
-        workoutsApi.delete(workoutSessionId).catch(console.error);
+        workoutsApi.delete(workoutSessionId)
+          .then(() => {
+            // Notify parent to remove from list
+            onDelete?.(workoutSessionId);
+          })
+          .catch(console.error);
       }
       clearStoredState();
       onCancel();
