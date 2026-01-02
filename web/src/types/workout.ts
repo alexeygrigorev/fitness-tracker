@@ -6,6 +6,7 @@ export interface WorkoutSet {
   setType: 'normal' | 'warmup' | 'bodyweight' | 'dropdown';
   weight?: number;
   reps: number;
+  bodyweight?: number;  // User's bodyweight at time of completing exercise
   loggedAt?: Date;
 }
 

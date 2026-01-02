@@ -330,3 +330,78 @@ class TestWorkoutFlow(TestCase):
         # Minimum: ~10 minutes, Maximum: ~45 minutes
         self.assertGreater(workout_duration, 600)  # At least 10 minutes
         self.assertLess(workout_duration, 3600)  # Less than 1 hour
+
+    def test_workout_flow_bodyweight_tracking(self):
+        """Test tracking user's bodyweight when completing bodyweight exercises."""
+        # Start workout
+        response = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset.id})
+        )
+        session_id = response.data["session"]["id"]
+        sets = response.data["sets"]
+
+        # Get the first dips set (bodyweight exercise)
+        dips_sets = [s for s in sets if s["exercise_id"] == self.dips.id]
+        self.assertGreater(len(dips_sets), 0, "Should have at least one dips set")
+        
+        first_dips_set_id = dips_sets[0]["id"]
+
+        # Update the set with bodyweight and reps before completing
+        response = self.client.patch(
+            reverse("workoutset-detail", kwargs={"pk": first_dips_set_id}),
+            {"bodyweight": "180.5", "reps": 12},
+            format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(float(response.data["bodyweight"]), 180.5)
+        self.assertEqual(response.data["reps"], 12)
+
+        # Mark as complete
+        response = self.client.post(
+            reverse("workoutset-complete", kwargs={"pk": first_dips_set_id})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.data["completed_at"])
+        self.assertEqual(float(response.data["bodyweight"]), 180.5)
+        self.assertEqual(response.data["reps"], 12)
+
+        # Verify the bodyweight is stored in the database
+        workout_set = WorkoutSet.objects.get(id=first_dips_set_id)
+        self.assertEqual(float(workout_set.bodyweight), 180.5)
+        self.assertEqual(workout_set.reps, 12)
+
+    def test_workout_session_create_with_bodyweight(self):
+        """Test creating a workout session with bodyweight data in sets."""
+        from datetime import datetime
+        from django.utils import timezone
+
+        session_data = {
+            "name": "Test Bodyweight Session",
+            "startedAt": timezone.now().isoformat(),
+            "sets": [
+                {
+                    "exerciseId": self.dips.id,
+                    "setType": "bodyweight",
+                    "reps": 15,
+                    "bodyweight": 175.0
+                }
+            ]
+        }
+
+        response = self.client.post(
+            reverse("workoutsession-list"),
+            session_data,
+            format="json"
+        )
+        self.assertEqual(response.status_code, 201)
+        
+        # Verify the session and set were created
+        session_id = response.data["id"]
+        session = WorkoutSession.objects.get(id=session_id)
+        
+        # Get the created set
+        workout_set = session.sets.first()
+        self.assertIsNotNone(workout_set)
+        self.assertEqual(workout_set.exercise.id, self.dips.id)
+        self.assertEqual(workout_set.reps, 15)
+        self.assertEqual(float(workout_set.bodyweight), 175.0)
