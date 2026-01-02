@@ -37,6 +37,7 @@ def model_to_dict(instance):
                 'setType': s.set_type,
                 'weight': float(s.weight) if s.weight else None,
                 'reps': s.reps,
+                'bodyweight': float(s.bodyweight) if s.bodyweight else None,
                 'set_order': s.set_order,
                 'loggedAt': s.completed_at.isoformat() if s.completed_at else None,
             }
@@ -168,6 +169,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
                     'set_type': set_data.get('setType', 'normal'),
                     'weight': set_data.get('weight'),
                     'reps': set_data.get('reps'),
+                    'bodyweight': set_data.get('bodyweight'),
                     'completed_at': set_data.get('loggedAt'),
                 }
                 # Remove None values to let defaults apply
@@ -216,6 +218,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
                     'set_type': set_data.get('setType', 'normal'),  # frontend sends setType
                     'weight': set_data.get('weight'),
                     'reps': set_data.get('reps'),
+                    'bodyweight': set_data.get('bodyweight'),
                     'completed_at': set_data.get('loggedAt'),  # frontend sends loggedAt
                 }
                 # Remove None values to let defaults apply

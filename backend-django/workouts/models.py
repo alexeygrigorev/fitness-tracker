@@ -206,6 +206,7 @@ class WorkoutSet(models.Model):
     set_type = models.CharField(max_length=20, choices=SET_TYPES, default='normal')
     weight = models.DecimalField(null=True, blank=True, max_digits=6, decimal_places=2)
     reps = models.IntegerField(null=True, blank=True)
+    bodyweight = models.DecimalField(null=True, blank=True, max_digits=6, decimal_places=2, help_text="User's bodyweight at the time of completing the exercise (for bodyweight exercises)")
     completed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
