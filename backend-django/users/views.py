@@ -2,8 +2,8 @@ from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
-from drf_spectacular.utils import extend_schema
-from .models import User
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from .models import User, ExerciseSettings
 from .serializers import (
     UserRegistrationRequestSerializer,
     UserRegistrationResponseSerializer,
@@ -75,3 +75,53 @@ def update_profile(request):
         request.user.dark_mode = bool(dark_mode)
         request.user.save()
     return Response({'id': request.user.id, 'username': request.user.username, 'email': request.user.email, 'dark_mode': request.user.dark_mode})
+
+
+@extend_schema(
+    request={
+        'type': 'object',
+        'properties': {
+            'weight': {'type': 'number', 'nullable': True},
+            'reps': {'type': 'integer'},
+            'subSets': {'type': 'array', 'items': {'type': 'object'}}
+        }
+    },
+    responses={200: {}},
+    description="Update or create exercise settings for a specific exercise"
+)
+@api_view(['POST', 'PATCH'])
+def exercise_settings_upsert(request, exercise_id):
+    """Update or create exercise settings for a specific exercise."""
+    from workouts.models import Exercise
+
+    weight = request.data.get('weight')
+    reps = request.data.get('reps', 10)
+    sub_sets = request.data.get('subSets')
+
+    # Get the Exercise object
+    try:
+        exercise = Exercise.objects.get(id=exercise_id)
+    except Exercise.DoesNotExist:
+        return Response({'error': 'Exercise not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    setting, created = ExerciseSettings.objects.get_or_create(
+        user=request.user,
+        exercise=exercise,
+        defaults={'weight': weight, 'reps': reps, 'sub_sets': sub_sets or []}
+    )
+
+    if not created:
+        if weight is not None:
+            setting.weight = weight
+        setting.reps = reps
+        if sub_sets is not None:
+            setting.sub_sets = sub_sets
+        setting.save()
+
+    result = {'reps': setting.reps}
+    if setting.weight is not None:
+        result['weight'] = setting.weight
+    if setting.sub_sets:
+        result['subSets'] = setting.sub_sets
+
+    return Response(result)

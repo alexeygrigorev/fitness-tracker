@@ -59,6 +59,13 @@ export interface WorkoutPresetExercise {
 
 export type WorkoutTag = 'strength' | 'cardio' | 'mixed';
 
+// Last used weights for an exercise (from ExerciseSettings)
+export interface LastUsedWeights {
+  weight?: number;
+  reps: number;
+  subSets?: Array<{ weight: number; reps: number }>;
+}
+
 export interface WorkoutPreset {
   id: string;
   name: string; // e.g., "Upper Body Day 1"
@@ -66,4 +73,5 @@ export interface WorkoutPreset {
   exercises: WorkoutPresetExercise[]; // Ordered list of planned exercises
   tags?: WorkoutTag[];
   status?: 'active' | 'archived';
+  lastUsedWeights?: Record<string, LastUsedWeights>; // exercise_id -> last used weights/reps
 }

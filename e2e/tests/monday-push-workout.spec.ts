@@ -532,4 +532,131 @@ test.describe('Monday Push Day Workout', () => {
     // This will fail with the bug (workout count stays the same instead of decreasing)
     expect(workoutsAfter).toBe(workoutsBefore - 1);
   });
+
+  test('remembers and updates last used weights across sessions', async ({ page, context }) => {
+    // Generate a random starting weight between 20 and 30
+    const startingWeight = Math.floor(Math.random() * 11) + 20; // 20-30
+    const week1Reps = 6;
+    const week2Reps = 8;
+    const weightIncrement = 2;
+
+    // Set the date to Monday of week 1
+    const mondayDate = new Date('2025-01-06T09:00:00');
+    await page.clock.install({ time: mondayDate.getTime() });
+
+    await login(page);
+    await page.goto('/workouts');
+    await page.waitForLoadState('networkidle');
+
+    // Use the "Test Last Used Weights" preset which has:
+    // - Overhead Press (normal, 3 sets)
+    // - Dips (bodyweight, 3 sets)
+    // - Bench Press (dropdown, 4 sets with 2 dropdowns each)
+    const testPreset = page.getByRole('button', { name: /Test Last Used Weights.*Monday/ });
+    await testPreset.click();
+
+    // Wait for active workout mode
+    const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
+    await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Click "Show more" to reveal all exercises (tests this functionality)
+    const showMoreButton = activeWorkout.getByText(/Show \d+ more/);
+    const showMoreCount = await showMoreButton.count();
+    if (showMoreCount > 0) {
+      await showMoreButton.click();
+    }
+
+    // WEEK 1: Log an exercise with the random weight
+    // Target "Overhead Press Set 1" which is a normal set (not dropdown, not bodyweight)
+    const exerciseRow = activeWorkout.locator('.border.rounded-lg').filter({ hasText: /Overhead Press.*Set 1/ });
+    await expect(exerciseRow).toBeVisible({ timeout: 5000 });
+    await exerciseRow.click();
+
+    await page.locator('input[placeholder="kg"]').first().fill(String(startingWeight));
+    await page.locator('input[placeholder="reps"]').first().fill(String(week1Reps));
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(exerciseRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+
+    // Finish week 1 workout
+    await page.getByRole('button', { name: /Finish Workout/ }).click();
+    await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
+    await page.waitForLoadState('networkidle');
+
+    // Simulate "week later" - clear all storage
+    await context.clearCookies();
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => sessionStorage.clear());
+
+    // WEEK 2: Login again
+    await page.goto('/login');
+    await page.getByPlaceholder('Enter your username').fill('test');
+    await page.getByPlaceholder('Enter your password').fill('test');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.waitForURL(/^(?!.*\/login).*$/, { timeout: 10000 });
+
+    await page.goto('/workouts');
+    await page.waitForLoadState('networkidle');
+
+    // Start the same workout
+    await testPreset.click();
+    await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Verify the system remembers the previous week's weight
+    const exerciseRow2 = activeWorkout.locator('.border.rounded-lg').filter({ hasText: /Overhead Press.*Set 1/ });
+    await expect(exerciseRow2).toBeVisible({ timeout: 5000 });
+    await exerciseRow2.click();
+
+    const week1RememberedWeight = await page.locator('input[placeholder="kg"]').first().inputValue();
+    const week1RememberedReps = await page.locator('input[placeholder="reps"]').first().inputValue();
+
+    // Should remember the exact weight and reps from week 1
+    expect(week1RememberedWeight).toBe(String(startingWeight));
+    expect(week1RememberedReps).toBe(String(week1Reps));
+
+    // Now log with increased weight (progressive overload!)
+    const week2Weight = startingWeight + weightIncrement;
+    await page.locator('input[placeholder="kg"]').first().fill(String(week2Weight));
+    await page.locator('input[placeholder="reps"]').first().fill(String(week2Reps));
+    await page.getByRole('button', { name: 'Save' }).click();
+    await expect(exerciseRow2.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+
+    // Finish week 2 workout
+    await page.getByRole('button', { name: /Finish Workout/ }).click();
+    await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
+    await page.waitForLoadState('networkidle');
+
+    // Simulate another week - clear all storage
+    await context.clearCookies();
+    await page.evaluate(() => localStorage.clear());
+    await page.evaluate(() => sessionStorage.clear());
+
+    // WEEK 3: Login again
+    await page.goto('/login');
+    await page.getByPlaceholder('Enter your username').fill('test');
+    await page.getByPlaceholder('Enter your password').fill('test');
+    await page.getByRole('button', { name: 'Sign in' }).click();
+    await page.waitForURL(/^(?!.*\/login).*$/, { timeout: 10000 });
+
+    await page.goto('/workouts');
+    await page.waitForLoadState('networkidle');
+
+    // Start the same workout
+    await testPreset.click();
+    await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Verify the system remembers the INCREASED weight from week 2
+    const exerciseRow3 = activeWorkout.locator('.border.rounded-lg').filter({ hasText: /Overhead Press.*Set 1/ });
+    await expect(exerciseRow3).toBeVisible({ timeout: 5000 });
+    await exerciseRow3.click();
+
+    const week2RememberedWeight = await page.locator('input[placeholder="kg"]').first().inputValue();
+    const week2RememberedReps = await page.locator('input[placeholder="reps"]').first().inputValue();
+
+    // Should remember the INCREASED weight from week 2, not the original week 1 weight
+    expect(week2RememberedWeight).toBe(String(week2Weight)); // startingWeight + 2
+    expect(week2RememberedReps).toBe(String(week2Reps));
+
+    // Verify it's NOT the old weight anymore (progressive overload was saved)
+    expect(week2RememberedWeight).not.toBe(String(startingWeight));
+  });
 });

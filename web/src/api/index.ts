@@ -619,6 +619,18 @@ export const aiMealApi = {
   analyzeMeal: analyzeMealWithAI
 };
 
+// Last Used Weights API (backend for cross-device sync)
+export const lastUsedWeightsApi = {
+  set: async (exerciseId: string, data: { weight?: number; reps: number; subSets?: Array<{ weight: number; reps: number }> }) => {
+    const response = await fetch(`${API_BASE}/api/auth/exercise-settings/${exerciseId}/`, {
+      method: 'POST',
+      headers: await getHeaders(),
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+};
+
 // Daily Summary (not implemented in backend yet)
 export const dailySummaryApi = {
   getSummary: async (date: Date): Promise<DailySummary> => ({

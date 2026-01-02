@@ -107,10 +107,49 @@ class WorkoutPresetSerializer(serializers.ModelSerializer):
     user_id = serializers.ReadOnlyField()
     dayLabel = serializers.CharField(source='day_label', required=False, allow_blank=True, allow_null=True)
     status = serializers.CharField(read_only=True)
+    lastUsedWeights = serializers.SerializerMethodField()
 
     class Meta:
         model = WorkoutPreset
-        fields = ['id', 'user_id', 'user', 'name', 'notes', 'status', 'dayLabel', 'tags', 'is_public', 'created_at', 'updated_at', 'exercises']
+        fields = ['id', 'user_id', 'user', 'name', 'notes', 'status', 'dayLabel', 'tags', 'is_public', 'created_at', 'updated_at', 'exercises', 'lastUsedWeights']
+
+    def get_lastUsedWeights(self, obj):
+        """Get last used weights for exercises in this preset."""
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return {}
+
+        from users.models import ExerciseSettings
+
+        # Get all exercise IDs in this preset
+        exercise_ids = []
+        for ex in obj.exercises.all():
+            if ex.exercise:
+                exercise_ids.append(ex.exercise_id)
+            # Also include superset exercises
+            for sup_ex in ex.superset_exercises.all():
+                if sup_ex.exercise:
+                    exercise_ids.append(sup_ex.exercise_id)
+
+        if not exercise_ids:
+            return {}
+
+        # Get last used settings for these exercises
+        settings = ExerciseSettings.objects.filter(
+            user=request.user,
+            exercise_id__in=exercise_ids
+        ).select_related('exercise')
+
+        result = {}
+        for setting in settings:
+            data = {'reps': setting.reps}
+            if setting.weight is not None:
+                data['weight'] = setting.weight
+            if setting.sub_sets:
+                data['subSets'] = setting.sub_sets
+            result[str(setting.exercise_id)] = data
+
+        return result
 
     def update(self, instance, validated_data):
         """Handle updating nested exercises."""

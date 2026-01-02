@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { workoutsApi, exercisesApi, activeWorkoutStateApi } from '../api';
+import { workoutsApi, exercisesApi, activeWorkoutStateApi, lastUsedWeightsApi } from '../api';
 import { ExercisePicker } from './ExerciseSelector';
 import SetRow, { type SetForm } from '../components/SetRow';
 import { createSetItem, WarmupSetItem, NormalSetItem, BodyweightSetItem, DropdownSetItem } from './setItems';
@@ -58,6 +58,17 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
   useEffect(() => {
     exercisesApi.getAll().then(setExercises);
   }, []);
+
+  // Load last used weights from preset (included in preset response from backend)
+  useEffect(() => {
+    // Skip if we're restoring an active session (which already has lastUsed data)
+    if (isRestored) return;
+
+    // Use lastUsedWeights from preset if available
+    if (preset && 'lastUsedWeights' in preset && preset.lastUsedWeights) {
+      setLastUsed(preset.lastUsedWeights as Record<string, LastUsedData>);
+    }
+  }, [preset, isRestored]);
 
   // Filter exercises based on search and category
   useEffect(() => {
@@ -627,6 +638,9 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
         ...prevLast,
         [item.exerciseId]: lastUsedData
       }));
+
+      // Also save to backend for cross-device sync
+      lastUsedWeightsApi.set(item.exerciseId, lastUsedData).catch(console.error);
 
       // Apply form and mark complete using polymorphic method
       return item.applyFormAndComplete(setForm as SetFormData);

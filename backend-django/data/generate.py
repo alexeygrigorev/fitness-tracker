@@ -442,6 +442,43 @@ for order, (ex_name, ex_type, ex_sets, ex_dropdowns, ex_warmup) in enumerate([
         defaults={"type": ex_type, "sets": ex_sets, "dropdowns": ex_dropdowns, "include_warmup": ex_warmup, "order": order}
     )
 
+# Create test preset for E2E testing of last used weights feature
+# This preset contains different exercise types (normal, bodyweight, dropdown)
+test_last_used_preset, _ = WorkoutPreset.objects.get_or_create(
+    user=test_user,
+    name="Test Last Used Weights",
+    defaults={"notes": "Test preset for E2E testing of last used weights feature", "day_label": "Monday", "status": "active", "tags": ["strength"]}
+)
+test_last_used_preset.day_label = "Monday"
+test_last_used_preset.status = "active"
+test_last_used_preset.save()
+
+# Add Overhead Press (normal set)
+WorkoutPresetExercise.objects.get_or_create(
+    preset=test_last_used_preset,
+    exercise=exercise_objects["Overhead Press"],
+    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 0}
+)
+
+# Add Dips (bodyweight exercise)
+WorkoutPresetExercise.objects.get_or_create(
+    preset=test_last_used_preset,
+    exercise=exercise_objects["Dips"],
+    defaults={"type": "bodyweight", "sets": 3, "include_warmup": False, "order": 1}
+)
+
+# Add Bench Press (dropdown set)
+WorkoutPresetExercise.objects.get_or_create(
+    preset=test_last_used_preset,
+    exercise=exercise_objects["Bench Press"],
+    defaults={"type": "dropdown", "sets": 4, "dropdowns": 2, "include_warmup": True, "order": 2}
+)
+
+print(f"Created test preset: {test_last_used_preset.name}")
+print(f"  - Overhead Press (normal, 3 sets)")
+print(f"  - Dips (bodyweight, 3 sets)")
+print(f"  - Bench Press (dropdown, 4 sets, 2 dropdowns)")
+
 print("\nData generation complete!")
 print(f"Admin user: admin / admin")
 print(f"Test user: test / test")
