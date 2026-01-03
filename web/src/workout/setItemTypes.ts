@@ -1,7 +1,7 @@
 export interface SetFormData {
   weight?: number;
   reps: number;
-  subSets?: Array<{ weight: number; reps: number; completed: boolean }>;
+  subSets?: Array<{ weight: number; reps: number }>;
 }
 
 export interface LastUsedData {

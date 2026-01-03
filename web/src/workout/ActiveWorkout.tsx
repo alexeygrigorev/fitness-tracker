@@ -381,29 +381,6 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
           // Mark as used locally
           usedIndices.add(`${item.exerciseId}-${matchingIndex}`);
 
-          // For dropdown sets
-          if (item.setType === 'dropdown' && 'subSets' in item) {
-            const isCompleted = !!savedSet.loggedAt;
-            // Use withChanges to preserve class methods
-            const ddItem = item as DropdownSetItem;
-            const now = isCompleted ? new Date(savedSet.loggedAt!) : undefined;
-            return ddItem.withChanges({
-              weight: savedSet.weight,
-              reps: savedSet.reps,
-              subSets: ddItem.subSets.map((ss, idx) => ({
-                ...ss,
-                weight: idx === 0 ? savedSet.weight : ss.weight,
-                reps: savedSet.reps,
-                completed: isCompleted,
-                completedAt: now
-              })),
-              completed: isCompleted,
-              completedAt: now,
-              originalWorkoutSetId: savedSet.id,
-              alreadySaved: isCompleted
-            } as any);
-          }
-
           // Return the item with completed status (only if loggedAt is set)
           const isCompleted = !!savedSet.loggedAt;
           // Use withChanges to preserve class methods
@@ -493,7 +470,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
 
     // Collect all completed sets to persist
     const completedSets = newSetRows
-      .filter(row => row.completed || (row.setType === 'dropdown' && (row as DropdownSetItem).allSubSetsCompleted))
+      .filter(row => row.completed)
       .flatMap(row => row.toWorkoutSets(startTime));
 
     // Persist workout session to server for cross-device sync
@@ -527,7 +504,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
         // Persist workout session to server after uncompleting
         if (workoutSessionId) {
           const completedSets = newRows
-            .filter(row => row.completed || (row.setType === 'dropdown' && (row as DropdownSetItem).allSubSetsCompleted))
+            .filter(row => row.completed)
             .flatMap(row => row.toWorkoutSets(startTime));
           workoutsApi.update(workoutSessionId, { sets: completedSets }).catch(console.error);
         }
@@ -543,7 +520,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
         // Persist workout session to server after deleting
         if (workoutSessionId) {
           const completedSets = newRows
-            .filter(row => row.completed || (row.setType === 'dropdown' && (row as DropdownSetItem).allSubSetsCompleted))
+            .filter(row => row.completed)
             .flatMap(row => row.toWorkoutSets(startTime));
           workoutsApi.update(workoutSessionId, { sets: completedSets }).catch(console.error);
         }
@@ -612,14 +589,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
 
   const calculateTotalVolume = () => {
     return setRows.reduce((sum, item) => {
-      if (item.setType === 'dropdown') {
-        const ddItem = item as DropdownSetItem;
-        ddItem.subSets.forEach(subSet => {
-          if (subSet.completed && subSet.weight) {
-            sum += subSet.weight * subSet.reps;
-          }
-        });
-      } else if (item.completed && item.weight) {
+      if (item.completed && item.weight) {
         sum += item.weight * item.reps;
       }
       return sum;
@@ -627,14 +597,9 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
   };
 
   const calculateCompletedSets = () => {
-    const count = setRows.reduce((count, item) => {
-      if (item.setType === 'dropdown') {
-        // Count dropdown as 1 if all sub-sets are completed, otherwise 0
-        return count + ((item as DropdownSetItem).allSubSetsCompleted ? 1 : 0);
-      }
+    return setRows.reduce((count, item) => {
       return count + (item.completed ? 1 : 0);
     }, 0);
-    return count;
   };
 
   const calculateTotalSets = () => {

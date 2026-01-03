@@ -191,9 +191,9 @@ describe('SetItem Classes', () => {
 
   describe('DropdownSetItem', () => {
     const subSets = [
-      { weight: 60, reps: 10, completed: false },
-      { weight: 50, reps: 10, completed: false },
-      { weight: 40, reps: 10, completed: false },
+      { weight: 60, reps: 10 },
+      { weight: 50, reps: 10 },
+      { weight: 40, reps: 10 },
     ];
 
     it('should create dropdown set with subSets', () => {
@@ -211,31 +211,10 @@ describe('SetItem Classes', () => {
       expect(dropdown.setType).toBe('dropdown');
       expect(dropdown.badgeLabel).toBe('Dropdown');
       expect(dropdown.badgeColor).toBe('bg-purple-100 text-purple-700');
-      expect(dropdown.totalSubSets).toBe(3);
+      expect(dropdown.subSets).toHaveLength(3);
     });
 
-    it('should track completed subSets', () => {
-      const dropdown = new DropdownSetItem({
-        id: 'dd-1',
-        exerciseId: 'ex-1',
-        exerciseName: 'Lat Pulldown',
-        exercise: mockExercise,
-        setNumber: 1,
-        completed: false,
-        isBodyweight: false,
-        subSets: [
-          { weight: 60, reps: 10, completed: true },
-          { weight: 50, reps: 10, completed: false },
-          { weight: 40, reps: 10, completed: false },
-        ],
-      });
-
-      expect(dropdown.completedSubSets).toBe(1);
-      expect(dropdown.allSubSetsCompleted).toBe(false);
-      expect(dropdown.isFullyCompleted).toBe(false);
-    });
-
-    it('should mark all subSets as completed', () => {
+    it('should mark as completed at item level', () => {
       const dropdown = new DropdownSetItem({
         id: 'dd-1',
         exerciseId: 'ex-1',
@@ -247,23 +226,26 @@ describe('SetItem Classes', () => {
         subSets,
       });
 
+      expect(dropdown.isFullyCompleted).toBe(false);
+
       const completed = dropdown.markCompleted();
-      expect(completed.allSubSetsCompleted).toBe(true);
+      expect(completed.completed).toBe(true);
       expect(completed.isFullyCompleted).toBe(true);
+      expect(completed.completedAt).toBeInstanceOf(Date);
     });
 
     it('getInitialForm should not mutate original subSets', () => {
       // Create two dropdown sets for the same exercise
       const originalSubSets1 = [
-        { weight: 60, reps: 10, completed: false },
-        { weight: 50, reps: 10, completed: false },
-        { weight: 40, reps: 10, completed: false },
+        { weight: 60, reps: 10 },
+        { weight: 50, reps: 10 },
+        { weight: 40, reps: 10 },
       ];
 
       const originalSubSets2 = [
-        { weight: 60, reps: 10, completed: false },
-        { weight: 50, reps: 10, completed: false },
-        { weight: 40, reps: 10, completed: false },
+        { weight: 60, reps: 10 },
+        { weight: 50, reps: 10 },
+        { weight: 40, reps: 10 },
       ];
 
       const set1 = new DropdownSetItem({
@@ -291,7 +273,7 @@ describe('SetItem Classes', () => {
       // Simulate completing set1
       const completedSet1 = set1.applyFormAndComplete({ weight: 60, reps: 10, subSets: set1.subSets });
 
-      expect(completedSet1.allSubSetsCompleted).toBe(true);
+      expect(completedSet1.completed).toBe(true);
 
       // Store the lastUsed data (simulating what submitSet does)
       const lastUsed = completedSet1.getLastUsedData({ weight: 60, reps: 10 });
@@ -299,25 +281,24 @@ describe('SetItem Classes', () => {
       // Simulate opening set2's form (calling getInitialForm with lastUsed)
       const formForSet2 = set2.getInitialForm(lastUsed);
 
-      // This is where the bug might be: formForSet2.subSets should not affect set1
-      // and set1 should still be completed
-      expect(completedSet1.allSubSetsCompleted).toBe(true);
+      // set1 should still be completed
+      expect(completedSet1.completed).toBe(true);
 
       // The form's subSets should have the weights from lastUsed
       expect(formForSet2.subSets?.[0].weight).toBe(60);
 
-      // But set1's subSets should still be completed
-      expect(completedSet1.subSets[0].completed).toBe(true);
-      expect(completedSet1.subSets[1].completed).toBe(true);
-      expect(completedSet1.subSets[2].completed).toBe(true);
+      // set1's subSets should not be mutated (they only store weight/reps now)
+      expect(completedSet1.subSets[0].weight).toBe(60);
+      expect(completedSet1.subSets[1].weight).toBe(50);
+      expect(completedSet1.subSets[2].weight).toBe(40);
     });
 
     it('should not share subSets references between set instances', () => {
       // Create two dropdown sets with the same subSets values
       const sharedSubSets = [
-        { weight: 60, reps: 10, completed: false },
-        { weight: 50, reps: 10, completed: false },
-        { weight: 40, reps: 10, completed: false },
+        { weight: 60, reps: 10 },
+        { weight: 50, reps: 10 },
+        { weight: 40, reps: 10 },
       ];
 
       const set1 = new DropdownSetItem({
@@ -345,13 +326,11 @@ describe('SetItem Classes', () => {
       // Complete set1
       const completedSet1 = set1.applyFormAndComplete({ weight: 60, reps: 10, subSets: set1.subSets });
 
-      // set2 should not be affected
-      expect(set2.allSubSetsCompleted).toBe(false);
-      expect(set2.subSets[0].completed).toBe(false);
+      // set2 should not be affected (completion is tracked at item level, not in subSets)
+      expect(set2.completed).toBe(false);
 
       // set1 should be completed
-      expect(completedSet1.allSubSetsCompleted).toBe(true);
-      expect(completedSet1.subSets[0].completed).toBe(true);
+      expect(completedSet1.completed).toBe(true);
     });
   });
 

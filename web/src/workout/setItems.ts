@@ -228,12 +228,12 @@ export class DropdownSetItem extends BaseSetItem {
   weight?: number;
   reps!: number;
   setType = 'dropdown' as const;
-  subSets: Array<{ weight: number; reps: number; completed: boolean; completedAt?: Date }>;
+  subSets: Array<{ weight: number; reps: number }>;
 
   constructor(data: SetData & {
     weight?: number;
     reps: number;
-    subSets: Array<{ weight: number; reps: number; completed: boolean; completedAt?: Date }>;
+    subSets: Array<{ weight: number; reps: number }>;
   }) {
     super();
     Object.assign(this, data);
@@ -251,52 +251,22 @@ export class DropdownSetItem extends BaseSetItem {
     return 'bg-purple-100 text-purple-700';
   }
 
-  get totalSubSets(): number {
-    return this.subSets.length;
-  }
-
-  get completedSubSets(): number {
-    return this.subSets.filter(s => s.completed).length;
-  }
-
-  get allSubSetsCompleted(): boolean {
-    return this.subSets.every(s => s.completed);
-  }
-
-  override get isFullyCompleted(): boolean {
-    return this.allSubSetsCompleted;
-  }
-
-  override markCompleted(): this {
-    const now = new Date();
-    const completedSubSets = this.subSets.map(subSet => ({
-      ...subSet,
-      completed: true,
-      completedAt: now
-    }));
-    return this.withChanges({ subSets: completedSubSets, completed: true, completedAt: now } as any);
-  }
-
-  override markUncompleted(): this {
-    const uncompletedSubSets = this.subSets.map(subSet => ({
-      ...subSet,
-      completed: false,
-      completedAt: undefined
-    }));
-    return this.withChanges({ subSets: uncompletedSubSets, completed: false, completedAt: undefined } as any);
-  }
-
-  override applyFormAndComplete(form: SetFormData): this {
-    const now = new Date();
-    const subSetsToUse = form.subSets || this.subSets;
-    const updatedSubSets = subSetsToUse.map((subSet, idx) => ({
-      ...subSet,
-      weight: idx === 0 ? (form.weight ?? subSet.weight) : subSet.weight,
-      reps: form.reps,
-      completed: true,
-      completedAt: now
-    }));
-    return this.withChanges({ subSets: updatedSubSets, completed: true, completedAt: now, alreadySaved: undefined } as any);
+  override getInitialForm(lastUsed?: LastUsedData): SetFormData {
+    let subSetsToUse: Array<{ weight: number; reps: number }> = [];
+    if (lastUsed?.subSets && lastUsed.subSets.length === this.subSets.length) {
+      const savedSubSets = lastUsed.subSets;
+      subSetsToUse = this.subSets.map((subSet, idx) => ({
+        weight: savedSubSets[idx]?.weight ?? subSet.weight,
+        reps: savedSubSets[idx]?.reps ?? subSet.reps
+      }));
+    } else {
+      subSetsToUse = this.subSets.map(subSet => ({ ...subSet }));
+    }
+    return {
+      weight: lastUsed?.weight ?? subSetsToUse[0]?.weight,
+      reps: lastUsed?.reps ?? subSetsToUse[0]?.reps ?? 10,
+      subSets: subSetsToUse
+    };
   }
 
   override getLastUsedData(form: SetFormData): LastUsedData {
@@ -319,34 +289,17 @@ export class DropdownSetItem extends BaseSetItem {
   }
 
   override get showCompletedData(): boolean {
-    return this.subSets.some(s => s.completed);
+    return this.completed;
   }
 
-  override getInitialForm(lastUsed?: LastUsedData): SetFormData {
-    // Always create a new array to avoid reference sharing
-    let subSetsToUse: Array<{ weight: number; reps: number; completed: boolean }> = [];
-    if (lastUsed?.subSets && lastUsed.subSets.length === this.subSets.length) {
-      const savedSubSets = lastUsed.subSets;
-      subSetsToUse = this.subSets.map((subSet, idx) => ({
-        ...subSet,
-        weight: savedSubSets[idx]?.weight ?? subSet.weight,
-        reps: savedSubSets[idx]?.reps ?? subSet.reps
-      }));
-    } else {
-      // Create a new array with copies of subSets to avoid reference sharing
-      subSetsToUse = this.subSets.map(subSet => ({ ...subSet }));
-    }
-    return {
-      weight: lastUsed?.weight ?? subSetsToUse[0]?.weight,
-      reps: lastUsed?.reps ?? subSetsToUse[0]?.reps ?? 10,
-      subSets: subSetsToUse
-    };
+  override applyFormAndComplete(form: SetFormData): this {
+    return this.markCompleted().withChanges({
+      alreadySaved: undefined
+    } as any);
   }
 
   override toWorkoutSets(startTime: Date): WorkoutSet[] {
     if (!this.completed) return [];
-    // Save as a single set representing the entire dropdown
-    // The backend will handle storing individual sub-sets with set_order
     return [{
       id: this.originalWorkoutSetId || this.id,
       exerciseId: this.exerciseId,
