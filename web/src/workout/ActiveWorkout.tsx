@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { workoutsApi, exercisesApi, activeWorkoutStateApi, lastUsedWeightsApi } from '../api';
+import { workoutsApi, exercisesApi, activeWorkoutStateApi, lastUsedWeightsApi, workoutSetsApi } from '../api';
 import { ExercisePicker } from './ExerciseSelector';
 import SetRow, { type SetForm } from '../components/SetRow';
 import { WarmupSetItem, NormalSetItem, BodyweightSetItem, DropdownSetItem } from './setItems';
@@ -352,8 +352,8 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
         savedSetsByExercise.get(savedSet.exerciseId)!.push(savedSet);
       });
 
-      // Track used indices locally (not mutating saved sets)
-      const usedIndices = new Set<string>();
+      // Track used saved sets by their database ID (not index)
+      const usedSetIds = new Set<string>();
 
       // For each item, try to find a matching saved set
       items = items.map(item => {
@@ -363,43 +363,52 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
         }
 
         // Find an unused saved set that matches this item's type
-        const matchingIndex = savedSetsForExercise.findIndex((savedSet, idx) => {
-          const usedKey = `${item.exerciseId}-${idx}`;
-          if (usedIndices.has(usedKey)) return false;
+        const matchingSet = savedSetsForExercise.find((savedSet) => {
+          if (usedSetIds.has(savedSet.id)) return false;
+
+          // Handle both camelCase (setType) from model_to_dict and snake_case (set_type) from serializer
+          const savedSetType = savedSet.setType || savedSet.set_type;
 
           // For dropdown sets, backend saves as 'dropdown' or 'normal' type (for compatibility)
           if (item.setType === 'dropdown') {
-            return savedSet.setType === 'dropdown' || savedSet.setType === 'normal' || !savedSet.setType;
+            return savedSetType === 'dropdown' || savedSetType === 'normal' || !savedSetType;
           }
           // For warmup sets
           if (item.setType === 'warmup') {
-            return savedSet.setType === 'warmup';
+            return savedSetType === 'warmup';
           }
           // For bodyweight sets
           if (item.setType === 'bodyweight') {
-            return savedSet.setType === 'bodyweight' || !savedSet.setType;
+            return savedSetType === 'bodyweight' || !savedSetType;
           }
           // For normal sets
           if (item.setType === 'normal') {
-            return savedSet.setType === 'normal' || !savedSet.setType;
+            return savedSetType === 'normal' || !savedSetType;
           }
           return false;
         });
 
-        if (matchingIndex !== -1) {
-          const savedSet = savedSetsForExercise[matchingIndex];
-          // Mark as used locally
-          usedIndices.add(`${item.exerciseId}-${matchingIndex}`);
+        if (matchingSet) {
+          // Mark as used by database ID
+          usedSetIds.add(matchingSet.id);
 
           // Return the item with completed status (only if loggedAt is set)
-          const isCompleted = !!savedSet.loggedAt;
+          const isCompleted = !!matchingSet.loggedAt;
+          // For dropdown sets, use the dropdownWeights from backend
+          const subSets = (item.setType === 'dropdown' && matchingSet.dropdownWeights)
+            ? matchingSet.dropdownWeights
+            : undefined;
+
           // Use withChanges to preserve class methods
+          // Store the database set ID as workoutSetId for individual API calls
           return item.withChanges({
-            weight: savedSet.weight,
-            reps: savedSet.reps,
+            weight: matchingSet.weight,
+            reps: matchingSet.reps,
+            bodyweight: matchingSet.bodyweight,
+            subSets,
             completed: isCompleted,
-            completedAt: isCompleted ? new Date(savedSet.loggedAt!) : undefined,
-            originalWorkoutSetId: savedSet.id,
+            completedAt: isCompleted ? new Date(matchingSet.loggedAt!) : undefined,
+            workoutSetId: matchingSet.id,
             alreadySaved: isCompleted
           } as any);
         }
@@ -452,90 +461,95 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
   const submitSet = async () => {
     if (!editingSetId) return;
 
-    // Update local state and capture the new state for persistence
-    const newSetRows = await new Promise<SetItem[]>(resolve => {
-      setSetRows(prev => {
-        const newRows = prev.map(item => {
-          if (item.id !== editingSetId) {
-            return item;
-          }
+    // Find the item being edited
+    const itemToComplete = setRows.find(item => item.id === editingSetId);
+    if (!itemToComplete) return;
 
-          // Save last used data using polymorphic method
-          const lastUsedData = item.getLastUsedData(setForm as SetFormData);
-          setLastUsed(prevLast => ({
-            ...prevLast,
-            [item.exerciseId]: lastUsedData
-          }));
+    // Apply form and mark complete using polymorphic method
+    const completedItem = itemToComplete.applyFormAndComplete(setForm as SetFormData);
 
-          // Also save to backend for cross-device sync
-          lastUsedWeightsApi.set(item.exerciseId, lastUsedData).catch(console.error);
+    // Save last used data
+    const lastUsedData = completedItem.getLastUsedData(setForm as SetFormData);
+    setLastUsed(prevLast => ({
+      ...prevLast,
+      [itemToComplete.exerciseId]: lastUsedData
+    }));
+    lastUsedWeightsApi.set(itemToComplete.exerciseId, lastUsedData).catch(console.error);
 
-          // Apply form and mark complete using polymorphic method
-          return item.applyFormAndComplete(setForm as SetFormData);
-        });
-        resolve(newRows);
-        return newRows;
-      });
-    });
+    // Update local state immediately for responsive UI
+    setSetRows(prev => prev.map(item =>
+      item.id === editingSetId ? completedItem : item
+    ));
 
-    // Collect all completed sets to persist
-    const completedSets = newSetRows
-      .filter(row => row.completed)
-      .flatMap(row => row.toWorkoutSets(startTime));
+    // Get the workout set ID (database ID) for this set
+    const workoutSetId = (itemToComplete as any).workoutSetId;
+    const hasOriginalWorkoutSetId = (itemToComplete as any).originalWorkoutSetId;
 
-    // Persist workout session to server for cross-device sync
-    if (workoutSessionId) {
-      // Update existing session
-      workoutsApi.update(workoutSessionId, { sets: completedSets }).catch(console.error);
-    } else if (completedSets.length > 0) {
-      // Create new session on first completed set
-      try {
-        const session = await workoutsApi.create({
-          name: preset.name,
-          startedAt: startTime,
-          sets: completedSets
-        });
-        setWorkoutSessionId(session.id);
-      } catch (error) {
-        console.error('Failed to create workout session:', error);
+    // Persist to server using individual set API
+    if (workoutSetId || hasOriginalWorkoutSetId) {
+      // This set already exists in the database - just mark it complete
+      const setId = workoutSetId || hasOriginalWorkoutSetId;
+      const updateData: any = {
+        weight: completedItem.weight,
+        reps: completedItem.reps,
+        bodyweight: (completedItem as any).bodyweight
+      };
+      // For dropdown sets, include the dropdownWeights
+      if (completedItem.setType === 'dropdown' && (completedItem as any).subSets) {
+        updateData.dropdownWeights = (completedItem as any).subSets;
       }
+      workoutSetsApi.complete(setId, updateData).catch(console.error);
+    } else {
+      // This shouldn't happen now that we call start_workout upfront, but handle gracefully
+      console.warn('Set has no database ID, skipping server persistence');
     }
 
     closeSetForm();
   };
 
-  const uncompleteSet = (setId: string) => {
-    if (confirm('Uncomplete this set?')) {
-      setSetRows(prev => {
-        const newRows = prev.map(item => {
-          if (item.id !== setId) return item;
-          return item.markUncompleted();
-        });
-        // Persist workout session to server after uncompleting
-        if (workoutSessionId) {
-          const completedSets = newRows
-            .filter(row => row.completed)
-            .flatMap(row => row.toWorkoutSets(startTime));
-          workoutsApi.update(workoutSessionId, { sets: completedSets }).catch(console.error);
-        }
-        return newRows;
-      });
+  const uncompleteSet = async (setId: string) => {
+    if (!confirm('Uncomplete this set?')) return;
+
+    // Find the item being uncompleted
+    const itemToUncomplete = setRows.find(item => item.id === setId);
+    if (!itemToUncomplete) return;
+
+    // Get the workout set ID (database ID) for this set
+    const workoutSetId = (itemToUncomplete as any).workoutSetId;
+    const hasOriginalWorkoutSetId = (itemToUncomplete as any).originalWorkoutSetId;
+    const actualSetId = workoutSetId || hasOriginalWorkoutSetId;
+
+    if (!actualSetId) {
+      console.warn('Cannot uncomplete set: no database ID');
+      return;
     }
+
+    // Update local state immediately
+    setSetRows(prev => prev.map(item =>
+      item.id === setId ? item.markUncompleted() : item
+    ));
+
+    // Persist to server using individual set API
+    workoutSetsApi.uncomplete(actualSetId).catch(console.error);
   };
 
-  const deleteSet = (setId: string) => {
-    if (confirm('Delete this set?')) {
-      setSetRows(prev => {
-        const newRows = prev.filter(item => item.id !== setId);
-        // Persist workout session to server after deleting
-        if (workoutSessionId) {
-          const completedSets = newRows
-            .filter(row => row.completed)
-            .flatMap(row => row.toWorkoutSets(startTime));
-          workoutsApi.update(workoutSessionId, { sets: completedSets }).catch(console.error);
-        }
-        return newRows;
-      });
+  const deleteSet = async (setId: string) => {
+    if (!confirm('Delete this set?')) return;
+
+    // Find the item being deleted to get its database ID
+    const itemToDelete = setRows.find(item => item.id === setId);
+    if (!itemToDelete) return;
+
+    const workoutSetId = (itemToDelete as any).workoutSetId;
+    const hasOriginalWorkoutSetId = (itemToDelete as any).originalWorkoutSetId;
+    const actualSetId = workoutSetId || hasOriginalWorkoutSetId;
+
+    // Update local state immediately
+    setSetRows(prev => prev.filter(item => item.id !== setId));
+
+    // Delete from server if it has a database ID
+    if (actualSetId) {
+      workoutSetsApi.delete(actualSetId).catch(console.error);
     }
   };
 
@@ -628,11 +642,12 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
         workoutSets = setRows
           .filter(item => item.completed)
           .map(item => ({
-            id: (item as any).originalWorkoutSetId || item.id,
+            id: (item as any).workoutSetId || (item as any).originalWorkoutSetId || item.id,
             exerciseId: item.exerciseId,
             setType: item.setType === 'warmup' ? 'warmup' : item.setType === 'dropdown' ? 'dropdown' : 'normal',
             weight: item.weight,
             reps: item.reps,
+            bodyweight: (item as any).bodyweight,
             loggedAt: item.completedAt || startTime
           }));
       } else {

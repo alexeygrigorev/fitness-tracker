@@ -15,8 +15,13 @@ export abstract class BaseSetItem implements SetData {
   isExtra?: boolean;
   isSuperset?: boolean;
   originalIndex?: number;
+  // workoutSetId is the database ID of this set (used for individual API calls)
+  workoutSetId?: string;
+  // originalWorkoutSetId is kept for backward compatibility
   originalWorkoutSetId?: string;
   alreadySaved?: boolean;
+  // bodyweight is used for bodyweight exercises
+  bodyweight?: number;
 
   abstract weight?: number;
   abstract reps: number;
@@ -95,11 +100,12 @@ export abstract class BaseSetItem implements SetData {
   toWorkoutSets(startTime: Date): WorkoutSet[] {
     if (!this.completed) return [];
     return [{
-      id: this.originalWorkoutSetId || this.id,
+      id: this.workoutSetId || this.originalWorkoutSetId || this.id,
       exerciseId: this.exerciseId,
       setType: this.setType === 'warmup' ? 'warmup' : 'normal',
       weight: this.weight,
       reps: this.reps,
+      bodyweight: this.bodyweight,
       loggedAt: this.completedAt || startTime
     }];
   }
@@ -119,6 +125,7 @@ export abstract class BaseSetItem implements SetData {
       setType: this.setType,
       weight: this.weight,
       reps: this.reps,
+      bodyweight: this.bodyweight,
       completed: this.completed,
       completedAt: this.completedAt,
       isBodyweight: this.isBodyweight,
@@ -126,6 +133,7 @@ export abstract class BaseSetItem implements SetData {
       isExtra: this.isExtra,
       isSuperset: this.isSuperset,
       originalIndex: this.originalIndex,
+      workoutSetId: this.workoutSetId,
       originalWorkoutSetId: this.originalWorkoutSetId,
       alreadySaved: this.alreadySaved
     };
@@ -301,11 +309,12 @@ export class DropdownSetItem extends BaseSetItem {
   override toWorkoutSets(startTime: Date): WorkoutSet[] {
     if (!this.completed) return [];
     return [{
-      id: this.originalWorkoutSetId || this.id,
+      id: this.workoutSetId || this.originalWorkoutSetId || this.id,
       exerciseId: this.exerciseId,
       setType: 'dropdown',
       weight: this.subSets[0]?.weight,
       reps: this.subSets[0]?.reps || 10,
+      dropdownWeights: this.subSets.map(s => ({ weight: s.weight, reps: s.reps })),
       loggedAt: this.completedAt || startTime
     }];
   }

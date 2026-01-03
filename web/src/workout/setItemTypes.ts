@@ -23,6 +23,8 @@ export interface SetData {
   isExtra?: boolean;
   isSuperset?: boolean;
   originalIndex?: number;
-  originalWorkoutSetId?: string;
+  workoutSetId?: string;  // Database ID of this set (for individual API calls)
+  originalWorkoutSetId?: string;  // Kept for backward compatibility
   alreadySaved?: boolean;
+  bodyweight?: number;  // User's bodyweight during bodyweight exercises
 }

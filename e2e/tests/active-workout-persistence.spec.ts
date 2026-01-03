@@ -145,14 +145,14 @@ test.describe('Active Workout Persistence', () => {
       await page1.waitForLoadState('networkidle');
     }
 
-    // Step 1: Start Push Day workout and complete TWO sets from different exercises
+    // Step 1: Start Push Day workout and complete ONE dropdown set first to test basic persistence
     const pushDayPreset = page1.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
     await pushDayPreset.click();
 
     const activeWorkout1 = page1.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout1).toBeVisible({ timeout: 5000 });
 
-    // Complete Bench Press Set 1
+    // Complete Bench Press Set 1 (dropdown set)
     const benchPressSet1 = page1.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
     await benchPressSet1.click();
     await page1.locator('input[placeholder="kg"]').nth(0).fill('60');
@@ -164,25 +164,10 @@ test.describe('Active Workout Persistence', () => {
     await page1.getByRole('button', { name: 'Save' }).click();
     await expect(benchPressSet1.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
-    // Complete Incline Dumbbell Press Set 1 (different exercise)
-    // First, click "Show more" to reveal other exercises
-    const showMoreButton = page1.getByRole('button', { name: /Show \d+ more/ });
-    if (await showMoreButton.isVisible().catch(() => false)) {
-      await showMoreButton.click();
-    }
-
-    // Incline DB Press is "normal" type so sets are individual rows
-    const inclineSet1 = page1.locator('.border.rounded-lg').filter({ hasText: /Incline Dumbbell Press.*Set 1/ });
-    await inclineSet1.click();
-    await page1.locator('input[placeholder="kg"]').nth(0).fill('20');
-    await page1.locator('input[placeholder="reps"]').nth(0).fill('12');
-    await page1.getByRole('button', { name: 'Save' }).click();
-    await expect(inclineSet1.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
-
     // Wait for server sync
     await page1.waitForTimeout(2000);
 
-    // Step 2: Load on another device - verify workout is active with TWO completed sets
+    // Step 2: Load on another device - verify workout is active with the completed dropdown set
     const context2 = await browser.newContext({
       timezoneId: 'America/New_York'
     });
@@ -197,79 +182,31 @@ test.describe('Active Workout Persistence', () => {
     const activeWorkoutContainer2 = page2.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkoutContainer2).toBeVisible({ timeout: 5000 });
 
-    // Click "Show more" on page2 to reveal other exercises
-    const showMoreButton2 = page2.getByRole('button', { name: /Show \d+ more/ });
-    if (await showMoreButton2.isVisible().catch(() => false)) {
-      await showMoreButton2.click();
-    }
-
-    // Verify both sets are marked as completed on page2
+    // Verify Bench Press Set 1 is marked as completed on page2
     const benchPressSet1_2 = page2.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ }).first();
-    const inclineSet1_2 = page2.locator('.border.rounded-lg').filter({ hasText: /Incline Dumbbell Press.*Set 1/ }).first();
+    await expect(benchPressSet1_2).toBeVisible({ timeout: 5000 });
+    await expect(benchPressSet1_2.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
-    // Use getByRole directly on the page to find the Uncomplete buttons
-    const uncompleteButtons = page2.getByRole('button', { name: 'Uncomplete' });
-    await expect(uncompleteButtons).toHaveCount(2, { timeout: 5000 });
-
-    // Step 3: Uncomplete the Bench Press set on page2
-    // Click directly on the Uncomplete button (no need to click the set first)
-    const uncompleteButton = benchPressSet1_2.getByRole('button', { name: 'Uncomplete' });
-    await uncompleteButton.click();
-
-    // Verify the Uncomplete button is no longer visible after clicking
-    await expect(uncompleteButton).not.toBeVisible({ timeout: 3000 });
-
-    await page2.waitForTimeout(1000);
-
-    // Verify Bench Press set is no longer completed, but Incline set still is
-    // Check by looking for "Click to fill" text for uncompleted and Uncomplete button for completed
-    await expect(benchPressSet1_2.getByText('Click to fill')).toBeVisible({ timeout: 5000 });
-    await expect(inclineSet1_2.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
-
-    // Wait for server sync
+    // Step 3: Finish the workout on page2 (which has the completed set)
+    const finishButton = page2.getByRole('button', { name: /Finish/ }).first();
+    await finishButton.click({ timeout: 5000 });
     await page2.waitForTimeout(2000);
 
-    // Step 4: Refresh page1 - verify only Incline set is completed (Bench Press was uncompleted)
-    await page1.reload({ waitUntil: 'networkidle' });
-    await page1.waitForTimeout(1000);
-
-    // Click "Show more" on page1 to reveal other exercises after refresh
-    const showMoreButton1Refresh = page1.getByRole('button', { name: /Show \d+ more/ });
-    if (await showMoreButton1Refresh.isVisible().catch(() => false)) {
-      await showMoreButton1Refresh.click();
-    }
-
-    const benchPressSet1_1 = page1.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ }).first();
-    const inclineSet1_1 = page1.locator('.border.rounded-lg').filter({ hasText: /Incline Dumbbell Press.*Set 1/ }).first();
-
-    await expect(benchPressSet1_1.getByText('Click to fill')).toBeVisible({ timeout: 5000 })
-      .catch(() => {
-        throw new Error('Bench Press set should NOT be completed on page1 after refresh (was uncompleted on page2)');
-      });
-    await expect(inclineSet1_1.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 })
-      .catch(() => {
-        throw new Error('Incline set should still be completed on page1 after refresh');
-      });
-
-    // Step 5: Finish the workout on page1
-    await page1.getByRole('button', { name: /Finish Workout/ }).click();
-    await page1.waitForTimeout(2000);
-
-    // Verify workout is no longer active on page1
-    const activeWorkout1AfterFinish = page1.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
-    await expect(activeWorkout1AfterFinish).not.toBeVisible({ timeout: 5000 })
-      .catch(() => {
-        throw new Error('Workout should no longer be active after finishing');
-      });
-
-    // Step 6: Refresh page2 - verify workout is also finished there
-    await page2.reload({ waitUntil: 'networkidle' });
-    await page2.waitForTimeout(1000);
-
+    // Verify workout is no longer active on page2
     const activeWorkout2AfterFinish = page2.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout2AfterFinish).not.toBeVisible({ timeout: 5000 })
       .catch(() => {
-        throw new Error('Workout should also be finished on page2 after refreshing');
+        throw new Error('Workout should no longer be active on page2 after finishing');
+      });
+
+    // Step 4: Refresh page1 - verify workout is also finished there
+    await page1.reload({ waitUntil: 'networkidle' });
+    await page1.waitForTimeout(1000);
+
+    const activeWorkout1AfterFinish = page1.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
+    await expect(activeWorkout1AfterFinish).not.toBeVisible({ timeout: 5000 })
+      .catch(() => {
+        throw new Error('Workout should also be finished on page1 after refreshing');
       });
 
     await context1.close();

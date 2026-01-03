@@ -38,6 +38,7 @@ def model_to_dict(instance):
                 'weight': float(s.weight) if s.weight else None,
                 'reps': s.reps,
                 'bodyweight': float(s.bodyweight) if s.bodyweight else None,
+                'dropdownWeights': s.dropdown_weights,
                 'set_order': s.set_order,
                 'loggedAt': s.completed_at.isoformat() if s.completed_at else None,
             }
@@ -50,6 +51,16 @@ def model_to_dict(instance):
             result['startedAt'] = result.pop('created_at')
         if 'finished_at' in result:
             result['endedAt'] = result.pop('finished_at')
+
+    # Map Django field names to frontend names for WorkoutSet
+    if instance.__class__.__name__ == 'WorkoutSet':
+        result['exerciseId'] = result.pop('exercise_id')
+        result['setType'] = result.pop('set_type')
+        result['dropdownWeights'] = result.pop('dropdown_weights')
+        result['loggedAt'] = result.pop('completed_at')
+        # Remove session and exercise FKs from response (not needed by frontend)
+        result.pop('session', None)
+        result.pop('exercise', None)
 
     return result
 
@@ -99,10 +110,18 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
         return Response(model_to_dict(self.get_object()))
 
     def partial_update(self, request, *args, **kwargs):
-        """Update set details (weight, reps) or mark as complete."""
+        """Update set details (weight, reps, dropdown_weights) or mark as complete."""
         obj = self.get_object()
+
+        # Map frontend camelCase field names to backend snake_case
+        field_mapping = {
+            'dropdownWeights': 'dropdown_weights',
+        }
+
         for k, v in request.data.items():
-            setattr(obj, k, v)
+            # Map camelCase to snake_case
+            field_name = field_mapping.get(k, k)
+            setattr(obj, field_name, v)
         obj.save()
         # Use serializer for response to get correct field names
         serializer = WorkoutSetSerializer(obj)
@@ -114,6 +133,14 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         from django.utils import timezone
         obj.completed_at = timezone.now()
+        obj.save()
+        return Response(model_to_dict(obj))
+
+    @action(detail=True, methods=["post"])
+    def uncomplete(self, request, pk=None):
+        """Mark a set as not completed by clearing completed_at."""
+        obj = self.get_object()
+        obj.completed_at = None
         obj.save()
         return Response(model_to_dict(obj))
 

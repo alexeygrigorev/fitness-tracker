@@ -243,8 +243,19 @@ export const workoutSetsApi = {
     });
     return handleResponse(response);
   },
-  complete: async (id: string) => {
+  complete: async (id: string, data?: { weight?: number; reps?: number; bodyweight?: number; dropdownWeights?: Array<{ weight: number; reps: number }> }) => {
+    // First update weight/reps if provided, then mark complete
+    if (data && (data.weight !== undefined || data.reps !== undefined || data.bodyweight !== undefined || data.dropdownWeights !== undefined)) {
+      await workoutSetsApi.update(id, data);
+    }
     const response = await fetch(`${API_BASE}/api/workouts/sets/${id}/complete/`, {
+      method: 'POST',
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
+  uncomplete: async (id: string) => {
+    const response = await fetch(`${API_BASE}/api/workouts/sets/${id}/uncomplete/`, {
       method: 'POST',
       headers: await getHeaders(),
     });

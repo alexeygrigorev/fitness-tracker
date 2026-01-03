@@ -85,32 +85,31 @@ def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], ses
                 ))
                 set_order += 1
 
-            # Dropdown
-            if preset_ex.type == "dropdown" and preset_ex.dropdowns and not bodyweight:
-                dropdowns = preset_ex.dropdowns
+            # Dropdown - create ONE set per dropdown row (matching frontend model)
+            if preset_ex.type == "dropdown":
+                dropdowns = preset_ex.dropdowns or 0
                 for _ in range(number_of_sets):
+                    # Build dropdown weights array: [main, drop1, drop2, ...]
+                    dropdown_weights = [
+                        {'weight': float(base_weight), 'reps': 10}
+                    ]
+                    for d in range(1, dropdowns + 1):
+                        dropdown_weights.append({
+                            'weight': float(max(0, base_weight - (d * 2.5))),
+                            'reps': 10
+                        })
+
                     sets.append(WorkoutSet(
                         session=session,
                         exercise=exercise,
                         set_type="dropdown",
                         weight=base_weight,
                         reps=10,
+                        dropdown_weights=dropdown_weights,
                         set_order=set_order,
                         completed_at=None
                     ))
                     set_order += 1
-
-                    for d in range(1, dropdowns + 1):
-                        sets.append(WorkoutSet(
-                            session=session,
-                            exercise=exercise,
-                            set_type="dropdown",
-                            weight=max(0, base_weight - (d * 2.5)),
-                            reps=10,
-                            set_order=set_order,
-                            completed_at=None
-                        ))
-                        set_order += 1
 
             # Normal/Bodyweight
             else:

@@ -405,3 +405,37 @@ class TestWorkoutFlow(TestCase):
         self.assertEqual(workout_set.exercise.id, self.dips.id)
         self.assertEqual(workout_set.reps, 15)
         self.assertEqual(float(workout_set.bodyweight), 175.0)
+
+    def test_workout_set_uncomplete(self):
+        """Test uncompleting a set using the uncomplete endpoint."""
+        # Start workout
+        response = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset.id})
+        )
+        sets = response.data["sets"]
+
+        # Get the first bench press set
+        bench_sets = [s for s in sets if s["exercise_id"] == self.bench_press.id]
+        first_set_id = bench_sets[0]["id"]
+
+        # Mark as complete
+        response = self.client.post(
+            reverse("workoutset-complete", kwargs={"pk": first_set_id})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.data["completed_at"])
+
+        # Verify it's complete in the database
+        workout_set = WorkoutSet.objects.get(id=first_set_id)
+        self.assertIsNotNone(workout_set.completed_at)
+
+        # Now uncomplete it
+        response = self.client.post(
+            reverse("workoutset-uncomplete", kwargs={"pk": first_set_id})
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.data["completed_at"])
+
+        # Verify it's uncomplete in the database
+        workout_set.refresh_from_db()
+        self.assertIsNone(workout_set.completed_at)

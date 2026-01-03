@@ -207,6 +207,7 @@ class WorkoutSet(models.Model):
     weight = models.DecimalField(null=True, blank=True, max_digits=6, decimal_places=2)
     reps = models.IntegerField(null=True, blank=True)
     bodyweight = models.DecimalField(null=True, blank=True, max_digits=6, decimal_places=2, help_text="User's bodyweight at the time of completing the exercise (for bodyweight exercises)")
+    dropdown_weights = models.JSONField(null=True, blank=True, help_text="For dropdown sets, stores array of {weight, reps} for each drop set")
     completed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):

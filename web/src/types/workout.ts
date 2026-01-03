@@ -7,6 +7,7 @@ export interface WorkoutSet {
   weight?: number;
   reps: number;
   bodyweight?: number;  // User's bodyweight at time of completing exercise
+  dropdownWeights?: Array<{ weight: number; reps: number }>;  // For dropdown sets
   loggedAt?: Date;
 }
 

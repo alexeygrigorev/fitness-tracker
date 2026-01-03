@@ -211,9 +211,31 @@ export default function ExercisesPage() {
     setResumingWorkout(undefined);
   };
 
-  const startWorkout = (preset: WorkoutPreset) => {
+  const startWorkout = async (preset: WorkoutPreset) => {
+    // Set active preset immediately to show loading state
     setActivePreset(preset);
-    setResumingWorkout(undefined);
+
+    try {
+      // Call backend to start the workout - this creates a session with all sets upfront
+      const response = await workoutPresetsApi.startWorkout(preset.id);
+      const session = response.session;
+      const sets = response.sets;
+
+      // Build a workout session object with all the sets
+      const workoutSession: WorkoutSession = {
+        id: session.id,
+        name: session.name,
+        startedAt: session.startedAt,
+        sets: sets
+      };
+
+      // Update the resumingWorkout with the session data (triggers ActiveWorkout to restore)
+      setResumingWorkout(workoutSession);
+    } catch (error) {
+      console.error('Failed to start workout:', error);
+      // Fallback to local-only mode if backend call fails
+      setResumingWorkout(undefined);
+    }
   };
 
   const cancelWorkout = () => {
