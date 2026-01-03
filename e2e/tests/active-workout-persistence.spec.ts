@@ -74,6 +74,9 @@ test.describe('Active Workout Persistence', () => {
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 
+    // Wait for edit form to expand
+    await page.waitForTimeout(500);
+
     // Fill in and save the set
     await page.locator('input[placeholder="kg"]').nth(0).fill('60');
     await page.locator('input[placeholder="reps"]').nth(0).fill('10');
@@ -114,6 +117,15 @@ test.describe('Active Workout Persistence', () => {
       .catch(() => {
         throw new Error('Completed set should still be marked as completed after refresh');
       });
+
+    // Clean up: delete the active workout after test
+    const deleteButton = page.locator('button[title="Delete workout"]');
+    await deleteButton.click();
+    await page.waitForTimeout(500);
+    await page.waitForLoadState('networkidle');
+
+    // Verify workout is gone
+    await expect(activeWorkoutAfterRefresh).not.toBeVisible({ timeout: 5000 });
   });
 
   test('active workout persists across different devices/sessions', async ({ browser }) => {

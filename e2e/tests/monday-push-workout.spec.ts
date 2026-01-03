@@ -66,7 +66,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.getByRole('button', { name: 'Save' }).click();
 
     // Wait for the checkmark to appear
-    await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Simulate realistic delay between sets (rest period)
     await page.clock.install({ time: new Date('2025-01-06T09:02:00').getTime() });
@@ -85,7 +85,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="reps"]').nth(2).fill('10');
 
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(secondSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(secondSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     await page.clock.install({ time: new Date('2025-01-06T09:04:00').getTime() });
 
@@ -103,7 +103,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="kg"]').fill('30');
     await page.locator('input[placeholder="reps"]').fill('8');
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(ohpSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(ohpSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Finish the workout
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
@@ -154,7 +154,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="reps"]').nth(2).fill('10');
 
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Finish with partial sets
     const finishButton = page.getByRole('button', { name: /Finish Workout/ });
@@ -244,7 +244,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Finish the workout with just 1 set completed
     const finishButton = page.getByRole('button', { name: /Finish Workout/ });
@@ -275,7 +275,7 @@ test.describe('Monday Push Day Workout', () => {
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
 
     // Verify we see completed sets (checkmarks should exist)
-    const checkmarks = page.locator('.fa-check');
+    const checkmarks = page.locator('[data-icon="check"]');
     await expect(checkmarks.first()).toBeVisible({ timeout: 5000 });
 
     // Count total sets - should have multiple sets from the full workout
@@ -362,7 +362,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Finish the workout with just 1 set completed
     const finishButton = page.getByRole('button', { name: /Finish Workout/ });
@@ -410,7 +410,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(secondSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(secondSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Finish the workout again
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
@@ -491,7 +491,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // CRITICAL TEST: After saving ONE dropdown set row,
     // the completed counter should increase by 1 (not 3 which is the bug)
@@ -518,7 +518,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(secondSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(secondSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Counter should have increased by 1 more (total 2, not 6)
     counter = await page.getByRole('button', { name: /Finish Workout/ }).textContent();
@@ -528,6 +528,15 @@ test.describe('Monday Push Day Workout', () => {
 
     // This will fail with the bug (shows 6 instead of 2)
     expect(completedAfterSecond).toBe(2);
+
+    // Clean up: delete the active workout after test
+    const deleteButton = page.locator('button[title="Delete workout"]');
+    await deleteButton.click();
+    await page.waitForTimeout(500);
+    await page.waitForLoadState('networkidle');
+
+    // Verify workout is gone
+    await expect(activeWorkout).not.toBeVisible({ timeout: 5000 });
   });
 
   test('deleting a resumed workout removes it from the list', async ({ page }) => {
@@ -570,7 +579,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="kg"]').nth(2).fill('55');
     await page.locator('input[placeholder="reps"]').nth(2).fill('10');
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Finish the workout
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
@@ -670,7 +679,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="kg"]').first().fill(String(startingWeight));
     await page.locator('input[placeholder="reps"]').first().fill(String(week1Reps));
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(exerciseRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(exerciseRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Finish week 1 workout
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
@@ -713,7 +722,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="kg"]').first().fill(String(week2Weight));
     await page.locator('input[placeholder="reps"]').first().fill(String(week2Reps));
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(exerciseRow2.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(exerciseRow2.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Finish week 2 workout
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });

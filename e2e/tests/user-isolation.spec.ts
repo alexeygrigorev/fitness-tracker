@@ -29,10 +29,23 @@ test.describe('User Isolation', () => {
     const mondayDate = new Date('2025-01-06T09:00:00');
     await page.clock.install({ time: mondayDate.getTime() });
 
+    // Auto-accept dialogs
+    page.on('dialog', dialog => dialog.accept());
+
     // User 1 (test) logs in and creates a workout
     await login(page, 'test', 'test');
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
+
+    // Clear any existing active workout from previous test runs
+    const existingActiveWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
+    const hasExistingWorkout = await existingActiveWorkout.isVisible().catch(() => false);
+    if (hasExistingWorkout) {
+      const deleteButton = page.locator('button[title="Delete workout"]');
+      await deleteButton.click();
+      await existingActiveWorkout.waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+      await page.waitForLoadState('networkidle');
+    }
 
     // Start Push Day workout
     const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
@@ -55,7 +68,7 @@ test.describe('User Isolation', () => {
     await page.locator('input[placeholder="reps"]').nth(2).fill('10');
 
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
+    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
 
     // Finish the workout
     await page.getByRole('button', { name: /Finish Workout/ }).click();
