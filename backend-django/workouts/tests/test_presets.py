@@ -49,9 +49,12 @@ class TestGenerateSets(TestCase):
         )
         session = WorkoutSession(id=1, name="Test")
         sets = generate_sets_from_preset([preset_ex], session)
-        self.assertEqual(len(sets), 6)
-        self.assertEqual(sets[0].weight, 60)
-        self.assertEqual(sets[1].weight, 57.5)
+        # New behavior: 1 set per dropdown (with dropdown_weights containing the drops)
+        self.assertEqual(len(sets), 2)
+        # First set has dropdown_weights with 3 items (working + 2 drops)
+        self.assertEqual(len(sets[0].dropdown_weights), 3)
+        self.assertEqual(sets[0].dropdown_weights[0]['weight'], 60)
+        self.assertEqual(sets[0].dropdown_weights[1]['weight'], 57.5)
 
     def test_superset_creates_round_robin_sets(self):
         user = User.objects.create_user(username="test", password="test")
@@ -105,9 +108,10 @@ class TestComprehensiveScenarios(TestCase):
         )
         session = WorkoutSession(id=1, name="Push Day")
         sets = generate_sets_from_preset([bp_exercise], session)
-        self.assertEqual(len(sets), 10)
+        # New behavior: 1 warmup + 3 dropdown sets (each with dropdown_weights)
+        self.assertEqual(len(sets), 4)
         self.assertIsNone(sets[0].weight)
-        self.assertEqual(sets[1].weight, 60)
+        self.assertEqual(sets[1].dropdown_weights[0]['weight'], 60)
 
     def test_superset_dips_and_bend_over_rows(self):
         user = User.objects.create_user(username="test", password="test")
@@ -165,7 +169,12 @@ class TestComprehensiveScenarios(TestCase):
         )
         session = WorkoutSession(id=1, name="Push Day")
         sets = generate_sets_from_preset([bp, superset, laterals], session)
-        self.assertEqual(len(sets), 24)
+        # New behavior:
+        # Bench Press: 1 warmup + 4 dropdown sets (not 4*3) = 5
+        # Superset: 2 warmups + 3 rounds * 2 exercises = 8
+        # Lateral Raises: 3 sets
+        # Total: 5 + 8 + 3 = 16
+        self.assertEqual(len(sets), 16)
 
 
 class TestStartWorkoutIntegration(TestCase):
@@ -265,31 +274,32 @@ class TestStartWorkoutIntegration(TestCase):
         self.assertEqual(session_data["preset_id"], preset_id)
 
         sets = response.data["sets"]
-        # Expected:
-        # - Bench Press: 1 warmup + 3 working (with 2 drops each) = 1 + 3*3 = 10 sets
+        # New behavior (dropdown sets have 1 row each with dropdown_weights):
+        # - Bench Press: 1 warmup + 3 dropdown sets (not 3*3) = 4 sets
         # - Superset warmups: 2 (one for each exercise) = 2 sets
         # - Superset working: 3 rounds * 2 exercises = 6 sets
         # - Lateral Raises: 3 sets
-        # Total = 10 + 2 + 6 + 3 = 21 sets
-        self.assertEqual(len(sets), 21)
+        # Total = 4 + 2 + 6 + 3 = 15 sets
+        self.assertEqual(len(sets), 15)
 
         # Verify warmup sets have no weight
         warmup_sets = [s for s in sets if s["weight"] is None]
         self.assertGreaterEqual(len(warmup_sets), 3)  # At least 3 warmups
 
-        # Verify bench press dropdown structure
-        bench_sets = [s for s in sets if s["exercise_id"] == created_exercises["Bench Press"]]
-        self.assertEqual(len(bench_sets), 10)
+        # Verify bench press dropdown structure (using frontend field names)
+        bench_sets = [s for s in sets if s["exerciseId"] == created_exercises["Bench Press"]]
+        self.assertEqual(len(bench_sets), 4)
         # First is warmup
         self.assertIsNone(bench_sets[0]["weight"])
-        # Then working + dropdowns (3 rounds of 1 working + 2 drops)
-        for i in range(1, 10):
-            self.assertIsNotNone(bench_sets[i]["weight"])
+        # Then 3 dropdown sets, each with dropdown_weights containing 3 items (working + 2 drops)
+        for i in range(1, 4):
+            self.assertIsNotNone(bench_sets[i]["dropdownWeights"])
+            self.assertEqual(len(bench_sets[i]["dropdownWeights"]), 3)
 
-        # Verify superset round-robin order
+        # Verify superset round-robin order (using frontend field names)
         # After warmups, we should have: Dips, OHP, Dips, OHP, Dips, OHP
-        dip_sets = [s for s in sets if s["exercise_id"] == created_exercises["Dips"]]
-        ohp_sets = [s for s in sets if s["exercise_id"] == created_exercises["Overhead Press"]]
+        dip_sets = [s for s in sets if s["exerciseId"] == created_exercises["Dips"]]
+        ohp_sets = [s for s in sets if s["exerciseId"] == created_exercises["Overhead Press"]]
 
         # Dips: 1 warmup + 3 working = 4
         # OHP: 1 warmup + 3 working = 4
@@ -299,7 +309,7 @@ class TestStartWorkoutIntegration(TestCase):
         # Verify sets were persisted to database
         session = WorkoutSession.objects.get(id=session_data["id"])
         db_sets = list(session.sets.all().order_by("set_order"))
-        self.assertEqual(len(db_sets), 21)
+        self.assertEqual(len(db_sets), 15)
 
         # Verify set order is sequential
         for i, s in enumerate(db_sets):

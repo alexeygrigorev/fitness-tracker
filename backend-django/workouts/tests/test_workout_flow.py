@@ -137,7 +137,7 @@ class TestWorkoutFlow(TestCase):
                     reverse("workoutset-complete", kwargs={"pk": set_id})
                 )
                 self.assertEqual(response.status_code, 200)
-                self.assertIsNotNone(response.data["completed_at"])
+                self.assertIsNotNone(response.data["loggedAt"])
 
                 completion_times.append(current_time_offset)
 
@@ -192,8 +192,8 @@ class TestWorkoutFlow(TestCase):
         session_id = response.data["session"]["id"]
         sets = response.data["sets"]
 
-        # Get the first bench press set
-        bench_sets = [s for s in sets if s["exercise_id"] == self.bench_press.id]
+        # Get the first bench press set (using frontend field names)
+        bench_sets = [s for s in sets if s["exerciseId"] == self.bench_press.id]
         first_set_id = bench_sets[0]["id"]
 
         # Update weight and reps before completing
@@ -211,7 +211,7 @@ class TestWorkoutFlow(TestCase):
             reverse("workoutset-complete", kwargs={"pk": first_set_id})
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(response.data["completed_at"])
+        self.assertIsNotNone(response.data["loggedAt"])
         self.assertEqual(float(response.data["weight"]), 135.00)
         self.assertEqual(response.data["reps"], 10)
 
@@ -291,8 +291,8 @@ class TestWorkoutFlow(TestCase):
                 # - After isolation: 60-90 seconds
                 # - After bodyweight: 60 seconds
                 is_warmup = set_data.get("weight") is None
-                is_compound = Exercise.objects.get(id=set_data["exercise_id"]).is_compound
-                is_bodyweight = Exercise.objects.get(id=set_data["exercise_id"]).is_bodyweight
+                is_compound = Exercise.objects.get(id=set_data["exerciseId"]).is_compound
+                is_bodyweight = Exercise.objects.get(id=set_data["exerciseId"]).is_bodyweight
 
                 if is_warmup:
                     rest_time = 60
@@ -340,10 +340,10 @@ class TestWorkoutFlow(TestCase):
         session_id = response.data["session"]["id"]
         sets = response.data["sets"]
 
-        # Get the first dips set (bodyweight exercise)
-        dips_sets = [s for s in sets if s["exercise_id"] == self.dips.id]
+        # Get the first dips set (bodyweight exercise) - using frontend field names
+        dips_sets = [s for s in sets if s["exerciseId"] == self.dips.id]
         self.assertGreater(len(dips_sets), 0, "Should have at least one dips set")
-        
+
         first_dips_set_id = dips_sets[0]["id"]
 
         # Update the set with bodyweight and reps before completing
@@ -361,7 +361,7 @@ class TestWorkoutFlow(TestCase):
             reverse("workoutset-complete", kwargs={"pk": first_dips_set_id})
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(response.data["completed_at"])
+        self.assertIsNotNone(response.data["loggedAt"])
         self.assertEqual(float(response.data["bodyweight"]), 180.5)
         self.assertEqual(response.data["reps"], 12)
 
@@ -414,8 +414,8 @@ class TestWorkoutFlow(TestCase):
         )
         sets = response.data["sets"]
 
-        # Get the first bench press set
-        bench_sets = [s for s in sets if s["exercise_id"] == self.bench_press.id]
+        # Get the first bench press set (using frontend field names)
+        bench_sets = [s for s in sets if s["exerciseId"] == self.bench_press.id]
         first_set_id = bench_sets[0]["id"]
 
         # Mark as complete
@@ -423,7 +423,7 @@ class TestWorkoutFlow(TestCase):
             reverse("workoutset-complete", kwargs={"pk": first_set_id})
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIsNotNone(response.data["completed_at"])
+        self.assertIsNotNone(response.data["loggedAt"])
 
         # Verify it's complete in the database
         workout_set = WorkoutSet.objects.get(id=first_set_id)
@@ -434,7 +434,7 @@ class TestWorkoutFlow(TestCase):
             reverse("workoutset-uncomplete", kwargs={"pk": first_set_id})
         )
         self.assertEqual(response.status_code, 200)
-        self.assertIsNone(response.data["completed_at"])
+        self.assertIsNone(response.data["loggedAt"])
 
         # Verify it's uncomplete in the database
         workout_set.refresh_from_db()
