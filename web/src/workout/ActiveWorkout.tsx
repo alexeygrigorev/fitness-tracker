@@ -620,7 +620,7 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
           .map(item => ({
             id: (item as any).originalWorkoutSetId || item.id,
             exerciseId: item.exerciseId,
-            setType: item.setType === 'warmup' ? 'warmup' : 'normal',
+            setType: item.setType === 'warmup' ? 'warmup' : item.setType === 'dropdown' ? 'dropdown' : 'normal',
             weight: item.weight,
             reps: item.reps,
             loggedAt: item.completedAt || startTime

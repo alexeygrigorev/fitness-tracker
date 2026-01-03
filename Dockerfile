@@ -28,9 +28,10 @@ RUN uv sync --frozen --no-dev
 # Copy backend code
 COPY backend-django /app/backend
 
-# Copy built frontend from stage 1
-RUN mkdir -p /app/frontend/dist
-COPY --from=frontend-builder /app/web/dist /app/frontend/dist
+# Copy built frontend from stage 1 to location expected by Django settings
+# Django settings look for BASE_DIR.parent / 'web' / 'dist' = /app/web/dist
+RUN mkdir -p /app/web/dist
+COPY --from=frontend-builder /app/web/dist /app/web/dist
 
 # Create directory for database with proper permissions
 RUN mkdir -p /app/backend/db && chmod 777 /app/backend/db

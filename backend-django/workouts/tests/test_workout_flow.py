@@ -174,7 +174,7 @@ class TestWorkoutFlow(TestCase):
                 reverse("workoutsession-finish", kwargs={"pk": session_id})
             )
             self.assertEqual(response.status_code, 200)
-            self.assertIsNotNone(response.data["finished_at"])
+            self.assertIsNotNone(response.data["endedAt"])
 
         # Verify session is marked as finished
         session.refresh_from_db()
