@@ -78,7 +78,8 @@ export default function ExercisesPage() {
   const [loading, setLoading] = useState(true);
 
   // Date navigation state
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  // Use lazy initialization to capture the time when component renders
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
 
   // Modal state
   const [showPresetForm, setShowPresetForm] = useState(false);
@@ -429,6 +430,7 @@ export default function ExercisesPage() {
                 onCancel={cancelWorkout}
                 onDelete={handleDeleteActiveWorkout}
                 resumingWorkout={resumingWorkout}
+                expectedStartDate={selectedDate}
               />
             </div>
           )}

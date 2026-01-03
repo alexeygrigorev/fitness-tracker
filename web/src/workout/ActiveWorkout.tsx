@@ -15,6 +15,7 @@ interface ActiveWorkoutProps {
   onCancel: () => void;
   onDelete?: (workoutId: string) => void; // Called when a workout is deleted
   resumingWorkout?: WorkoutSession; // If provided, resume this workout instead of starting fresh
+  expectedStartDate?: Date; // Optional: the date that should be used as the workout start date
 }
 
 const isBodyweight = (exercise: Exercise) => {
@@ -23,13 +24,14 @@ const isBodyweight = (exercise: Exercise) => {
     (exercise.equipment.length === 1 && exercise.equipment[0].toLowerCase() === 'bodyweight');
 };
 
-export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, resumingWorkout }: ActiveWorkoutProps) {
+export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, resumingWorkout, expectedStartDate }: ActiveWorkoutProps) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [setRows, setSetRows] = useState<SetItem[]>([]);
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [setForm, setSetForm] = useState<SetForm>({ reps: 10 });
   const [showAddExercise, setShowAddExercise] = useState(false);
-  const [startTime, setStartTime] = useState(new Date());
+  // Use expectedStartDate if provided (to match the selected date in UI), otherwise use current time
+  const [startTime, setStartTime] = useState(() => expectedStartDate ? new Date(expectedStartDate) : new Date());
   const [loading, setLoading] = useState(false);
   const [workoutSessionId, setWorkoutSessionId] = useState<string | null>(null);
   const [showAllIncomplete, setShowAllIncomplete] = useState(false);
