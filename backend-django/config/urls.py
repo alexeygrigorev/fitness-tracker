@@ -57,7 +57,7 @@ def serve_spa(request, path=''):
         if os.path.exists(file_path) and not os.path.isdir(file_path):
             # Detect MIME type
             mime_type, _ = mimetypes.guess_type(file_path)
-            if mime_type is None:
+            if mime_type is None or mime_type == 'text/plain':
                 if file_path.endswith('.js') or file_path.endswith('.mjs'):
                     mime_type = 'application/javascript'
                 elif file_path.endswith('.css'):

@@ -8,6 +8,18 @@ async function login(page: Page) {
   await page.waitForURL(/^(?!.*\/login).*$/, { timeout: 10000 });
 }
 
+async function clearExistingActiveWorkout(page: Page) {
+  const existingActiveWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
+  const hasExistingWorkout = await existingActiveWorkout.isVisible().catch(() => false);
+  if (hasExistingWorkout) {
+    const deleteButton = page.locator('button[title="Delete workout"]');
+    await deleteButton.click();
+    // Wait for the active workout to actually be removed
+    await existingActiveWorkout.waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+    await page.waitForLoadState('networkidle');
+  }
+}
+
 test.describe('Monday Push Day Workout', () => {
   test.beforeEach(async ({ page }) => {
     // Set up auto-accept for all confirmation dialogs for the entire test suite
@@ -22,6 +34,9 @@ test.describe('Monday Push Day Workout', () => {
     await login(page);
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
+
+    // Clear any existing active workout from previous tests
+    await clearExistingActiveWorkout(page);
 
     // Start Push Day workout
     const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
@@ -91,7 +106,7 @@ test.describe('Monday Push Day Workout', () => {
     await expect(ohpSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
 
     // Finish the workout
-    await page.getByRole('button', { name: /Finish Workout/ }).click();
+    await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
 
     // Wait for the active workout to disappear
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
@@ -114,6 +129,9 @@ test.describe('Monday Push Day Workout', () => {
     await login(page);
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
+
+    // Clear any existing active workout from previous tests
+    await clearExistingActiveWorkout(page);
 
     // Start Push Day workout
     const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
@@ -139,7 +157,8 @@ test.describe('Monday Push Day Workout', () => {
     await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
 
     // Finish with partial sets
-    await page.getByRole('button', { name: /Finish Workout/ }).click();
+    const finishButton = page.getByRole('button', { name: /Finish Workout/ });
+    await finishButton.click({ force: true });
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
     await page.waitForLoadState('networkidle');
 
@@ -161,6 +180,9 @@ test.describe('Monday Push Day Workout', () => {
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
 
+    // Clear any existing active workout from previous tests
+    await clearExistingActiveWorkout(page);
+
     // Verify "Today's Presets" section exists (use heading to avoid strict mode violation)
     await expect(page.getByRole('heading', { name: /Today/i })).toBeVisible();
 
@@ -178,6 +200,9 @@ test.describe('Monday Push Day Workout', () => {
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
 
+    // Clear any existing active workout from previous tests
+    await clearExistingActiveWorkout(page);
+
     // Leg Day should exist in the DOM (it's a Friday preset, shown somewhere on Monday)
     // It may be hidden in a collapsible section, but should be present
     const legDayCount = await page.getByText('Leg Day').count();
@@ -192,6 +217,9 @@ test.describe('Monday Push Day Workout', () => {
     await login(page);
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
+
+    // Clear any existing active workout from previous tests
+    await clearExistingActiveWorkout(page);
 
     // Start Push Day workout
     const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
@@ -221,7 +249,7 @@ test.describe('Monday Push Day Workout', () => {
     // Finish the workout with just 1 set completed
     const finishButton = page.getByRole('button', { name: /Finish Workout/ });
     await expect(finishButton).toBeVisible();
-    await finishButton.click();
+    await finishButton.click({ force: true });
 
     // Wait for the active workout to disappear
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
@@ -259,7 +287,7 @@ test.describe('Monday Push Day Workout', () => {
     // Wait a moment for the workout state to fully load after resume
     await page.waitForTimeout(2000);
     await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: /Finish Workout/ }).click();
+    await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
 
     // Wait for active workout to disappear
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
@@ -305,6 +333,9 @@ test.describe('Monday Push Day Workout', () => {
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
 
+    // Clear any existing active workout from previous tests
+    await clearExistingActiveWorkout(page);
+
     // Count workouts BEFORE starting the workout (there may be existing workouts from previous tests)
     const initialWorkoutCount = await page.locator('[data-workout-id]').count();
 
@@ -336,7 +367,7 @@ test.describe('Monday Push Day Workout', () => {
     // Finish the workout with just 1 set completed
     const finishButton = page.getByRole('button', { name: /Finish Workout/ });
     await expect(finishButton).toBeVisible();
-    await finishButton.click();
+    await finishButton.click({ force: true });
 
     // Wait for the active workout to disappear
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
@@ -382,7 +413,7 @@ test.describe('Monday Push Day Workout', () => {
     await expect(secondSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
 
     // Finish the workout again
-    await page.getByRole('button', { name: /Finish Workout/ }).click();
+    await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
 
     // Wait for the active workout to disappear
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
@@ -409,6 +440,9 @@ test.describe('Monday Push Day Workout', () => {
     await login(page);
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
+
+    // Clear any existing active workout from previous tests
+    await clearExistingActiveWorkout(page);
 
     // Start Push Day workout
     const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
@@ -505,6 +539,9 @@ test.describe('Monday Push Day Workout', () => {
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
 
+    // Clear any existing active workout from previous tests
+    await clearExistingActiveWorkout(page);
+
     // Count workouts BEFORE starting (there may be existing workouts from previous tests)
     const initialWorkoutCount = await page.locator('[data-workout-id]').count();
 
@@ -531,7 +568,7 @@ test.describe('Monday Push Day Workout', () => {
     await expect(firstSetRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
 
     // Finish the workout
-    await page.getByRole('button', { name: /Finish Workout/ }).click();
+    await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
     await page.waitForLoadState('networkidle');
 
@@ -594,6 +631,9 @@ test.describe('Monday Push Day Workout', () => {
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
 
+    // Clear any existing active workout from previous tests
+    await clearExistingActiveWorkout(page);
+
     // Use the "Test Last Used Weights" preset which has:
     // - Overhead Press (normal, 3 sets)
     // - Dips (bodyweight, 3 sets)
@@ -624,7 +664,7 @@ test.describe('Monday Push Day Workout', () => {
     await expect(exerciseRow.locator('.fa-check')).toBeVisible({ timeout: 5000 });
 
     // Finish week 1 workout
-    await page.getByRole('button', { name: /Finish Workout/ }).click();
+    await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
     await page.waitForLoadState('networkidle');
 
@@ -667,7 +707,7 @@ test.describe('Monday Push Day Workout', () => {
     await expect(exerciseRow2.locator('.fa-check')).toBeVisible({ timeout: 5000 });
 
     // Finish week 2 workout
-    await page.getByRole('button', { name: /Finish Workout/ }).click();
+    await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
     await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
     await page.waitForLoadState('networkidle');
 

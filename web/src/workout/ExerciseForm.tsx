@@ -7,7 +7,7 @@ const MUSCLE_GROUPS: MuscleGroup[] = [
   'abs', 'obliques', 'quads', 'hamstrings', 'glutes', 'calves', 'traps', 'lats'
 ];
 
-const CATEGORIES: Array<Exercise['category']> = ['compound', 'isolation', 'cardio'];
+const CATEGORIES: Array<'compound' | 'isolation' | 'cardio'> = ['compound', 'isolation', 'cardio'];
 
 interface ExerciseFormProps {
   exercise?: Exercise;
@@ -18,8 +18,8 @@ interface ExerciseFormProps {
 export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFormProps) {
   const [name, setName] = useState(exercise?.name || '');
   const [category, setCategory] = useState<Exercise['category']>(exercise?.category || 'compound');
-  const [muscleGroups, setMuscleGroups] = useState<MuscleGroup[]>(exercise?.muscleGroups || []);
-  const [equipment, setEquipment] = useState<string[]>(exercise?.equipment || []);
+  const [muscleGroups, setMuscleGroups] = useState<string[]>(exercise?.muscleGroups || []);
+  const [equipment, setEquipment] = useState<string>(exercise?.equipment || '');
   const [equipmentInput, setEquipmentInput] = useState('');
   const [instructions, setInstructions] = useState<string[]>(exercise?.instructions || []);
   const [instructionInput, setInstructionInput] = useState('');
@@ -29,7 +29,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
   const [aiDescription, setAiDescription] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
 
-  const toggleMuscleGroup = (mg: MuscleGroup) => {
+  const toggleMuscleGroup = (mg: string) => {
     setMuscleGroups(prev =>
       prev.includes(mg)
         ? prev.filter(g => g !== mg)
@@ -39,13 +39,13 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
   const addEquipment = () => {
     if (equipmentInput.trim()) {
-      setEquipment([...equipment, equipmentInput.trim()]);
+      setEquipment(equipmentInput.trim());
       setEquipmentInput('');
     }
   };
 
-  const removeEquipment = (index: number) => {
-    setEquipment(equipment.filter((_, i) => i !== index));
+  const removeEquipment = () => {
+    setEquipment('');
   };
 
   const addInstruction = () => {
@@ -79,7 +79,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
       if (result.name) setName(result.name);
       if (result.category) setCategory(result.category);
       if (result.muscleGroups) setMuscleGroups(result.muscleGroups);
-      if (result.equipment) setEquipment(result.equipment);
+      if (result.equipment) setEquipment(Array.isArray(result.equipment) ? result.equipment[0] || '' : result.equipment);
       if (result.instructions) setInstructions(result.instructions);
       setAiDescription('');
     } catch (error) {
@@ -216,18 +216,18 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
-          {equipment.map((eq, i) => (
-            <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
-              {eq}
+          {equipment && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
+              {equipment}
               <button
                 type="button"
-                onClick={() => removeEquipment(i)}
+                onClick={() => removeEquipment()}
                 className="text-gray-500 hover:text-red-600"
               >
                 &times;
               </button>
             </span>
-          ))}
+          )}
         </div>
         <p className="text-xs text-gray-500 mt-1">Leave empty for bodyweight exercises</p>
       </div>

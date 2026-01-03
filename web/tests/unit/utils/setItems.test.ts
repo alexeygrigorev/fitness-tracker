@@ -251,6 +251,108 @@ describe('SetItem Classes', () => {
       expect(completed.allSubSetsCompleted).toBe(true);
       expect(completed.isFullyCompleted).toBe(true);
     });
+
+    it('getInitialForm should not mutate original subSets', () => {
+      // Create two dropdown sets for the same exercise
+      const originalSubSets1 = [
+        { weight: 60, reps: 10, completed: false },
+        { weight: 50, reps: 10, completed: false },
+        { weight: 40, reps: 10, completed: false },
+      ];
+
+      const originalSubSets2 = [
+        { weight: 60, reps: 10, completed: false },
+        { weight: 50, reps: 10, completed: false },
+        { weight: 40, reps: 10, completed: false },
+      ];
+
+      const set1 = new DropdownSetItem({
+        id: 'dd-1',
+        exerciseId: 'ex-1',
+        exerciseName: 'Bench Press',
+        exercise: mockExercise,
+        setNumber: 1,
+        completed: false,
+        isBodyweight: false,
+        subSets: originalSubSets1,
+      });
+
+      const set2 = new DropdownSetItem({
+        id: 'dd-2',
+        exerciseId: 'ex-1',
+        exerciseName: 'Bench Press',
+        exercise: mockExercise,
+        setNumber: 2,
+        completed: false,
+        isBodyweight: false,
+        subSets: originalSubSets2,
+      });
+
+      // Simulate completing set1
+      const completedSet1 = set1.applyFormAndComplete({ weight: 60, reps: 10, subSets: set1.subSets });
+
+      expect(completedSet1.allSubSetsCompleted).toBe(true);
+
+      // Store the lastUsed data (simulating what submitSet does)
+      const lastUsed = completedSet1.getLastUsedData({ weight: 60, reps: 10 });
+
+      // Simulate opening set2's form (calling getInitialForm with lastUsed)
+      const formForSet2 = set2.getInitialForm(lastUsed);
+
+      // This is where the bug might be: formForSet2.subSets should not affect set1
+      // and set1 should still be completed
+      expect(completedSet1.allSubSetsCompleted).toBe(true);
+
+      // The form's subSets should have the weights from lastUsed
+      expect(formForSet2.subSets?.[0].weight).toBe(60);
+
+      // But set1's subSets should still be completed
+      expect(completedSet1.subSets[0].completed).toBe(true);
+      expect(completedSet1.subSets[1].completed).toBe(true);
+      expect(completedSet1.subSets[2].completed).toBe(true);
+    });
+
+    it('should not share subSets references between set instances', () => {
+      // Create two dropdown sets with the same subSets values
+      const sharedSubSets = [
+        { weight: 60, reps: 10, completed: false },
+        { weight: 50, reps: 10, completed: false },
+        { weight: 40, reps: 10, completed: false },
+      ];
+
+      const set1 = new DropdownSetItem({
+        id: 'dd-1',
+        exerciseId: 'ex-1',
+        exerciseName: 'Bench Press',
+        exercise: mockExercise,
+        setNumber: 1,
+        completed: false,
+        isBodyweight: false,
+        subSets: [...sharedSubSets], // Create a copy
+      });
+
+      const set2 = new DropdownSetItem({
+        id: 'dd-2',
+        exerciseId: 'ex-1',
+        exerciseName: 'Bench Press',
+        exercise: mockExercise,
+        setNumber: 2,
+        completed: false,
+        isBodyweight: false,
+        subSets: [...sharedSubSets], // Create a copy
+      });
+
+      // Complete set1
+      const completedSet1 = set1.applyFormAndComplete({ weight: 60, reps: 10, subSets: set1.subSets });
+
+      // set2 should not be affected
+      expect(set2.allSubSetsCompleted).toBe(false);
+      expect(set2.subSets[0].completed).toBe(false);
+
+      // set1 should be completed
+      expect(completedSet1.allSubSetsCompleted).toBe(true);
+      expect(completedSet1.subSets[0].completed).toBe(true);
+    });
   });
 
   describe('createSetItem factory', () => {
@@ -377,7 +479,7 @@ describe('SetItem Classes', () => {
       });
     });
 
-    it('should not return workout set if already saved', () => {
+    it('should return workout set even if already saved (for cross-device sync)', () => {
       const normal = new NormalSetItem({
         id: 'n-1',
         exerciseId: 'ex-1',
@@ -393,7 +495,15 @@ describe('SetItem Classes', () => {
       });
 
       const workoutSets = normal.toWorkoutSets(new Date());
-      expect(workoutSets).toEqual([]);
+      // Sets are now always included in updates for cross-device sync
+      expect(workoutSets).toHaveLength(1);
+      expect(workoutSets[0]).toMatchObject({
+        id: 'n-1',
+        exerciseId: 'ex-1',
+        setType: 'normal',
+        reps: 10,
+        weight: 100,
+      });
     });
   });
 });

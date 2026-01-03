@@ -193,7 +193,7 @@ export default function AddExerciseWithAIModal({ isOpen, onClose, onExerciseCrea
 
             <div className="text-sm mb-3">
               <span className="text-gray-500">Equipment:</span>
-              <div>{analyzedExercise.equipment?.length ? analyzedExercise.equipment.join(', ') : 'Bodyweight'}</div>
+              <div>{analyzedExercise.equipment || 'Bodyweight'}</div>
             </div>
 
             {analyzedExercise.instructions && analyzedExercise.instructions.length > 0 && (

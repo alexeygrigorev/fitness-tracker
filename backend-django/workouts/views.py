@@ -104,7 +104,9 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
         for k, v in request.data.items():
             setattr(obj, k, v)
         obj.save()
-        return Response(model_to_dict(obj))
+        # Use serializer for response to get correct field names
+        serializer = WorkoutSetSerializer(obj)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
@@ -204,26 +206,53 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             setattr(obj, k, v)
         obj.save()
 
-        # Handle sets update - delete existing sets and create new ones
+        # Handle sets update - sync with provided sets data
         if sets_data is not None:
-            # Delete existing sets for this session
-            WorkoutSet.objects.filter(session=obj).delete()
-            # Create new sets from the provided data
+            # Get existing sets for this session
+            existing_sets = list(WorkoutSet.objects.filter(session=obj))
+            existing_sets_by_id = {s.id: s for s in existing_sets}
+
+            # Track which set IDs have been processed
+            processed_set_ids = set()
+            created_sets = []
+
             for idx, set_data in enumerate(sets_data):
-                # Map frontend field names to Django model field names
-                mapped_data = {
-                    'session': obj,
-                    'set_order': set_data.get('set_order', idx),  # Use provided order or index
-                    'exercise_id': set_data.get('exerciseId'),  # frontend sends exerciseId
-                    'set_type': set_data.get('setType', 'normal'),  # frontend sends setType
-                    'weight': set_data.get('weight'),
-                    'reps': set_data.get('reps'),
-                    'bodyweight': set_data.get('bodyweight'),
-                    'completed_at': set_data.get('loggedAt'),  # frontend sends loggedAt
-                }
-                # Remove None values to let defaults apply
-                mapped_data = {k: v for k, v in mapped_data.items() if v is not None}
-                WorkoutSet.objects.create(**mapped_data)
+                # Check if this set has an ID that matches an existing set
+                set_id = set_data.get('id')
+                if set_id and set_id in existing_sets_by_id:
+                    # Update existing set
+                    set_obj = existing_sets_by_id[set_id]
+                    set_obj.set_order = set_data.get('set_order', idx)
+                    set_obj.exercise_id = set_data.get('exerciseId')
+                    set_obj.set_type = set_data.get('setType', 'normal')
+                    set_obj.weight = set_data.get('weight')
+                    set_obj.reps = set_data.get('reps')
+                    set_obj.bodyweight = set_data.get('bodyweight')
+                    set_obj.completed_at = set_data.get('loggedAt')
+                    set_obj.save()
+                    processed_set_ids.add(set_id)
+                else:
+                    # Create new set
+                    mapped_data = {
+                        'session': obj,
+                        'set_order': set_data.get('set_order', idx),
+                        'exercise_id': set_data.get('exerciseId'),
+                        'set_type': set_data.get('setType', 'normal'),
+                        'weight': set_data.get('weight'),
+                        'reps': set_data.get('reps'),
+                        'bodyweight': set_data.get('bodyweight'),
+                        'completed_at': set_data.get('loggedAt'),
+                    }
+                    # Remove None values to let defaults apply
+                    mapped_data = {k: v for k, v in mapped_data.items() if v is not None}
+                    new_set = WorkoutSet.objects.create(**mapped_data)
+                    created_sets.append(new_set)
+                    processed_set_ids.add(new_set.id)
+
+            # Delete sets that weren't in the update (sets that were "uncompleted" and removed)
+            for existing_set in existing_sets:
+                if existing_set.id not in processed_set_ids:
+                    existing_set.delete()
 
         return Response(model_to_dict(obj))
 
@@ -242,6 +271,20 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         # Use serializer to ensure all fields are included
         serializer = WorkoutSessionSerializer(obj)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"])
+    def active(self, request):
+        """Get the currently active workout session (if any)."""
+        # Return the most recent workout session that doesn't have finished_at
+        active_session = WorkoutSession.objects.filter(
+            user=request.user,
+            finished_at__isnull=True
+        ).order_by('-created_at').first()
+
+        if active_session:
+            serializer = WorkoutSessionSerializer(active_session)
+            return Response(serializer.data)
+        return Response(status=204)  # No content = no active workout
 
 
 class WorkoutPresetViewSet(viewsets.ModelViewSet):

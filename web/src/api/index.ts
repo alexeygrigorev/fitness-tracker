@@ -249,6 +249,13 @@ export const workoutSetsApi = {
       headers: await getHeaders(),
     });
     return handleResponse(response);
+  },
+  delete: async (id: string) => {
+    const response = await fetch(`${API_BASE}/api/workouts/sets/${id}/`, {
+      method: 'DELETE',
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
   }
 };
 
@@ -324,24 +331,32 @@ export const workoutCalculationsApi = {
   }
 };
 
-// Active Workout State API (client-side for now)
+// Active Workout State API - now server-side for cross-device persistence
 export const activeWorkoutStateApi = {
+  // Get the active workout session from the server
+  getActiveSession: async () => {
+    const response = await fetch(`${API_BASE}/api/workouts/sessions/active/`, {
+      headers: await getHeaders(),
+    });
+    if (response.status === 204) {
+      return null; // No active workout
+    }
+    return handleResponse(response);
+  },
   get: async () => {
-    const state = localStorage.getItem('activeWorkout');
-    return state ? JSON.parse(state) : null;
+    // Get from server only (localStorage migration no longer needed)
+    return activeWorkoutStateApi.getActiveSession();
   },
-  save: async (state: any) => {
-    localStorage.setItem('activeWorkout', JSON.stringify(state));
-    return state;
+  save: async () => {
+    // Handled by workout session auto-save in ActiveWorkout.tsx
+    return null;
   },
-  update: async (updates: any) => {
-    const current = await activeWorkoutStateApi.get();
-    const updated = { ...current, ...updates };
-    localStorage.setItem('activeWorkout', JSON.stringify(updated));
-    return updated;
+  update: async () => {
+    // Handled by workout session auto-save in ActiveWorkout.tsx
+    return null;
   },
   clear: async () => {
-    localStorage.removeItem('activeWorkout');
+    // Server-side active session is cleared when workout is finished
     return true;
   }
 };
@@ -522,7 +537,7 @@ export const foodCalculationsApi = {
     const response = await fetch(`${API_BASE}/api/food/calculations/infer-metabolism/`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify({ food_type: name, fat_g: fat, carbs_g: carbs, protein_g: protein, fiber_g: fiber }),
+      body: JSON.stringify({ food_type: name, fat_g: fat, carbs_g: carbs, protein_g: protein, fiber_g: fiber, sugar_g: sugar }),
     });
     return handleResponse(response);
   },

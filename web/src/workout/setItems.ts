@@ -93,7 +93,6 @@ export abstract class BaseSetItem implements SetData {
   }
 
   toWorkoutSets(startTime: Date): WorkoutSet[] {
-    if (this.alreadySaved) return [];
     if (!this.completed) return [];
     return [{
       id: this.originalWorkoutSetId || this.id,
@@ -324,7 +323,8 @@ export class DropdownSetItem extends BaseSetItem {
   }
 
   override getInitialForm(lastUsed?: LastUsedData): SetFormData {
-    let subSetsToUse = this.subSets;
+    // Always create a new array to avoid reference sharing
+    let subSetsToUse: Array<{ weight: number; reps: number; completed: boolean }> = [];
     if (lastUsed?.subSets && lastUsed.subSets.length === this.subSets.length) {
       const savedSubSets = lastUsed.subSets;
       subSetsToUse = this.subSets.map((subSet, idx) => ({
@@ -332,6 +332,9 @@ export class DropdownSetItem extends BaseSetItem {
         weight: savedSubSets[idx]?.weight ?? subSet.weight,
         reps: savedSubSets[idx]?.reps ?? subSet.reps
       }));
+    } else {
+      // Create a new array with copies of subSets to avoid reference sharing
+      subSetsToUse = this.subSets.map(subSet => ({ ...subSet }));
     }
     return {
       weight: lastUsed?.weight ?? subSetsToUse[0]?.weight,

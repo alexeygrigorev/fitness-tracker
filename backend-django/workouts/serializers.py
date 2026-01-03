@@ -49,15 +49,24 @@ class ExerciseSerializer(serializers.ModelSerializer):
 
 
 class WorkoutSetSerializer(serializers.ModelSerializer):
+    exerciseId = serializers.ReadOnlyField(source='exercise.id')
+    loggedAt = serializers.DateTimeField(source='completed_at', allow_null=True)
+
     class Meta:
         model = WorkoutSet
-        fields = '__all__'
+        # Use camelCase for frontend
+        fields = ['id', 'exerciseId', 'session', 'set_order', 'set_type', 'weight', 'reps', 'bodyweight', 'loggedAt']
 
 
 class WorkoutSessionSerializer(serializers.ModelSerializer):
+    sets = WorkoutSetSerializer(many=True, read_only=True)
+    startedAt = serializers.DateTimeField(source='created_at')
+    endedAt = serializers.DateTimeField(source='finished_at', allow_null=True)
+
     class Meta:
         model = WorkoutSession
-        fields = '__all__'
+        # Explicitly list fields to use camelCase names for frontend
+        fields = ['id', 'name', 'notes', 'startedAt', 'endedAt', 'user', 'preset', 'sets']
 
 
 class SupersetExerciseItemSerializer(serializers.ModelSerializer):

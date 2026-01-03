@@ -168,18 +168,18 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
     if (search) {
       filtered = filtered.filter(ex =>
         ex.name.toLowerCase().includes(search.toLowerCase()) ||
-        ex.muscleGroups.some(mg => mg.toLowerCase().includes(search.toLowerCase()))
+        ex.muscleGroups?.some(mg => mg.toLowerCase().includes(search.toLowerCase()))
       );
     }
 
     if (filterCategory !== 'all') {
       if (filterCategory === 'upper') {
         filtered = filtered.filter(ex =>
-          ex.muscleGroups.some(mg => ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'traps', 'lats', 'forearms'].includes(mg))
+          ex.muscleGroups?.some(mg => ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'traps', 'lats', 'forearms'].includes(mg))
         );
       } else if (filterCategory === 'lower') {
         filtered = filtered.filter(ex =>
-          ex.muscleGroups.some(mg => ['quads', 'hamstrings', 'glutes', 'calves', 'abs', 'obliques'].includes(mg))
+          ex.muscleGroups?.some(mg => ['quads', 'hamstrings', 'glutes', 'calves', 'abs', 'obliques'].includes(mg))
         );
       } else {
         filtered = filtered.filter(ex => ex.category === filterCategory);
@@ -469,7 +469,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                             ) : (
                               <>
                                 <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{exercise.name}</span>
-                                <span className={`text-xs px-1 py-0.5 rounded ${CATEGORY_COLORS[exercise.category] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                                <span className={`text-xs px-1 py-0.5 rounded ${CATEGORY_COLORS[exercise.category || 'compound'] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
                                   {exercise.category}
                                 </span>
                                 <span className={`text-xs px-1 py-0.5 rounded ${bodyweight ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300'}`}>
@@ -628,7 +628,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-gray-900 dark:text-gray-100">{exercise.name}</span>
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${CATEGORY_COLORS[exercise.category] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${CATEGORY_COLORS[exercise.category || 'compound'] || 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'}`}>
                         {exercise.category}
                       </span>
                       <span className={`text-xs px-1.5 py-0.5 rounded ${getTypeColor(ex.type)}`}>

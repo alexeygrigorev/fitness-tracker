@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faTrash, faChevronLeft, faChevronRight, faPlus, faPlay } from '@fortawesome/free-solid-svg-icons';
-import { exercisesApi, workoutsApi, workoutPresetsApi } from '../api';
+import { exercisesApi, workoutsApi, workoutPresetsApi, activeWorkoutStateApi } from '../api';
 import Modal from '../components/Modal';
 import WorkoutPresetForm from './WorkoutPresetForm';
 import ActiveWorkout from './ActiveWorkout';
@@ -92,30 +92,35 @@ export default function ExercisesPage() {
   const [resumingWorkout, setResumingWorkout] = useState<WorkoutSession | undefined>(undefined);
   const [hasRestoredWorkout, setHasRestoredWorkout] = useState(false);
 
-  // Restore active workout from localStorage on mount
+  // Restore active workout from server on mount
   useEffect(() => {
     if (hasRestoredWorkout) return;
 
-    try {
-      const stored = localStorage.getItem('activeWorkout');
-      if (stored) {
-        const state = JSON.parse(stored);
-        const storedDate = new Date(state.startTime);
-        const today = new Date();
-
-        // Only restore if from today
-        if (storedDate.toDateString() === today.toDateString()) {
-          setActivePreset(state.preset);
-        } else {
-          // Clear old workout
-          localStorage.removeItem('activeWorkout');
+    const restoreActiveWorkout = async () => {
+      try {
+        // Check server for active workout session
+        const activeSession = await activeWorkoutStateApi.getActiveSession();
+        if (activeSession && presets.length > 0) {
+          // Find the matching preset by name
+          const matchingPreset = presets.find(p => p.name === activeSession.name);
+          if (matchingPreset) {
+            setActivePreset(matchingPreset);
+            setResumingWorkout(activeSession);
+            setHasRestoredWorkout(true);
+            return;
+          }
         }
+      } catch (e) {
+        console.error('Failed to restore active workout from server:', e);
       }
-    } catch (e) {
-      console.error('Failed to restore active workout:', e);
+      setHasRestoredWorkout(true);
+    };
+
+    // Only run after presets are loaded
+    if (presets.length > 0) {
+      restoreActiveWorkout();
     }
-    setHasRestoredWorkout(true);
-  }, [hasRestoredWorkout]);
+  }, [hasRestoredWorkout, presets]);
 
   useEffect(() => {
     Promise.all([
@@ -848,7 +853,7 @@ export default function ExercisesPage() {
                 <div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">Instructions</div>
                   <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 dark:text-gray-300">
-                    {selectedExercise.instructions.map((inst, i) => (
+                    {selectedExercise.instructions?.map((inst, i) => (
                       <li key={i}>{inst}</li>
                     ))}
                   </ol>
