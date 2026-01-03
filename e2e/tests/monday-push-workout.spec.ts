@@ -539,6 +539,11 @@ test.describe('Monday Push Day Workout', () => {
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
 
+    // Verify the clock is working by checking Date.now()
+    const currentTime = await page.evaluate(() => Date.now());
+    console.log('Current time after clock install:', new Date(currentTime).toISOString());
+    console.log('Expected time:', mondayDate.toISOString());
+
     // Clear any existing active workout from previous tests
     await clearExistingActiveWorkout(page);
 
@@ -575,6 +580,8 @@ test.describe('Monday Push Day Workout', () => {
     // Reload to see the workout in the list
     await page.reload();
     await page.waitForLoadState('networkidle');
+    // Wait for workouts to be visible (ensure data is loaded)
+    await page.waitForSelector('[data-workout-id]', { timeout: 5000 }).catch(() => {});
 
     // Verify workout count increased by 1
     const workoutsAfterCreation = await page.locator('[data-workout-id]').count();
@@ -606,6 +613,8 @@ test.describe('Monday Push Day Workout', () => {
     // Reload to get the updated state
     await page.reload();
     await page.waitForLoadState('networkidle');
+    // Wait for workouts to be visible (ensure data is loaded)
+    await page.waitForSelector('[data-workout-id]', { timeout: 5000 }).catch(() => {});
 
     // Verify workout count decreased by 1
     const finalWorkoutCount = await page.locator('[data-workout-id]').count();

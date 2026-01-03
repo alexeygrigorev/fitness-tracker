@@ -50,6 +50,14 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
     exercisesApi.getAll().then(setExercises);
   }, []);
 
+  // Sync startTime with expectedStartDate for fresh workouts
+  // This ensures the workout start date matches the selected date in the UI
+  useEffect(() => {
+    if (expectedStartDate && !resumingWorkout) {
+      setStartTime(new Date(expectedStartDate));
+    }
+  }, [expectedStartDate, resumingWorkout]);
+
   // Load last used weights from preset (included in preset response from backend)
   useEffect(() => {
     // Skip if we're restoring an active session (which already has lastUsed data)
