@@ -300,7 +300,7 @@ export class DropdownSetItem extends BaseSetItem {
     return this.completed;
   }
 
-  override applyFormAndComplete(form: SetFormData): this {
+  override applyFormAndComplete(_form: SetFormData): this {
     return this.markCompleted().withChanges({
       alreadySaved: undefined
     } as any);

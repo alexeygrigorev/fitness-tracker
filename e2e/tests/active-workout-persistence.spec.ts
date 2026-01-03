@@ -64,10 +64,18 @@ test.describe('Active Workout Persistence', () => {
     const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
     await pushDayPreset.click();
 
-    // Wait for active workout mode
+    // Wait for active workout mode and network to settle
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
     await expect(activeWorkout).toContainText('Push Day');
+    await page.waitForLoadState('networkidle');
+
+    // Wait for workout session ID to be set (from start_workout API)
+    await expect(async () => {
+      const workoutId = await activeWorkout.getAttribute('data-workout-id');
+      expect(workoutId).not.toBeNull();
+      expect(workoutId).not.toBe('null');
+    }).toPass({ timeout: 10000 });
 
     // Complete one set to ensure the workout session is created on the server
     const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
@@ -163,6 +171,14 @@ test.describe('Active Workout Persistence', () => {
 
     const activeWorkout1 = page1.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout1).toBeVisible({ timeout: 5000 });
+    await page1.waitForLoadState('networkidle');
+
+    // Wait for workout session ID to be set (from start_workout API)
+    await expect(async () => {
+      const workoutId = await activeWorkout1.getAttribute('data-workout-id');
+      expect(workoutId).not.toBeNull();
+      expect(workoutId).not.toBe('null');
+    }).toPass({ timeout: 10000 });
 
     // Complete Bench Press Set 1 (dropdown set)
     const benchPressSet1 = page1.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });

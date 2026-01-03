@@ -52,11 +52,12 @@ class WorkoutSetSerializer(serializers.ModelSerializer):
     exerciseId = serializers.ReadOnlyField(source='exercise.id')
     loggedAt = serializers.DateTimeField(source='completed_at', allow_null=True)
     dropdownWeights = serializers.JSONField(source='dropdown_weights', required=False)
+    setType = serializers.CharField(source='set_type')
 
     class Meta:
         model = WorkoutSet
         # Use camelCase for frontend
-        fields = ['id', 'exerciseId', 'session', 'set_order', 'set_type', 'weight', 'reps', 'bodyweight', 'dropdownWeights', 'loggedAt']
+        fields = ['id', 'exerciseId', 'session', 'set_order', 'setType', 'weight', 'reps', 'bodyweight', 'dropdownWeights', 'loggedAt']
 
 
 class WorkoutSessionSerializer(serializers.ModelSerializer):

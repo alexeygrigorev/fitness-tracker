@@ -222,10 +222,11 @@ export default function ExercisesPage() {
       const sets = response.sets;
 
       // Build a workout session object with all the sets
+      // The serializer returns 'startedAt' (camelCase) mapped from created_at
       const workoutSession: WorkoutSession = {
         id: session.id,
         name: session.name,
-        startedAt: session.startedAt,
+        startedAt: new Date(session.startedAt),
         sets: sets
       };
 

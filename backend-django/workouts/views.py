@@ -147,15 +147,19 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
 
 class WorkoutSessionViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutSessionSerializer
-    
+
     def get_queryset(self):
-        return WorkoutSession.objects.filter(user=self.request.user)
+        return WorkoutSession.objects.filter(user=self.request.user).prefetch_related('sets__exercise')
 
     def list(self, request, *args, **kwargs):
-        return Response([model_to_dict(obj) for obj in self.get_queryset()])
+        # Use serializer to get camelCase field names and include related sets
+        serializer = self.serializer_class(self.get_queryset(), many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        return Response(model_to_dict(self.get_object()))
+        # Use serializer to get camelCase field names and include related sets
+        serializer = self.serializer_class(self.get_object())
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         from django.utils import timezone
@@ -446,6 +450,8 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         Accepts optional 'startedAt' parameter to allow client-provided timestamp.
         """
         from django.utils import timezone
+        from .serializers import WorkoutSessionSerializer, WorkoutSetSerializer
+
         preset = self.get_object()
 
         # Get client-provided start time if available, otherwise use server time
@@ -480,9 +486,13 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         # Bulk create
         WorkoutSet.objects.bulk_create(sets)
 
+        # Use serializers to get camelCase field names for frontend
+        session_serializer = WorkoutSessionSerializer(session)
+        sets_serializer = WorkoutSetSerializer(session.sets.all(), many=True)
+
         return Response({
-            "session": model_to_dict(session),
-            "sets": [model_to_dict(s) for s in session.sets.all()]
+            "session": session_serializer.data,
+            "sets": sets_serializer.data
         }, status=201)
 
 

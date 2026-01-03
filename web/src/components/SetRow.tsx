@@ -44,7 +44,8 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
               value={setForm.subSets?.[idx]?.weight ?? subSet.weight}
               onChange={(e) => {
                 const newWeight = parseFloat(e.target.value) || 0;
-                const newSubSets = [...(setForm.subSets || ddItem.subSets)];
+                const currentSubSets = setForm.subSets || ddItem.subSets.map(s => ({ ...s, completed: false }));
+                const newSubSets = [...currentSubSets];
                 newSubSets[idx] = { ...newSubSets[idx], weight: newWeight };
                 onSetFormChange({ ...setForm, subSets: newSubSets });
               }}
@@ -57,7 +58,8 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
               value={setForm.subSets?.[idx]?.reps ?? subSet.reps}
               onChange={(e) => {
                 const newReps = parseInt(e.target.value) || 0;
-                const newSubSets = [...(setForm.subSets || ddItem.subSets)];
+                const currentSubSets = setForm.subSets || ddItem.subSets.map(s => ({ ...s, completed: false }));
+                const newSubSets = [...currentSubSets];
                 newSubSets[idx] = { ...newSubSets[idx], reps: newReps };
                 onSetFormChange({ ...setForm, subSets: newSubSets });
               }}

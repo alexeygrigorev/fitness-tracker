@@ -268,7 +268,7 @@ test.describe('Monday Push Day Workout', () => {
     expect(workoutId).not.toBeNull();
 
     // Click the play button to resume the workout
-    const resumeButton = loggedWorkout.getByRole('button').filter({ hasText: '' }).locator('.fa-play').locator('..');
+    const resumeButton = loggedWorkout.getByRole('button').filter({ hasText: '' }).locator('[data-icon="play"]').locator('..');
     await resumeButton.click();
 
     // Active workout mode should appear again

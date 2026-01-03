@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { workoutsApi, exercisesApi, activeWorkoutStateApi, lastUsedWeightsApi, workoutSetsApi } from '../api';
@@ -37,6 +37,8 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
   const [showAllIncomplete, setShowAllIncomplete] = useState(false);
   const [showAllCompleted, setShowAllCompleted] = useState(false);
   const [isRestored, setIsRestored] = useState(false);
+  // Track which workout session we've already processed to avoid re-processing
+  const processedWorkoutIdRef = useRef<string | null>(null);
 
   // Remember last weight/reps for each exercise
   const [lastUsed, setLastUsed] = useState<Record<string, { weight?: number; reps: number }>>({});
@@ -101,10 +103,14 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
   useEffect(() => {
     if (exercises.length === 0) return; // Wait for exercises to load
 
+    // Don't mark as restored if we're waiting for resumingWorkout
+    // This allows the resume useEffect to run when resumingWorkout is set
     // Server restoration is handled via resumingWorkout prop
-    // Just mark as restored so we can build default sets
-    setIsRestored(true);
-  }, [exercises]);
+    // Only mark as restored if there's no resumingWorkout in progress
+    if (!resumingWorkout) {
+      setIsRestored(true);
+    }
+  }, [exercises, resumingWorkout]);
 
   // Helper function to build sets from preset (extracted for reuse)
   const buildSetsFromPreset = (preset: WorkoutPreset, exercises: Exercise[]): SetItem[] => {
@@ -323,20 +329,23 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
     setSetRows(itemsWithIndex);
   };
 
-  // Resume an existing workout
+  // Set workout session ID immediately when resuming a workout (separate effect for immediate update)
+  useEffect(() => {
+    if (resumingWorkout) {
+      setWorkoutSessionId(String(resumingWorkout.id));
+      setStartTime(new Date(resumingWorkout.startedAt));
+    }
+  }, [resumingWorkout]);
+
+  // Resume an existing workout - process sets when exercises are loaded
   useEffect(() => {
     if (!resumingWorkout) return;
 
-    // Only run once per resumingWorkout to avoid re-processing
-    if (isRestored) return;
-
-    // Always set the workout session ID immediately, before exercises load
-    // This ensures the data-workout-id attribute is set for E2E testing
-    setWorkoutSessionId(resumingWorkout.id);
-    setStartTime(new Date(resumingWorkout.startedAt));
-
     // Wait for exercises to load before processing sets
     if (exercises.length === 0) return;
+
+    // Skip if we've already processed this specific workout session
+    if (processedWorkoutIdRef.current === String(resumingWorkout.id)) return;
 
     // Build ALL sets from the preset first (not just completed ones)
     let items = buildSetsFromPreset(preset, exercises);
@@ -366,8 +375,8 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
         const matchingSet = savedSetsForExercise.find((savedSet) => {
           if (usedSetIds.has(savedSet.id)) return false;
 
-          // Handle both camelCase (setType) from model_to_dict and snake_case (set_type) from serializer
-          const savedSetType = savedSet.setType || savedSet.set_type;
+          // Get the set type from the saved set
+          const savedSetType = savedSet.setType;
 
           // For dropdown sets, backend saves as 'dropdown' or 'normal' type (for compatibility)
           if (item.setType === 'dropdown') {
@@ -423,8 +432,10 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
       return item;
     });
     setSetRows(itemsWithIndex);
+    // Mark this workout session as processed
+    processedWorkoutIdRef.current = String(resumingWorkout.id);
     setIsRestored(true);
-  }, [resumingWorkout, exercises, preset, isRestored]);
+  }, [resumingWorkout, exercises, preset]);
 
   // Build default set rows after restoration check
   useEffect(() => {
