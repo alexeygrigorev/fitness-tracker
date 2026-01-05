@@ -305,17 +305,15 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def active(self, request):
-        """Get the currently active workout session (if any)."""
-        # Return the most recent workout session that doesn't have finished_at
-        active_session = WorkoutSession.objects.filter(
+        """Get all active workout sessions (workouts that are not finished yet)."""
+        # Return all workout sessions that don't have finished_at
+        active_sessions = WorkoutSession.objects.filter(
             user=request.user,
             finished_at__isnull=True
-        ).order_by('-created_at').first()
+        ).order_by('-created_at')
 
-        if active_session:
-            serializer = WorkoutSessionSerializer(active_session)
-            return Response(serializer.data)
-        return Response(status=204)  # No content = no active workout
+        serializer = WorkoutSessionSerializer(active_sessions, many=True)
+        return Response(serializer.data)
 
 
 class WorkoutPresetViewSet(viewsets.ModelViewSet):
@@ -448,23 +446,12 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
     def start_workout(self, request, pk=None):
         """Create a WorkoutSession from this preset with all sets.
         Accepts optional 'startedAt' and 'bodyweight' parameters.
-        Reuses an existing active session if one exists for this preset.
+        Allows multiple active workouts (does not auto-finish existing workouts).
         """
         from django.utils import timezone
         from .serializers import WorkoutSessionSerializer, WorkoutSetSerializer
 
         preset = self.get_object()
-
-        # Check if there's an existing active workout session for this user
-        existing_active = WorkoutSession.objects.filter(
-            user=request.user,
-            finished_at__isnull=True
-        ).order_by('-created_at').first()
-
-        if existing_active:
-            # Finish the existing workout and create a new one
-            existing_active.finished_at = timezone.now()
-            existing_active.save()
 
         # Get client-provided start time if available, otherwise use server time
         started_at = request.data.get('startedAt')

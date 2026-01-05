@@ -100,11 +100,14 @@ class TestDropdownWeights(TestCase):
             reverse("workoutpreset-start-workout", kwargs={"pk": self.preset.id})
         )
 
-        # Get active session
+        # Get active sessions (endpoint returns array of active sessions)
         response = self.client.get(reverse("workoutsession-active"))
         self.assertEqual(response.status_code, 200)
 
-        session = response.data
+        # Get the first (and only) active session
+        sessions = response.data
+        self.assertGreater(len(sessions), 0)
+        session = sessions[0]
         self.assertIn("sets", session)
 
         # Check dropdown sets have dropdown_weights (using frontend field names)
@@ -156,7 +159,9 @@ class TestDropdownWeights(TestCase):
         response = self.client.get(reverse("workoutsession-active"))
         self.assertEqual(response.status_code, 200)
 
-        session = response.data
+        # Get the first (and only) active session
+        sessions = response.data
+        session = sessions[0]
         sets = session["sets"]
 
         # Find the completed dropdown set
@@ -200,7 +205,8 @@ class TestDropdownWeights(TestCase):
 
         # Verify both are marked complete
         response = self.client.get(reverse("workoutsession-active"))
-        active_session = response.data
+        sessions = response.data
+        active_session = sessions[0]
 
         completed_sets = [s for s in active_session["sets"] if s.get("loggedAt")]
         self.assertEqual(len(completed_sets), 2, "Should have 2 completed sets")
@@ -208,3 +214,166 @@ class TestDropdownWeights(TestCase):
         exercise_ids = {s["exerciseId"] for s in completed_sets}
         self.assertIn(dropdown_set["exerciseId"], exercise_ids, "Dropdown exercise should be completed")
         self.assertIn(normal_set["exerciseId"], exercise_ids, "Normal exercise should be completed")
+
+
+class TestMultipleActiveSessions(TestCase):
+    """Test having multiple active workout sessions simultaneously."""
+
+    def setUp(self):
+        """Set up test client, user, and two workout presets."""
+        self.client = APIClient()
+        self.user = User.objects.create_user(username="testuser", email="test@test.com", password="pass")
+        self.client.force_authenticate(user=self.user)
+
+        # Create exercises
+        from workouts.models import Exercise
+        self.bench_press = Exercise.objects.create(name="Bench Press", user=None, is_compound=True)
+        self.squats = Exercise.objects.create(name="Squats", user=None, is_compound=True)
+
+        # Create two workout presets
+        self.preset1 = WorkoutPreset.objects.create(
+            user=None,
+            name="Push Day",
+            notes="Test preset 1"
+        )
+
+        WorkoutPresetExercise.objects.create(
+            preset=self.preset1,
+            exercise=self.bench_press,
+            type="normal",
+            sets=3,
+            order=0
+        )
+
+        self.preset2 = WorkoutPreset.objects.create(
+            user=None,
+            name="Leg Day",
+            notes="Test preset 2"
+        )
+
+        WorkoutPresetExercise.objects.create(
+            preset=self.preset2,
+            exercise=self.squats,
+            type="normal",
+            sets=3,
+            order=0
+        )
+
+    def test_multiple_active_sessions(self):
+        """Test that multiple active workouts can exist and are all returned."""
+        # Start first workout
+        response1 = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset1.id})
+        )
+        self.assertEqual(response1.status_code, 201)
+        session1_id = response1.data["session"]["id"]
+
+        # Start second workout (without finishing the first)
+        response2 = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset2.id})
+        )
+        self.assertEqual(response2.status_code, 201)
+        session2_id = response2.data["session"]["id"]
+
+        # Both sessions should be active (not finished)
+        session1 = WorkoutSession.objects.get(id=session1_id)
+        session2 = WorkoutSession.objects.get(id=session2_id)
+        self.assertIsNone(session1.finished_at)
+        self.assertIsNone(session2.finished_at)
+
+        # Get all active sessions
+        response = self.client.get(reverse("workoutsession-active"))
+        self.assertEqual(response.status_code, 200)
+
+        active_sessions = response.data
+        self.assertEqual(len(active_sessions), 2, "Should have 2 active sessions")
+
+        # Verify both sessions are returned
+        active_ids = {s["id"] for s in active_sessions}
+        self.assertIn(session1_id, active_ids)
+        self.assertIn(session2_id, active_ids)
+
+    def test_finishing_one_workout_leaves_other_active(self):
+        """Test that finishing one workout doesn't affect other active workouts."""
+        # Start two workouts
+        response1 = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset1.id})
+        )
+        session1_id = response1.data["session"]["id"]
+        sets1 = response1.data["sets"]
+
+        response2 = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset2.id})
+        )
+        session2_id = response2.data["session"]["id"]
+        sets2 = response2.data["sets"]
+
+        # Complete a few sets from the first workout
+        for i in range(2):
+            set_id = sets1[i]["id"]
+            self.client.post(reverse("workoutset-complete", kwargs={"pk": set_id}))
+
+        # Finish the first workout
+        response = self.client.post(reverse("workoutsession-finish", kwargs={"pk": session1_id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNotNone(response.data["endedAt"])
+
+        # Only the second workout should be active now
+        response = self.client.get(reverse("workoutsession-active"))
+        self.assertEqual(response.status_code, 200)
+
+        active_sessions = response.data
+        self.assertEqual(len(active_sessions), 1, "Should have 1 active session")
+        self.assertEqual(active_sessions[0]["id"], session2_id)
+
+    def test_finishing_all_workouts_returns_empty_list(self):
+        """Test that finishing all workouts returns an empty list."""
+        # Start two workouts
+        response1 = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset1.id})
+        )
+        session1_id = response1.data["session"]["id"]
+
+        response2 = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset2.id})
+        )
+        session2_id = response2.data["session"]["id"]
+
+        # Finish both workouts
+        self.client.post(reverse("workoutsession-finish", kwargs={"pk": session1_id}))
+        self.client.post(reverse("workoutsession-finish", kwargs={"pk": session2_id}))
+
+        # No active sessions should be returned (empty array)
+        response = self.client.get(reverse("workoutsession-active"))
+        self.assertEqual(response.status_code, 200)
+
+        active_sessions = response.data
+        self.assertEqual(len(active_sessions), 0, "Should have 0 active sessions")
+
+    def test_all_sessions_included_in_list_endpoint(self):
+        """Test that the list endpoint returns all sessions, including finished ones."""
+        # Start two workouts
+        response1 = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset1.id})
+        )
+        session1_id = response1.data["session"]["id"]
+
+        response2 = self.client.post(
+            reverse("workoutpreset-start-workout", kwargs={"pk": self.preset2.id})
+        )
+        session2_id = response2.data["session"]["id"]
+
+        # Finish the first workout
+        self.client.post(reverse("workoutsession-finish", kwargs={"pk": session1_id}))
+
+        # The list endpoint should return both sessions
+        response = self.client.get(reverse("workoutsession-list"))
+        self.assertEqual(response.status_code, 200)
+
+        all_sessions = response.data
+        self.assertEqual(len(all_sessions), 2, "List endpoint should return all 2 sessions")
+
+        # Verify both sessions are present
+        session_ids = {s["id"] for s in all_sessions}
+        self.assertIn(session1_id, session_ids)
+        self.assertIn(session2_id, session_ids)
