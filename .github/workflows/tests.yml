@@ -86,7 +86,7 @@ jobs:
         run: npm run install:browsers
 
       - name: Run E2E tests
-        run: ./e2e/run-docker.sh
+        run: bash ./e2e/run-docker.sh
 
       - name: Upload test results
         if: always()

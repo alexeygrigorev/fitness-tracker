@@ -218,7 +218,7 @@ export class DropdownSetItem extends BaseSetItem {
   subSets: Array<{ weight: number; reps: number }>;
 
   setDisplayLabel = 'DD';
-  badgeLabel = 'Dropdown';
+  badgeLabel = 'Drop';
   badgeColor = 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300';
   showWeightInput = false; // Has custom UI
 
