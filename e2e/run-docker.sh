@@ -14,7 +14,7 @@ docker build -t fitness-tracker .
 echo "Running container..."
 docker stop fitness-tracker-e2e 2>/dev/null || true
 docker rm fitness-tracker-e2e 2>/dev/null || true
-docker run -d --name fitness-tracker-e2e -p 8000:8000 fitness-tracker
+docker run -d --name fitness-tracker-e2e -p 8000:80 fitness-tracker
 
 # Wait for health
 echo "Waiting for app to be healthy..."
