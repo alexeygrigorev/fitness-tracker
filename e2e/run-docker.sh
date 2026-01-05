@@ -19,7 +19,7 @@ docker run -d --name fitness-tracker-e2e -p 8000:80 fitness-tracker
 # Wait for health
 echo "Waiting for app to be healthy..."
 for i in {1..30}; do
-  if docker exec fitness-tracker-e2e python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=2)" 2>/dev/null; then
+  if docker exec fitness-tracker-e2e python -c "import urllib.request; urllib.request.urlopen('http://localhost/api/health/', timeout=2)" 2>/dev/null; then
     echo "App is healthy!"
     break
   fi
