@@ -1,16 +1,4 @@
-.PHONY: help dev dev-backend dev-frontend build test test-backend test-frontend test-integration clean
-
-help:
-	@echo "Available commands:"
-	@echo "  make dev              - Start both frontend and backend in development"
-	@echo "  make dev-backend      - Start backend only"
-	@echo "  make dev-frontend     - Start frontend only"
-	@echo "  make build            - Build frontend for production"
-	@echo "  make test             - Run all tests"
-	@echo "  make test-backend     - Run backend unit tests"
-	@echo "  make test-frontend    - Run frontend unit tests"
-	@echo "  make test-e2e         - Run e2e tests in Docker (isolated)"
-	@echo "  make clean            - Clean build artifacts and containers"
+.PHONY: dev dev-backend dev-frontend build test test-backend test-frontend test-docker clean
 
 dev:
 	@echo "Starting frontend and backend..."
@@ -28,7 +16,7 @@ build:
 	@echo "Building frontend..."
 	cd web && npm run build
 
-test: test-backend test-frontend test-e2e
+test: test-backend test-frontend
 
 test-backend:
 	cd backend-django && uv run pytest -v
@@ -36,9 +24,11 @@ test-backend:
 test-frontend:
 	cd web && npm test
 
-test-e2e:
-	docker compose -f docker-compose.test.yml up --abort-on-container-exit --build
+test-docker:
+	cd e2e && ./run-docker.sh
 
 clean:
-	docker compose -f docker-compose.test.yml down --volumes --remove-orphans
+	docker compose -f docker-compose.test.yml down --volumes --remove-orphans 2>/dev/null || true
+	docker stop fitness-tracker-e2e 2>/dev/null || true
+	docker rm fitness-tracker-e2e 2>/dev/null || true
 	cd web && rm -rf dist node_modules/.vite

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Dark Mode Toggle', () => {
-  test('can toggle dark mode on and off with screenshots', async ({ page }) => {
+  test('can toggle dark mode on and off', async ({ page }) => {
     // Login
     await page.goto('/login');
     await page.getByPlaceholder('Enter your username').fill('test');
@@ -24,55 +24,27 @@ test.describe('Dark Mode Toggle', () => {
 
     // Initial state
     const initialDark = await isDarkMode();
-    console.log('Initial dark mode:', initialDark);
-
-    // Take initial screenshot
-    await page.screenshot({ path: 'test-results/dark-mode-0-initial.png' });
-    console.log('Screenshot saved: dark-mode-0-initial.png');
-
-    // Wait a moment for everything to settle
-    await page.waitForTimeout(500);
 
     // First toggle - switch to opposite mode
     await toggleButton.click();
     await page.waitForTimeout(1000); // Wait for UI update
 
     const afterFirstToggle = await isDarkMode();
-    console.log('After first toggle, dark mode:', afterFirstToggle);
-
-    // Verify dark mode changed
     expect(afterFirstToggle).toBe(!initialDark);
-
-    // Take screenshot after first toggle
-    await page.screenshot({ path: 'test-results/dark-mode-1-after-first-toggle.png' });
-    console.log('Screenshot saved: dark-mode-1-after-first-toggle.png');
 
     // Second toggle - switch back
     await toggleButton.click();
     await page.waitForTimeout(1000);
 
     const afterSecondToggle = await isDarkMode();
-    console.log('After second toggle, dark mode:', afterSecondToggle);
-
-    // Verify we're back to original mode
     expect(afterSecondToggle).toBe(initialDark);
-
-    // Take screenshot after second toggle
-    await page.screenshot({ path: 'test-results/dark-mode-2-after-second-toggle.png' });
-    console.log('Screenshot saved: dark-mode-2-after-second-toggle.png');
 
     // Third toggle - verify it works again
     await toggleButton.click();
     await page.waitForTimeout(1000);
 
     const afterThirdToggle = await isDarkMode();
-    console.log('After third toggle, dark mode:', afterThirdToggle);
-
     expect(afterThirdToggle).toBe(!initialDark);
-
-    // Take screenshot after third toggle
-    await page.screenshot({ path: 'test-results/dark-mode-3-after-third-toggle.png' });
-    console.log('Screenshot saved: dark-mode-3-after-third-toggle.png');
   });
 
   test('dark mode affects page styling', async ({ page }) => {

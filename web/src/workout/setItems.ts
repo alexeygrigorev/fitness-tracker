@@ -301,11 +301,12 @@ export function createSetItemFromBackend(
   }
 
   if (setType === 'dropdown') {
+    const dropdownWeights = backendSet.dropdownWeights || [];
     return new DropdownSetItem({
       ...baseProps,
       weight: backendSet.weight || 0,
       reps: backendSet.reps,
-      subSets: backendSet.dropdownWeights || []
+      subSets: dropdownWeights
     });
   }
 

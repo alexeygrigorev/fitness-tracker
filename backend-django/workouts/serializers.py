@@ -65,8 +65,6 @@ class WorkoutSetSerializer(serializers.ModelSerializer):
 
     def get_loggedAt(self, obj):
         """Always return completed_at, even if None."""
-        # DEBUG: Log the completed_at value
-        print(f"[DEBUG get_loggedAt] Set {obj.id}: completed_at={obj.completed_at}")
         return obj.completed_at
 
     class Meta:
@@ -84,10 +82,6 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         """Ensure sets are always included in the representation."""
         data = super().to_representation(instance)
-        # DEBUG: Log the sets being serialized
-        print(f"[DEBUG WorkoutSessionSerializer.to_representation] Session {instance.id}, sets count: {len(data.get('sets', []))}")
-        for s in data.get('sets', [])[:3]:
-            print(f"  Serialized set: id={s.get('id')}, exerciseId={s.get('exerciseId')}, loggedAt={s.get('loggedAt')}")
         return data
 
     class Meta:
@@ -106,6 +100,7 @@ class SupersetExerciseItemSerializer(serializers.ModelSerializer):
 
 class WorkoutPresetExerciseSerializer(serializers.ModelSerializer):
     exerciseId = serializers.ReadOnlyField(source='exercise.id')
+    exerciseName = serializers.ReadOnlyField(source='exercise.name')
     includeWarmup = serializers.ReadOnlyField(source='include_warmup')
     supersetExercises = SupersetExerciseItemSerializer(
         many=True, read_only=True, source='superset_exercises'
@@ -113,19 +108,7 @@ class WorkoutPresetExerciseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WorkoutPresetExercise
-        fields = ['id', 'exerciseId', 'type', 'sets', 'dropdowns', 'includeWarmup', 'order', 'supersetExercises']
-
-
-class WorkoutPresetExerciseSerializer(serializers.ModelSerializer):
-    exerciseId = serializers.ReadOnlyField(source='exercise.id')
-    includeWarmup = serializers.ReadOnlyField(source='include_warmup')
-    supersetExercises = SupersetExerciseItemSerializer(
-        many=True, read_only=True, source='superset_exercises'
-    )
-
-    class Meta:
-        model = WorkoutPresetExercise
-        fields = ['id', 'exerciseId', 'type', 'sets', 'dropdowns', 'includeWarmup', 'order', 'supersetExercises']
+        fields = ['id', 'exerciseId', 'exerciseName', 'type', 'sets', 'dropdowns', 'includeWarmup', 'order', 'supersetExercises']
 
 
 class WritableWorkoutPresetExerciseSerializer(serializers.ModelSerializer):

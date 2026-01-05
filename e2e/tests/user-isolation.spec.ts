@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { clearAllWorkoutState, ensureTestPresets } from './helpers';
 
 /**
  * User Isolation Test
@@ -25,10 +26,6 @@ async function logout(page: Page) {
 
 test.describe('User Isolation', () => {
   test('users cannot see each other workouts', async ({ page }) => {
-    // Set the date to Monday
-    const mondayDate = new Date('2025-01-06T09:00:00');
-    await page.clock.install({ time: mondayDate.getTime() });
-
     // Auto-accept dialogs
     page.on('dialog', dialog => dialog.accept());
 
@@ -37,15 +34,9 @@ test.describe('User Isolation', () => {
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
 
-    // Clear any existing active workout from previous test runs
-    const existingActiveWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
-    const hasExistingWorkout = await existingActiveWorkout.isVisible().catch(() => false);
-    if (hasExistingWorkout) {
-      const deleteButton = page.locator('button[title="Delete workout"]');
-      await deleteButton.click();
-      await existingActiveWorkout.waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
-      await page.waitForLoadState('networkidle');
-    }
+    // Clear any existing workout state and ensure test presets are ready
+    await clearAllWorkoutState(page);
+    await ensureTestPresets(page);
 
     // Start Push Day workout
     const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
@@ -55,8 +46,8 @@ test.describe('User Isolation', () => {
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
 
-    // Complete one set
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
+    // Complete one set - use the Dropdown badge selector
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press/ }).filter({ hasText: /Dropdown/ }).first();
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 
@@ -78,7 +69,7 @@ test.describe('User Isolation', () => {
     // Get the workout ID for verification
     await page.reload();
     await page.waitForLoadState('networkidle');
-    const loggedWorkout = page.locator('.border.rounded-lg').filter({ hasText: /Push Day/ }).filter({ hasText: '09:00 AM' }).first();
+    const loggedWorkout = page.locator('.border.rounded-lg').filter({ hasText: /Push Day/ }).first();
     await expect(loggedWorkout).toBeVisible({ timeout: 5000 });
     const workoutId = await loggedWorkout.getAttribute('data-workout-id');
     expect(workoutId).not.toBeNull();

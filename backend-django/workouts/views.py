@@ -113,7 +113,6 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
         """Mark a set as completed with current timestamp. Also updates weight/reps if provided."""
         obj = self.get_object()
         from django.utils import timezone
-        print(f"[DEBUG complete] BEFORE: Set {obj.id}, completed_at={obj.completed_at}")
 
         # First, update any fields provided in the request (weight, reps, dropdownWeights)
         field_mapping = {
@@ -128,13 +127,8 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
         # Then mark as complete
         obj.completed_at = timezone.now()
         obj.save()
-        print(f"[DEBUG complete] AFTER SAVE: Set {obj.id}, completed_at={obj.completed_at}")
-        # Refresh from DB to confirm it was saved
-        obj.refresh_from_db()
-        print(f"[DEBUG complete] AFTER REFRESH: Set {obj.id}, completed_at={obj.completed_at}")
         # Use serializer for response to get correct field names (loggedAt instead of completed_at)
         serializer = WorkoutSetSerializer(obj)
-        print(f"[DEBUG complete] SERIALIZED: {serializer.data.get('loggedAt')}")
         return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
@@ -158,31 +152,12 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         # Use serializer to get camelCase field names and include related sets
         queryset = self.get_queryset()
         serializer = self.serializer_class(queryset, many=True)
-        data = serializer.data
-        # DEBUG: Log first session's sets
-        if data:
-            print(f"\n[DEBUG list] Returning {len(data)} sessions")
-            first_session = data[0]
-            sets = first_session.get('sets', [])
-            print(f"[DEBUG list] First session '{first_session.get('name')}' has {len(sets)} sets")
-            for s in sets[:5]:
-                print(f"  Set: id={s.get('id')}, exerciseId={s.get('exerciseId')}, loggedAt={s.get('loggedAt')}")
-            print()
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
         # Use get_queryset to ensure sets are prefetched, then filter to get single object
         obj = self.get_queryset().get(pk=self.kwargs.get('pk'))
         serializer = self.serializer_class(obj)
-        # DEBUG: Log the sets being returned
-        print(f"[DEBUG retrieve] Session {obj.id}, sets count: {obj.sets.count() if hasattr(obj, 'sets') else 'N/A'}")
-        if hasattr(obj, 'sets'):
-            for s in obj.sets.all()[:5]:  # Log first 5 sets
-                print(f"  Set {s.id}: exercise_id={s.exercise_id}, set_type={s.set_type}, completed_at={s.completed_at}")
-        data = serializer.data
-        print(f"[DEBUG retrieve] Serialized sets count: {len(data.get('sets', []))}")
-        for s in data.get('sets', [])[:5]:
-            print(f"  Serialized set: {s}")
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):

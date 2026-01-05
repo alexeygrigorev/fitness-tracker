@@ -106,12 +106,36 @@ export async function ensureTestPresets(page: Page): Promise<void> {
       const userPresets = await presetsResp.json();
 
       // Check if user already has a "Push Day" preset (case-insensitive, contains "push")
-      const hasPushDay = userPresets.some((p: any) =>
+      const pushDayPreset = userPresets.find((p: any) =>
         p.name && p.name.toLowerCase().includes('push')
       );
 
-      if (hasPushDay) {
-        return { created: 0, message: 'Test user already has Push Day preset' };
+      if (pushDayPreset) {
+        // Check if the Bench Press exercise has dropdowns=2
+        const benchPress = pushDayPreset.exercises?.find((e: any) => e.exerciseName?.toLowerCase().includes('bench'));
+        if (benchPress && benchPress.type === 'dropdown') {
+          // If dropdowns is not 2, update it
+          if (benchPress.dropdowns !== 2) {
+            await fetch(`/api/workouts/presets/${pushDayPreset.id}/`, {
+              method: 'PATCH',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                exercises: pushDayPreset.exercises.map((e: any) => {
+                  if (e.exerciseName?.toLowerCase().includes('bench') && e.type === 'dropdown') {
+                    return { ...e, dropdowns: 2 };
+                  }
+                  return e;
+                })
+              })
+            });
+            // Return a flag to indicate the preset was updated
+            return { created: 0, updated: true, message: 'Updated Push Day preset dropdowns to 2' };
+          }
+        }
+        return { created: 0, updated: false, message: 'Test user already has Push Day preset with correct dropdowns' };
       }
 
       // Get templates
