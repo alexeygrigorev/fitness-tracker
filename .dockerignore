@@ -63,5 +63,11 @@ docs/
 # Claude
 .claude/
 
+# Secrets
+.env
+.env.*
+*.env
+*.key
+
 # Scripts
 scripts/
