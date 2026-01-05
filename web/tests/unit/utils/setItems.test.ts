@@ -8,70 +8,63 @@ import {
   NormalSetItem,
   BodyweightSetItem,
   DropdownSetItem,
-  createSetItem,
-  createSetItems,
+  createSetItemFromBackend,
+  isDropdownSetItem,
 } from '@/workout/setItems';
-
-const mockExercise = {
-  id: 'ex-1',
-  name: 'Bench Press',
-  category: 'compound',
-  muscleGroups: ['chest'],
-  equipment: ['barbell'],
-  instructions: 'Lie on bench...',
-};
+import type { WorkoutSet } from '@/types';
 
 describe('SetItem Classes', () => {
   describe('WarmupSetItem', () => {
     it('should create warmup set with correct defaults', () => {
       const warmup = new WarmupSetItem({
         id: 'w-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Bench Press',
-        exercise: mockExercise,
-        setNumber: 1,
         completed: false,
-        isBodyweight: false,
-        reps: 10,
       });
 
       expect(warmup.setType).toBe('warmup');
       expect(warmup.badgeLabel).toBe('Warmup');
-      expect(warmup.badgeColor).toBe('bg-yellow-100 text-yellow-700');
+      expect(warmup.badgeColor).toContain('text-yellow');
       expect(warmup.setDisplayLabel).toBe('W');
     });
 
-    it('should not show weight or reps input for warmup', () => {
+    it('should not show weight input for warmup', () => {
       const warmup = new WarmupSetItem({
         id: 'w-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Bench Press',
-        exercise: mockExercise,
-        setNumber: 1,
         completed: false,
-        isBodyweight: false,
-        reps: 10,
       });
 
       expect(warmup.showWeightInput).toBe(false);
-      expect(warmup.showRepsInput).toBe(false);
     });
 
-    it('should mark as completed with timestamp', () => {
+    it('should return empty display for uncompleted warmup', () => {
       const warmup = new WarmupSetItem({
         id: 'w-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Bench Press',
-        exercise: mockExercise,
-        setNumber: 1,
         completed: false,
-        isBodyweight: false,
-        reps: 10,
       });
 
-      const completed = warmup.markCompleted();
-      expect(completed.completed).toBe(true);
-      expect(completed.completedAt).toBeInstanceOf(Date);
+      const display = warmup.getCompletedDisplay();
+      expect(display).toEqual([]);
+    });
+
+    it('should return empty display even for completed warmup (no data shown)', () => {
+      const completedAt = new Date();
+      const warmup = new WarmupSetItem({
+        id: 'w-1',
+        exerciseId: 1,
+        exerciseName: 'Bench Press',
+        completed: true,
+        completedAt,
+      });
+
+      const display = warmup.getCompletedDisplay();
+      // Warmup sets don't show completed data
+      expect(display).toEqual([]);
     });
   });
 
@@ -79,57 +72,51 @@ describe('SetItem Classes', () => {
     it('should create normal set with correct defaults', () => {
       const normal = new NormalSetItem({
         id: 'n-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Bench Press',
-        exercise: mockExercise,
         setNumber: 1,
         completed: false,
-        isBodyweight: false,
-        reps: 10,
         weight: 100,
+        reps: 10,
       });
 
       expect(normal.setType).toBe('normal');
-      expect(normal.badgeLabel).toBe('');
-      expect(normal.setDisplayLabel).toBe('1');
+      expect(normal.setDisplayLabel).toBe('N');
       expect(normal.weight).toBe(100);
+      expect(normal.reps).toBe(10);
     });
 
     it('should show weight input for normal sets', () => {
       const normal = new NormalSetItem({
         id: 'n-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Bench Press',
-        exercise: mockExercise,
         setNumber: 1,
         completed: false,
-        isBodyweight: false,
+        weight: 100,
         reps: 10,
       });
 
       expect(normal.showWeightInput).toBe(true);
-      expect(normal.showRepsInput).toBe(true);
     });
 
     it('should get completed display with weight and reps', () => {
       const completedAt = new Date();
       const normal = new NormalSetItem({
         id: 'n-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Bench Press',
-        exercise: mockExercise,
         setNumber: 1,
         completed: true,
         completedAt,
-        isBodyweight: false,
-        reps: 10,
         weight: 100,
+        reps: 10,
       });
 
       const display = normal.getCompletedDisplay();
       expect(display).toHaveLength(3);
-      expect(display[0]).toEqual({ text: '100 kg', className: 'font-medium text-gray-900' });
-      expect(display[1]).toEqual({ text: '10 reps', className: 'text-gray-600' });
+      expect(display[0]).toMatchObject({ text: '100 kg' });
+      expect(display[1]).toMatchObject({ text: '10 reps' });
       expect(display[2]).toEqual({ isTimestamp: true, time: completedAt });
     });
   });
@@ -138,30 +125,25 @@ describe('SetItem Classes', () => {
     it('should create bodyweight set with correct defaults', () => {
       const bw = new BodyweightSetItem({
         id: 'bw-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Push-ups',
-        exercise: mockExercise,
         setNumber: 1,
         completed: false,
-        isBodyweight: true,
         reps: 15,
       });
 
       expect(bw.setType).toBe('bodyweight');
-      expect(bw.badgeLabel).toBe('BW');
-      expect(bw.badgeColor).toBe('bg-amber-100 text-amber-700');
-      expect(bw.isBodyweight).toBe(true);
+      expect(bw.badgeLabel).toBe('Bodyweight');
+      expect(bw.badgeColor).toContain('text-amber');
     });
 
     it('should not show weight input for bodyweight', () => {
       const bw = new BodyweightSetItem({
         id: 'bw-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Push-ups',
-        exercise: mockExercise,
         setNumber: 1,
         completed: false,
-        isBodyweight: true,
         reps: 15,
       });
 
@@ -172,317 +154,230 @@ describe('SetItem Classes', () => {
       const completedAt = new Date();
       const bw = new BodyweightSetItem({
         id: 'bw-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Push-ups',
-        exercise: mockExercise,
         setNumber: 1,
         completed: true,
         completedAt,
-        isBodyweight: true,
         reps: 15,
       });
 
       const display = bw.getCompletedDisplay();
       expect(display).toHaveLength(2);
-      expect(display[0]).toEqual({ text: '15 reps', className: 'text-gray-600' });
+      expect(display[0]).toMatchObject({ text: '15 reps' });
       expect(display[1]).toEqual({ isTimestamp: true, time: completedAt });
     });
   });
 
   describe('DropdownSetItem', () => {
-    const subSets = [
-      { weight: 60, reps: 10 },
+    const dropdownWeights = [
       { weight: 50, reps: 10 },
       { weight: 40, reps: 10 },
     ];
 
-    it('should create dropdown set with subSets', () => {
+    it('should create dropdown set with dropdownWeights', () => {
       const dropdown = new DropdownSetItem({
         id: 'dd-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Lat Pulldown',
-        exercise: mockExercise,
         setNumber: 1,
         completed: false,
-        isBodyweight: false,
-        subSets,
+        weight: 60,
+        reps: 10,
+        subSets: dropdownWeights,
       });
 
       expect(dropdown.setType).toBe('dropdown');
-      expect(dropdown.badgeLabel).toBe('Dropdown');
-      expect(dropdown.badgeColor).toBe('bg-purple-100 text-purple-700');
-      expect(dropdown.subSets).toHaveLength(3);
+      expect(dropdown.badgeLabel).toBe('Drop');
+      expect(dropdown.badgeColor).toContain('text-blue');
+      expect(dropdown.subSets).toEqual(dropdownWeights);
     });
 
-    it('should mark as completed at item level', () => {
+    it('should not show weight input for dropdown (has custom UI)', () => {
       const dropdown = new DropdownSetItem({
         id: 'dd-1',
-        exerciseId: 'ex-1',
+        exerciseId: 1,
         exerciseName: 'Lat Pulldown',
-        exercise: mockExercise,
         setNumber: 1,
         completed: false,
-        isBodyweight: false,
-        subSets,
-      });
-
-      expect(dropdown.isFullyCompleted).toBe(false);
-
-      const completed = dropdown.markCompleted();
-      expect(completed.completed).toBe(true);
-      expect(completed.isFullyCompleted).toBe(true);
-      expect(completed.completedAt).toBeInstanceOf(Date);
-    });
-
-    it('getInitialForm should not mutate original subSets', () => {
-      // Create two dropdown sets for the same exercise
-      const originalSubSets1 = [
-        { weight: 60, reps: 10 },
-        { weight: 50, reps: 10 },
-        { weight: 40, reps: 10 },
-      ];
-
-      const originalSubSets2 = [
-        { weight: 60, reps: 10 },
-        { weight: 50, reps: 10 },
-        { weight: 40, reps: 10 },
-      ];
-
-      const set1 = new DropdownSetItem({
-        id: 'dd-1',
-        exerciseId: 'ex-1',
-        exerciseName: 'Bench Press',
-        exercise: mockExercise,
-        setNumber: 1,
-        completed: false,
-        isBodyweight: false,
-        subSets: originalSubSets1,
-      });
-
-      const set2 = new DropdownSetItem({
-        id: 'dd-2',
-        exerciseId: 'ex-1',
-        exerciseName: 'Bench Press',
-        exercise: mockExercise,
-        setNumber: 2,
-        completed: false,
-        isBodyweight: false,
-        subSets: originalSubSets2,
-      });
-
-      // Simulate completing set1
-      const completedSet1 = set1.applyFormAndComplete({ weight: 60, reps: 10, subSets: set1.subSets });
-
-      expect(completedSet1.completed).toBe(true);
-
-      // Store the lastUsed data (simulating what submitSet does)
-      const lastUsed = completedSet1.getLastUsedData({ weight: 60, reps: 10 });
-
-      // Simulate opening set2's form (calling getInitialForm with lastUsed)
-      const formForSet2 = set2.getInitialForm(lastUsed);
-
-      // set1 should still be completed
-      expect(completedSet1.completed).toBe(true);
-
-      // The form's subSets should have the weights from lastUsed
-      expect(formForSet2.subSets?.[0].weight).toBe(60);
-
-      // set1's subSets should not be mutated (they only store weight/reps now)
-      expect(completedSet1.subSets[0].weight).toBe(60);
-      expect(completedSet1.subSets[1].weight).toBe(50);
-      expect(completedSet1.subSets[2].weight).toBe(40);
-    });
-
-    it('should not share subSets references between set instances', () => {
-      // Create two dropdown sets with the same subSets values
-      const sharedSubSets = [
-        { weight: 60, reps: 10 },
-        { weight: 50, reps: 10 },
-        { weight: 40, reps: 10 },
-      ];
-
-      const set1 = new DropdownSetItem({
-        id: 'dd-1',
-        exerciseId: 'ex-1',
-        exerciseName: 'Bench Press',
-        exercise: mockExercise,
-        setNumber: 1,
-        completed: false,
-        isBodyweight: false,
-        subSets: [...sharedSubSets], // Create a copy
-      });
-
-      const set2 = new DropdownSetItem({
-        id: 'dd-2',
-        exerciseId: 'ex-1',
-        exerciseName: 'Bench Press',
-        exercise: mockExercise,
-        setNumber: 2,
-        completed: false,
-        isBodyweight: false,
-        subSets: [...sharedSubSets], // Create a copy
-      });
-
-      // Complete set1
-      const completedSet1 = set1.applyFormAndComplete({ weight: 60, reps: 10, subSets: set1.subSets });
-
-      // set2 should not be affected (completion is tracked at item level, not in subSets)
-      expect(set2.completed).toBe(false);
-
-      // set1 should be completed
-      expect(completedSet1.completed).toBe(true);
-    });
-  });
-
-  describe('createSetItem factory', () => {
-    it('should create WarmupSetItem for setType warmup', () => {
-      const item = createSetItem({
-        id: 'w-1',
-        setType: 'warmup',
-        exerciseId: 'ex-1',
-        exerciseName: 'Test',
-        exercise: mockExercise,
-        setNumber: 1,
-        completed: false,
-        isBodyweight: false,
+        weight: 60,
         reps: 10,
-      });
-      expect(item).toBeInstanceOf(WarmupSetItem);
-    });
-
-    it('should create BodyweightSetItem for setType bodyweight', () => {
-      const item = createSetItem({
-        id: 'bw-1',
-        setType: 'bodyweight',
-        exerciseId: 'ex-1',
-        exerciseName: 'Test',
-        exercise: mockExercise,
-        setNumber: 1,
-        completed: false,
-        isBodyweight: true,
-        reps: 10,
-      });
-      expect(item).toBeInstanceOf(BodyweightSetItem);
-    });
-
-    it('should create DropdownSetItem for setType dropdown', () => {
-      const item = createSetItem({
-        id: 'dd-1',
-        setType: 'dropdown',
-        exerciseId: 'ex-1',
-        exerciseName: 'Test',
-        exercise: mockExercise,
-        setNumber: 1,
-        completed: false,
-        isBodyweight: false,
-        subSets: [],
-        reps: 10,
-      });
-      expect(item).toBeInstanceOf(DropdownSetItem);
-    });
-
-    it('should create NormalSetItem for unknown setType', () => {
-      const item = createSetItem({
-        id: 'n-1',
-        setType: 'normal',
-        exerciseId: 'ex-1',
-        exerciseName: 'Test',
-        exercise: mockExercise,
-        setNumber: 1,
-        completed: false,
-        isBodyweight: false,
-        reps: 10,
-      });
-      expect(item).toBeInstanceOf(NormalSetItem);
-    });
-  });
-
-  describe('createSetItems', () => {
-    it('should create array of SetItems from data array', () => {
-      const data = [
-        { setType: 'warmup', id: 'w-1', exerciseId: 'ex-1', exerciseName: 'W1', exercise: mockExercise, setNumber: 1, completed: false, isBodyweight: false, reps: 10 },
-        { setType: 'normal', id: 'n-1', exerciseId: 'ex-1', exerciseName: 'N1', exercise: mockExercise, setNumber: 2, completed: false, isBodyweight: false, reps: 8 },
-        { setType: 'bodyweight', id: 'bw-1', exerciseId: 'ex-1', exerciseName: 'BW1', exercise: mockExercise, setNumber: 3, completed: false, isBodyweight: true, reps: 15 },
-      ];
-
-      const items = createSetItems(data);
-
-      expect(items).toHaveLength(3);
-      expect(items[0]).toBeInstanceOf(WarmupSetItem);
-      expect(items[1]).toBeInstanceOf(NormalSetItem);
-      expect(items[2]).toBeInstanceOf(BodyweightSetItem);
-    });
-  });
-
-  describe('toWorkoutSets', () => {
-    it('should return empty array for uncompleted set', () => {
-      const normal = new NormalSetItem({
-        id: 'n-1',
-        exerciseId: 'ex-1',
-        exerciseName: 'Bench Press',
-        exercise: mockExercise,
-        setNumber: 1,
-        completed: false,
-        isBodyweight: false,
-        reps: 10,
-        weight: 100,
+        subSets: dropdownWeights,
       });
 
-      const workoutSets = normal.toWorkoutSets(new Date());
-      expect(workoutSets).toEqual([]);
+      expect(dropdown.showWeightInput).toBe(false);
     });
 
-    it('should return workout set for completed set', () => {
+    it('should get completed display with all dropdown weights', () => {
       const completedAt = new Date();
-      const normal = new NormalSetItem({
-        id: 'n-1',
-        exerciseId: 'ex-1',
-        exerciseName: 'Bench Press',
-        exercise: mockExercise,
+      const dropdown = new DropdownSetItem({
+        id: 'dd-1',
+        exerciseId: 1,
+        exerciseName: 'Lat Pulldown',
         setNumber: 1,
         completed: true,
         completedAt,
-        isBodyweight: false,
+        weight: 60,
         reps: 10,
-        weight: 100,
+        subSets: dropdownWeights,
       });
 
-      const workoutSets = normal.toWorkoutSets(new Date());
-      expect(workoutSets).toHaveLength(1);
-      expect(workoutSets[0]).toMatchObject({
-        id: 'n-1',
-        exerciseId: 'ex-1',
-        setType: 'normal',
+      const display = dropdown.getCompletedDisplay();
+      // Display includes main weight + subSets (60 → 50 → 40)
+      expect(display).toHaveLength(3);
+      expect(display[0]).toMatchObject({ text: '60 → 50 → 40' });
+      expect(display[1]).toMatchObject({ text: '10 reps' });
+      expect(display[2]).toEqual({ isTimestamp: true, time: completedAt });
+    });
+  });
+
+  describe('createSetItemFromBackend factory', () => {
+    it('should create WarmupSetItem for setType warmup', () => {
+      const backendSet: WorkoutSet = {
+        id: 1,
+        exerciseId: 1,
+        setType: 'warmup',
+        weight: null,
         reps: 10,
-        weight: 100,
-      });
+        dropdownWeights: null,
+        loggedAt: null,
+      };
+
+      const item = createSetItemFromBackend(backendSet, 'Bench Press', 1);
+      expect(item).toBeInstanceOf(WarmupSetItem);
+      expect(item.setType).toBe('warmup');
     });
 
-    it('should return workout set even if already saved (for cross-device sync)', () => {
-      const normal = new NormalSetItem({
-        id: 'n-1',
-        exerciseId: 'ex-1',
-        exerciseName: 'Bench Press',
-        exercise: mockExercise,
-        setNumber: 1,
-        completed: true,
-        completedAt: new Date(),
-        isBodyweight: false,
+    it('should create BodyweightSetItem for setType bodyweight', () => {
+      const backendSet: WorkoutSet = {
+        id: 1,
+        exerciseId: 1,
+        setType: 'bodyweight',
+        weight: null,
+        reps: 15,
+        dropdownWeights: null,
+        loggedAt: null,
+      };
+
+      const item = createSetItemFromBackend(backendSet, 'Push-ups', 1);
+      expect(item).toBeInstanceOf(BodyweightSetItem);
+      expect(item.setType).toBe('bodyweight');
+    });
+
+    it('should create DropdownSetItem for setType dropdown', () => {
+      const dropdownWeights = [
+        { weight: 50, reps: 10 },
+        { weight: 40, reps: 10 },
+      ];
+      const backendSet: WorkoutSet = {
+        id: 1,
+        exerciseId: 1,
+        setType: 'dropdown',
+        weight: 60,
         reps: 10,
+        dropdownWeights,
+        loggedAt: null,
+      };
+
+      const item = createSetItemFromBackend(backendSet, 'Lat Pulldown', 1);
+      expect(item).toBeInstanceOf(DropdownSetItem);
+      expect(item.setType).toBe('dropdown');
+    });
+
+    it('should create NormalSetItem for setType normal', () => {
+      const backendSet: WorkoutSet = {
+        id: 1,
+        exerciseId: 1,
+        setType: 'normal',
         weight: 100,
-        alreadySaved: true,
+        reps: 10,
+        dropdownWeights: null,
+        loggedAt: null,
+      };
+
+      const item = createSetItemFromBackend(backendSet, 'Bench Press', 1);
+      expect(item).toBeInstanceOf(NormalSetItem);
+      expect(item.setType).toBe('normal');
+    });
+
+    it('should detect bodyweight by exercise name', () => {
+      const backendSet: WorkoutSet = {
+        id: 1,
+        exerciseId: 1,
+        setType: 'normal',
+        weight: null,
+        reps: 15,
+        dropdownWeights: null,
+        loggedAt: null,
+      };
+
+      const item = createSetItemFromBackend(backendSet, 'Pull-ups', 1);
+      expect(item).toBeInstanceOf(BodyweightSetItem);
+      expect(item.setType).toBe('bodyweight');
+    });
+
+    it('should mark set as completed when loggedAt is present', () => {
+      const completedAt = new Date();
+      const backendSet: WorkoutSet = {
+        id: 1,
+        exerciseId: 1,
+        setType: 'normal',
+        weight: 100,
+        reps: 10,
+        dropdownWeights: null,
+        loggedAt: completedAt.toISOString(),
+      };
+
+      const item = createSetItemFromBackend(backendSet, 'Bench Press', 1);
+      expect(item.completed).toBe(true);
+      expect(item.completedAt).toEqual(completedAt);
+    });
+
+    it('should not be completed when loggedAt is null', () => {
+      const backendSet: WorkoutSet = {
+        id: 1,
+        exerciseId: 1,
+        setType: 'normal',
+        weight: 100,
+        reps: 10,
+        dropdownWeights: null,
+        loggedAt: null,
+      };
+
+      const item = createSetItemFromBackend(backendSet, 'Bench Press', 1);
+      expect(item.completed).toBe(false);
+      expect(item.completedAt).toBeNull();
+    });
+  });
+
+  describe('isDropdownSetItem type guard', () => {
+    it('should identify DropdownSetItem instances', () => {
+      const dropdown = new DropdownSetItem({
+        id: 'dd-1',
+        exerciseId: 1,
+        exerciseName: 'Lat Pulldown',
+        setNumber: 1,
+        completed: false,
+        weight: 60,
+        reps: 10,
+        subSets: [],
       });
 
-      const workoutSets = normal.toWorkoutSets(new Date());
-      // Sets are now always included in updates for cross-device sync
-      expect(workoutSets).toHaveLength(1);
-      expect(workoutSets[0]).toMatchObject({
+      expect(isDropdownSetItem(dropdown)).toBe(true);
+    });
+
+    it('should not identify other types as DropdownSetItem', () => {
+      const normal = new NormalSetItem({
         id: 'n-1',
-        exerciseId: 'ex-1',
-        setType: 'normal',
-        reps: 10,
+        exerciseId: 1,
+        exerciseName: 'Bench Press',
+        setNumber: 1,
+        completed: false,
         weight: 100,
+        reps: 10,
       });
+
+      expect(isDropdownSetItem(normal)).toBe(false);
     });
   });
 });

@@ -1,79 +1,85 @@
 // Workout-related types
 
+export type SetType = 'warmup' | 'normal' | 'bodyweight' | 'dropdown' | 'superset';
+
+export type PresetExerciseType = 'warmup' | 'normal' | 'bodyweight' | 'dropdown' | 'superset';
+
 export interface WorkoutSet {
-  id: string;
-  exerciseId: string;
-  setType: 'normal' | 'warmup' | 'bodyweight' | 'dropdown';
-  weight?: number;
+  id: number;
+  exerciseId: number;
+  exerciseName?: string;
+  session?: number;
+  set_order?: number;
+  setType: SetType;
+  weight?: number | null;
   reps: number;
-  bodyweight?: number;  // User's bodyweight at time of completing exercise
-  dropdownWeights?: Array<{ weight: number; reps: number }>;  // For dropdown sets
-  loggedAt?: Date;
+  dropdownWeights?: Array<{ weight: number; reps: number }> | null;
+  loggedAt: string | null; // ISO timestamp or null
 }
 
 export interface WorkoutSession {
-  id: string;
+  id: number;
   name: string;
-  startedAt: Date;
-  endedAt?: Date;
-  sets: WorkoutSet[];
   notes?: string;
+  bodyweight?: number | null;
+  startedAt: string | Date;
+  endedAt?: string | Date | null;
+  user?: number;
+  preset?: number;
+  sets: WorkoutSet[];
   totalVolume?: number;
   estimatedRecovery?: number;
 }
 
-export interface WorkoutSessionCreate {
-  name: string;
-  startedAt: Date;
-  endedAt?: Date;
-  sets: WorkoutSet[];
-}
-
-export interface WorkoutProgram {
-  id: string;
-  name: string;
-  description: string;
-  durationWeeks: number;
-  sessionsPerWeek: number;
-  exercises: string[]; // Array of exercise IDs
-}
-
-// Preset Training Day (template for a workout session)
-export type PresetExerciseType = 'normal' | 'dropdown' | 'superset' | 'warmup' | 'bodyweight';
-
-export interface PresetExerciseItem {
-  exerciseId: string;
-  type: 'normal' | 'dropdown';
-  sets: number;
-  dropdowns?: number; // Only used for dropdown type - weight drops per set
-  warmup?: boolean; // Whether to include warmup sets for this exercise
+export interface SupersetExerciseItem {
+  id: number;
+  exerciseId: number;
+  type: SetType;
+  dropdowns?: number;
+  includeWarmup: boolean;
+  order: number;
 }
 
 export interface WorkoutPresetExercise {
-  id: string; // for grouping (especially superset)
+  id: number;
+  exerciseId: number;
   type: PresetExerciseType;
-  exerciseId?: string; // for non-superset exercises
-  exercises?: PresetExerciseItem[]; // for superset: list of exercises in the superset
-  sets?: number; // for non-superset exercises
-  dropdowns?: number; // for dropdown type: weight drops per set
-  warmup?: boolean; // Whether to include warmup sets for this exercise
+  sets: number;
+  dropdowns?: number;
+  includeWarmup: boolean;
+  order: number;
+  warmup?: boolean;
+  supersetExercises?: SupersetExerciseItem[];
 }
 
-export type WorkoutTag = 'strength' | 'cardio' | 'mixed';
-
-// Last used weights for an exercise (from ExerciseSettings)
-export interface LastUsedWeights {
-  weight?: number;
-  reps: number;
-  subSets?: Array<{ weight: number; reps: number }>;
-}
-
+// Frontend-only preset type that allows string IDs for special cases like "freestyle"
 export interface WorkoutPreset {
-  id: string;
-  name: string; // e.g., "Upper Body Day 1"
-  dayLabel?: string; // e.g., "Monday"
-  exercises: WorkoutPresetExercise[]; // Ordered list of planned exercises
-  tags?: WorkoutTag[];
-  status?: 'active' | 'archived';
-  lastUsedWeights?: Record<string, LastUsedWeights>; // exercise_id -> last used weights/reps
+  id: number;
+  user_id?: number;
+  user?: number;
+  name: string;
+  notes?: string;
+  status: 'active' | 'archived';
+  dayLabel?: string;
+  tags?: string[];
+  is_public?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  exercises: WorkoutPresetExercise[];
+  lastUsedWeights?: Record<number, { weight?: number; reps: number; subSets?: Array<{ weight: number; reps: number }> }>;
 }
+
+export interface WorkoutPlan {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+export interface WorkoutProgram {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+// Re-export for compatibility
+export type WorkoutTag = string;

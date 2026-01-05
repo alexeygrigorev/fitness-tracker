@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen, faTrash, faChevronLeft, faChevronRight, faPlus, faPlay } from '@fortawesome/free-solid-svg-icons';
-import { exercisesApi, workoutsApi, workoutPresetsApi, activeWorkoutStateApi } from '../api';
+import { exercisesApi, workoutsApi, workoutPresetsApi } from '../api';
 import Modal from '../components/Modal';
 import WorkoutPresetForm from './WorkoutPresetForm';
 import ActiveWorkout from './ActiveWorkout';
@@ -55,7 +55,7 @@ export default function ExercisesPage() {
     const path = location.pathname;
     if (path === '/workouts/presets') return 'presets';
     if (path === '/workouts/library') return 'library';
-    return 'workouts'; // default for /workouts
+    return 'workouts';
   };
 
   const [activeTab, setActiveTab] = useState<Tab>(getTabFromPath());
@@ -71,14 +71,16 @@ export default function ExercisesPage() {
                  : '/workouts/library';
     navigate(path);
   };
+
+  // Data state
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [presets, setPresets] = useState<WorkoutPreset[]>([]);
+  const [templates, setTemplates] = useState<WorkoutPreset[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Date navigation state
-  // Use lazy initialization to capture the time when component renders
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
   // Modal state
@@ -89,53 +91,24 @@ export default function ExercisesPage() {
   const [showExerciseAIModal, setShowExerciseAIModal] = useState(false);
 
   // Active workout mode
-  const [activePreset, setActivePreset] = useState<WorkoutPreset | null>(null);
-  const [resumingWorkout, setResumingWorkout] = useState<WorkoutSession | undefined>(undefined);
-  const [hasRestoredWorkout, setHasRestoredWorkout] = useState(false);
+  const [activeWorkoutSession, setActiveWorkoutSession] = useState<WorkoutSession | null>(null);
 
-  // Restore active workout from server on mount
-  useEffect(() => {
-    if (hasRestoredWorkout) return;
-
-    const restoreActiveWorkout = async () => {
-      try {
-        // Check server for active workout session
-        const activeSession = await activeWorkoutStateApi.getActiveSession();
-        if (activeSession && presets.length > 0) {
-          // Find the matching preset by name
-          const matchingPreset = presets.find(p => p.name === activeSession.name);
-          if (matchingPreset) {
-            setActivePreset(matchingPreset);
-            setResumingWorkout(activeSession);
-            setHasRestoredWorkout(true);
-            return;
-          }
-        }
-      } catch (e) {
-        console.error('Failed to restore active workout from server:', e);
-      }
-      setHasRestoredWorkout(true);
-    };
-
-    // Only run after presets are loaded
-    if (presets.length > 0) {
-      restoreActiveWorkout();
-    }
-  }, [hasRestoredWorkout, presets]);
-
+  // Load data on mount
   useEffect(() => {
     Promise.all([
       exercisesApi.getAll(),
       workoutsApi.getAll(),
-      workoutPresetsApi.getAll()
-    ]).then(([exs, wks, prsts]) => {
+      workoutPresetsApi.getAll(),
+      workoutPresetsApi.getTemplates()
+    ]).then(([exs, wks, prsts, tmpls]) => {
       setExercises(exs);
       setWorkouts(wks);
       setPresets(prsts);
+      setTemplates(tmpls);
       setLoading(false);
     }).catch((error) => {
       console.error('Failed to load data:', error);
-      setLoading(false); // Ensure loading is cleared even on error
+      setLoading(false);
     });
   }, []);
 
@@ -161,68 +134,62 @@ export default function ExercisesPage() {
     setSelectedDate(new Date());
   };
 
-  // Check if selected date is today (to disable forward button)
+  // Check if selected date is today
   const isToday = isSameDay(selectedDate, new Date());
 
   // Get current day of week for preset sorting
   const currentDayOfWeek = new Date().getDay();
 
+  // Combine templates with user presets (templates come first)
+  const allPresets = [...templates, ...presets];
+
   // Sort presets: ones matching today's day first, then others
-  const sortedPresets = [...presets].sort((a, b) => {
+  const sortedPresets = [...allPresets].sort((a, b) => {
     const aDay = getDayOfWeek(a.dayLabel);
     const bDay = getDayOfWeek(b.dayLabel);
 
-    // Both match today - maintain original order
     if (aDay === currentDayOfWeek && bDay === currentDayOfWeek) return 0;
-    // A matches today, B doesn't - A comes first
     if (aDay === currentDayOfWeek) return -1;
-    // B matches today, A doesn't - B comes first
     if (bDay === currentDayOfWeek) return 1;
-    // Neither matches - sort by day of week
     if (aDay !== null && bDay !== null) return aDay - bDay;
-    // One or both have no day label - put them at the end
     return 0;
   });
 
-  const handleDeletePreset = async (id: string) => {
+  // Handle preset deletion
+  const handleDeletePreset = async (id: number) => {
     await workoutPresetsApi.delete(id);
     setPresets(prev => prev.filter(p => p.id !== id));
   };
 
-  const handleDeleteWorkout = async (id: string) => {
+  // Handle workout deletion
+  const handleDeleteWorkout = async (id: number) => {
     if (confirm('Are you sure you want to delete this workout?')) {
       await workoutsApi.delete(id);
       setWorkouts(prev => prev.filter(w => w.id !== id));
     }
   };
 
+  // Handle workout completion
   const handleWorkoutComplete = (workout: WorkoutSession) => {
     setWorkouts(prev => {
-      // Check if this workout already exists in the list (update scenario)
       const existingIndex = prev.findIndex(w => w.id === workout.id);
       if (existingIndex !== -1) {
-        // Update existing workout in place and move to top
         return [workout, ...prev.filter(w => w.id !== workout.id)];
       }
-      // New workout - add to the beginning of the list
       return [workout, ...prev];
     });
-    setActivePreset(null);
-    setResumingWorkout(undefined);
+    setActiveWorkoutSession(null);
   };
 
+  // Start workout from preset
   const startWorkout = async (preset: WorkoutPreset) => {
-    // Set active preset immediately to show loading state
-    setActivePreset(preset);
-
     try {
-      // Call backend to start the workout - this creates a session with all sets upfront
+      // Call backend to start the workout
       const response = await workoutPresetsApi.startWorkout(preset.id);
       const session = response.session;
       const sets = response.sets;
 
-      // Build a workout session object with all the sets
-      // The serializer returns 'startedAt' (camelCase) mapped from created_at
+      // Build workout session object with all the sets
       const workoutSession: WorkoutSession = {
         id: session.id,
         name: session.name,
@@ -230,59 +197,36 @@ export default function ExercisesPage() {
         sets: sets
       };
 
-      // Update the resumingWorkout with the session data (triggers ActiveWorkout to restore)
-      setResumingWorkout(workoutSession);
+      // Set as active workout session
+      setActiveWorkoutSession(workoutSession);
     } catch (error) {
       console.error('Failed to start workout:', error);
-      // Fallback to local-only mode if backend call fails
-      setResumingWorkout(undefined);
     }
   };
 
+  // Cancel workout
   const cancelWorkout = () => {
-    setActivePreset(null);
-    setResumingWorkout(undefined);
+    setActiveWorkoutSession(null);
   };
 
-  const handleDeleteActiveWorkout = (workoutId: string) => {
-    // Remove the deleted workout from the list
+  // Delete active workout
+  const handleDeleteActiveWorkout = (workoutId: number) => {
     setWorkouts(prev => prev.filter(w => w.id !== workoutId));
+    setActiveWorkoutSession(null);
   };
 
-  const handleEditWorkout = (workout: WorkoutSession) => {
-    // Resume the workout - try to find the original preset by name first
-    // This ensures we get ALL the sets from the original preset, not just completed ones
-    const originalPreset = presets.find(p => p.name === workout.name);
-
-    if (originalPreset) {
-      // Use the original preset with all its sets
-      setActivePreset(originalPreset);
-      setResumingWorkout(workout);
-    } else {
-      // Fallback: create a temporary preset from the workout's exercises
-      // This only has the completed sets, so not ideal but preserves functionality
-      const exerciseIds = [...new Set(workout.sets.map(s => s.exerciseId))];
-      const presetExercises = exerciseIds.map(exerciseId => ({
-        id: `resume-${workout.id}-${exerciseId}`,
-        exerciseId,
-        type: 'normal' as const,
-        sets: workout.sets.filter(s => s.exerciseId === exerciseId).length,
-        warmup: workout.sets.some(s => s.exerciseId === exerciseId && s.setType === 'warmup')
-      }));
-
-      const resumePreset: WorkoutPreset = {
-        id: `resume-${workout.id}`,
-        name: workout.name,
-        exercises: presetExercises,
-        status: 'active',
-        tags: []
-      };
-
-      setActivePreset(resumePreset);
-      setResumingWorkout(workout);
+  // Resume workout
+  const handleResumeWorkout = async (workout: WorkoutSession) => {
+    try {
+      // Fetch fresh data from server
+      const freshWorkout = await workoutsApi.getById(workout.id);
+      setActiveWorkoutSession(freshWorkout);
+    } catch (e) {
+      console.error('Failed to resume workout:', e);
     }
   };
 
+  // Handle preset saved
   const handlePresetSaved = (preset: WorkoutPreset) => {
     setShowPresetForm(false);
     setEditingPreset(undefined);
@@ -294,17 +238,20 @@ export default function ExercisesPage() {
     });
   };
 
+  // Open add preset modal
   const openAddPreset = () => {
     setEditingPreset(undefined);
     setShowPresetForm(true);
   };
 
+  // Open edit preset modal
   const openEditPreset = (preset: WorkoutPreset) => {
     setEditingPreset(preset);
     setShowPresetForm(true);
   };
 
-  const handleDeleteExercise = async (id: string) => {
+  // Handle exercise deletion
+  const handleDeleteExercise = async (id: number) => {
     if (confirm('Are you sure you want to delete this exercise?')) {
       await exercisesApi.delete(id);
       setExercises(prev => prev.filter(e => e.id !== id));
@@ -314,6 +261,7 @@ export default function ExercisesPage() {
     }
   };
 
+  // Handle exercise saved
   const handleExerciseSaved = (exercise: Exercise) => {
     setShowExerciseForm(false);
     setEditingExercise(undefined);
@@ -326,34 +274,25 @@ export default function ExercisesPage() {
     setSelectedExercise(exercise);
   };
 
+  // Open add exercise modal
   const openAddExercise = () => {
     setEditingExercise(undefined);
     setShowExerciseForm(true);
   };
 
+  // Open edit exercise modal
   const openEditExercise = (exercise: Exercise) => {
     setEditingExercise(exercise);
     setShowExerciseForm(true);
   };
 
+  // Handle AI-created exercise
   const handleExerciseAICreated = (exercise: Exercise) => {
     setExercises(prev => [...prev, exercise]);
     setSelectedExercise(exercise);
-    // Open edit form immediately after AI creation for adjustments
     setEditingExercise(exercise);
     setShowExerciseAIModal(false);
     setShowExerciseForm(true);
-  };
-
-  const startFreestyleWorkout = () => {
-    // Create a freestyle preset (empty, user adds exercises as they go)
-    const freestylePreset: WorkoutPreset = {
-      id: 'freestyle',
-      name: 'Freestyle',
-      exercises: [],
-      status: 'active'
-    };
-    setActivePreset(freestylePreset);
   };
 
   if (loading) {
@@ -391,10 +330,11 @@ export default function ExercisesPage() {
             <button
               onClick={() => goToDate(1)}
               disabled={isToday}
-              className={"p-2 rounded-md transition-colors " + (isToday
-                ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-              )}
+              className={`p-2 rounded-md transition-colors ${
+                isToday
+                  ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
             >
               <FontAwesomeIcon icon={faChevronRight} />
             </button>
@@ -428,12 +368,11 @@ export default function ExercisesPage() {
             <button
               key={tab}
               onClick={() => handleTabChange(tab)}
-              className={
-                'py-2 px-1 border-b-2 font-medium text-sm ' +
-                (activeTab === tab
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === tab
                   ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')
-              }
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+              }`}
             >
               {tabLabels[tab]}
             </button>
@@ -444,22 +383,21 @@ export default function ExercisesPage() {
       {/* Workouts Tab */}
       {activeTab === 'workouts' && (
         <div className="space-y-6">
-          {/* Active Workout Session - shown at top when a workout is in progress */}
-          {activePreset && (
+          {/* Active Workout Session */}
+          {activeWorkoutSession && (
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow p-6 border-2 border-blue-400 dark:border-blue-600">
               <ActiveWorkout
-                preset={activePreset}
+                session={activeWorkoutSession}
+                exercises={exercises}
                 onComplete={handleWorkoutComplete}
                 onCancel={cancelWorkout}
                 onDelete={handleDeleteActiveWorkout}
-                resumingWorkout={resumingWorkout}
-                expectedStartDate={selectedDate}
               />
             </div>
           )}
 
           {/* Quick Start - Today's Presets */}
-          {!activePreset && (
+          {!activeWorkoutSession && (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Start Workout</h3>
@@ -476,7 +414,6 @@ export default function ExercisesPage() {
                       return (
                         <button
                           key={preset.id}
-                          data-preset-id={preset.id}
                           onClick={() => startWorkout(preset)}
                           className="text-left p-4 rounded-lg border-2 border-green-400 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all"
                         >
@@ -504,26 +441,6 @@ export default function ExercisesPage() {
                         </button>
                       );
                     })}
-                    {/* Freestyle - always last in the row */}
-                    <button
-                      onClick={startFreestyleWorkout}
-                      className="text-left p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="font-medium text-gray-900 dark:text-gray-100">Freestyle</span>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 shrink-0">
-                              Any exercises
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            Add exercises as you go
-                          </div>
-                        </div>
-                        <FontAwesomeIcon icon={faPlay} className="text-gray-500 dark:text-gray-400 ml-2 shrink-0" />
-                      </div>
-                    </button>
                   </div>
                 </div>
               )}
@@ -542,7 +459,6 @@ export default function ExercisesPage() {
                       return (
                         <button
                           key={preset.id}
-                          data-preset-id={preset.id}
                           onClick={() => startWorkout(preset)}
                           className="text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
                         >
@@ -573,31 +489,6 @@ export default function ExercisesPage() {
                   </div>
                 </details>
               )}
-
-              {/* If no today's presets, show freestyle alone */}
-              {sortedPresets.filter(p => p.status === 'active' && getDayOfWeek(p.dayLabel) === currentDayOfWeek).length === 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <button
-                    onClick={startFreestyleWorkout}
-                    className="text-left p-4 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="font-medium text-gray-900 dark:text-gray-100">Freestyle</span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400 shrink-0">
-                            Any exercises
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          Add exercises as you go
-                        </div>
-                      </div>
-                      <FontAwesomeIcon icon={faPlay} className="text-gray-500 dark:text-gray-400 ml-2 shrink-0" />
-                    </div>
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
@@ -611,63 +502,62 @@ export default function ExercisesPage() {
                 <p>No workouts logged for {formatDate(selectedDate).toLowerCase()}</p>
               </div>
             ) : (
-            <div className="space-y-3">
-              {workoutsForDate.map(workout => (
-                <div key={workout.id} data-workout-id={workout.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">{workout.name}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(workout.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        {workout.endedAt && ` - ${new Date(workout.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+              <div className="space-y-3">
+                {workoutsForDate.map(workout => (
+                  <div key={workout.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{workout.name}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {new Date(workout.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {workout.endedAt && ` - ${new Date(workout.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{workout.sets.length} sets</div>
                       </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{workout.sets.length} sets</div>
+                      <div className="text-right mr-4">
+                        <div className="font-medium text-gray-900 dark:text-gray-100">{workout.totalVolume} kg</div>
+                        {workout.estimatedRecovery && (
+                          <div className="text-sm text-orange-600 dark:text-orange-400">~{workout.estimatedRecovery}h recovery</div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleResumeWorkout(workout)}
+                          className="text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 p-1"
+                          title="Resume"
+                        >
+                          <FontAwesomeIcon icon={faPlay} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteWorkout(workout.id)}
+                          className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
+                          title="Delete"
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-right mr-4">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">{workout.totalVolume} kg</div>
-                      {workout.estimatedRecovery && (
-                        <div className="text-sm text-orange-600 dark:text-orange-400">~{workout.estimatedRecovery}h recovery</div>
-                      )}
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEditWorkout(workout)}
-                        className="text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 p-1"
-                        title="Resume"
-                      >
-                        <FontAwesomeIcon icon={faPlay} />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteWorkout(workout.id)}
-                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
-                        title="Delete"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
-                    </div>
+                    {workout.sets.length > 0 && (
+                      <details className="mt-3">
+                        <summary className="text-sm text-blue-600 dark:text-blue-400 cursor-pointer hover:text-blue-700 dark:hover:text-blue-300">
+                          View sets
+                        </summary>
+                        <div className="mt-2 space-y-1 text-sm">
+                          {workout.sets.map(set => {
+                            const exercise = exercises.find(e => e.id === set.exerciseId);
+                            return (
+                              <div key={set.id} className="text-gray-600 dark:text-gray-400">
+                                {exercise?.name || 'Unknown'}: {set.setType} - {set.weight || '-'} kg × {set.reps} reps
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </details>
+                    )}
                   </div>
-                  {/* Notes removed */}
-                  {workout.sets.length > 0 && (
-                    <details className="mt-3">
-                      <summary className="text-sm text-blue-600 dark:text-blue-400 cursor-pointer hover:text-blue-700 dark:hover:text-blue-300">
-                        View sets
-                      </summary>
-                      <div className="mt-2 space-y-1 text-sm">
-                        {workout.sets.map(set => {
-                          const exercise = exercises.find(e => e.id === set.exerciseId);
-                          return (
-                            <div key={set.id} className="text-gray-600 dark:text-gray-400">
-                              {exercise?.name || 'Unknown'}: {set.setType} - {set.weight || '-'} kg × {set.reps} reps
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </details>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -693,12 +583,11 @@ export default function ExercisesPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {sortedPresets.map(preset => {
-                  // Calculate total sets for the preset
                   const totalSets = (preset.exercises || []).reduce((sum, ex) => sum + (ex.sets || 3), 0);
                   const isTodaysPreset = getDayOfWeek(preset.dayLabel) === currentDayOfWeek;
 
                   return (
-                    <div key={preset.id} data-preset-id={preset.id} className={`bg-white dark:bg-gray-700 rounded-lg shadow p-4 ${preset.status === 'archived' ? 'opacity-60' : ''} ${isTodaysPreset ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}>
+                    <div key={preset.id} className={`bg-white dark:bg-gray-700 rounded-lg shadow p-4 ${preset.status === 'archived' ? 'opacity-60' : ''} ${isTodaysPreset ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''}`}>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -765,7 +654,7 @@ export default function ExercisesPage() {
         </div>
       )}
 
-      {/* Exercises Tab - Exercise viewer */}
+      {/* Exercises Tab */}
       {activeTab === 'library' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

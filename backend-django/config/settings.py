@@ -81,10 +81,15 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Frontend static files (React build)
-# Only set if the build exists (Docker/production mode)
+# Only served when SERVE_FRONTEND env var is explicitly set to 'true'
 # In dev mode, frontend runs separately on Vite dev server
-_frontend_build_path = BASE_DIR.parent / 'web' / 'dist'
-FRONTEND_BUILD = _frontend_build_path if _frontend_build_path.exists() else None
+# In Docker/production, set SERVE_FRONTEND=true to enable frontend serving
+SERVE_FRONTEND = os.environ.get('SERVE_FRONTEND', 'false').lower() == 'true'
+FRONTEND_BUILD = None
+if SERVE_FRONTEND:
+    _frontend_build_path = BASE_DIR.parent / 'web' / 'dist'
+    FRONTEND_BUILD = _frontend_build_path if _frontend_build_path.exists() else None
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'

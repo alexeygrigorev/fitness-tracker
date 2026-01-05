@@ -41,6 +41,7 @@ ENV DJANGO_SETTINGS_MODULE=config.settings
 ENV SECRET_KEY=prod-secret-change-me
 ENV ALLOWED_HOSTS=*
 ENV DB_PATH=/app/backend/db/db.sqlite3
+ENV SERVE_FRONTEND=true
 
 # Health check using Python instead of curl
 HEALTHCHECK --interval=5s --timeout=5s --retries=10 --start-period=30s \

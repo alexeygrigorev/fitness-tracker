@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { exercisesApi } from '../api';
-import type { Exercise, WorkoutPresetExercise, PresetExerciseType, PresetExerciseItem } from '../types';
+import type { Exercise, WorkoutPresetExercise, PresetExerciseType, SupersetExerciseItem } from '../types';
 
 interface ExerciseSelectorProps {
   selectedExercises: WorkoutPresetExercise[];
@@ -42,7 +42,7 @@ export interface ExercisePickerProps {
   onFilterChange: (value: string) => void;
   onExerciseClick: (exercise: Exercise) => void;
   onClose: () => void;
-  excludedIds?: string[]; // Exercise IDs to exclude/disable
+  excludedIds?: number[]; // Exercise IDs to exclude/disable
   title?: string;
 }
 
@@ -191,11 +191,12 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
 
   const addExercise = (exercise: Exercise) => {
     const newExercise: WorkoutPresetExercise = {
-      id: `ex-${Date.now()}`,
+      id: Date.now(), // Use timestamp as numeric ID
       type: 'normal',
       exerciseId: exercise.id,
       sets: 3,
-      warmup: false,
+      includeWarmup: false,
+      order: selectedExercises.length,
     };
     onChange([...selectedExercises, newExercise]);
   };
@@ -214,25 +215,21 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
   const updateSupersetExercise = (
     supersetIndex: number,
     itemIndex: number,
-    field: keyof PresetExerciseItem,
+    field: keyof SupersetExerciseItem,
     value: any
   ) => {
     const updated = [...selectedExercises];
     const superset = updated[supersetIndex];
-    if (superset.exercises) {
-      const items = [...superset.exercises];
-      if (field === 'sets' || field === 'dropdowns') {
+    if (superset.supersetExercises) {
+      const items = [...superset.supersetExercises];
+      if (field === 'dropdowns' || field === 'order') {
         items[itemIndex] = { ...items[itemIndex], [field]: Number(value) || 0 };
-      } else if (field === 'warmup') {
-        items[itemIndex] = { ...items[itemIndex], warmup: value };
+      } else if (field === 'includeWarmup') {
+        items[itemIndex] = { ...items[itemIndex], includeWarmup: value };
       } else {
         items[itemIndex] = { ...items[itemIndex], [field]: value };
-        // Initialize dropdowns with default value when changing to dropdown type
-        if (field === 'type' && value === 'dropdown' && !items[itemIndex].dropdowns) {
-          items[itemIndex] = { ...items[itemIndex], dropdowns: 2 };
-        }
       }
-      updated[supersetIndex] = { ...superset, exercises: items };
+      updated[supersetIndex] = { ...superset, supersetExercises: items };
       onChange(updated);
     }
   };
@@ -240,10 +237,10 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
   const removeSupersetExercise = (supersetIndex: number, itemIndex: number) => {
     const updated = [...selectedExercises];
     const superset = updated[supersetIndex];
-    if (superset.exercises && superset.exercises.length > 1) {
+    if (superset.supersetExercises && superset.supersetExercises.length > 1) {
       updated[supersetIndex] = {
         ...superset,
-        exercises: superset.exercises.filter((_, i) => i !== itemIndex)
+        supersetExercises: superset.supersetExercises.filter((_, i) => i !== itemIndex)
       };
       onChange(updated);
     }
@@ -257,12 +254,12 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
     if (supersetAddIndex === null) return;
     const updated = [...selectedExercises];
     const superset = updated[supersetAddIndex];
-    if (superset.exercises) {
+    if (superset.supersetExercises) {
       updated[supersetAddIndex] = {
         ...superset,
-        exercises: [
-          ...superset.exercises,
-          { exerciseId: exercise.id, type: 'normal', sets: 3, warmup: false }
+        supersetExercises: [
+          ...superset.supersetExercises,
+          { id: Date.now(), exerciseId: exercise.id, type: 'normal', dropdowns: 0, includeWarmup: false, order: superset.supersetExercises.length }
         ]
       };
       onChange(updated);
@@ -275,14 +272,14 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
   const updateSupersetExerciseItem = (
     supersetIndex: number,
     itemIndex: number,
-    newExerciseId: string
+    newExerciseId: number
   ) => {
     const updated = [...selectedExercises];
     const superset = updated[supersetIndex];
-    if (superset.exercises) {
-      const items = [...superset.exercises];
+    if (superset.supersetExercises) {
+      const items = [...superset.supersetExercises];
       items[itemIndex] = { ...items[itemIndex], exerciseId: newExerciseId };
-      updated[supersetIndex] = { ...superset, exercises: items };
+      updated[supersetIndex] = { ...superset, supersetExercises: items };
       onChange(updated);
     }
   };
@@ -291,12 +288,22 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
     const exercise = selectedExercises[index];
     if (exercise.exerciseId) {
       const updated = [...selectedExercises];
+      const supersetItem: SupersetExerciseItem = {
+        id: Date.now(),
+        exerciseId: exercise.exerciseId,
+        type: exercise.type || 'normal',
+        dropdowns: exercise.dropdowns,
+        includeWarmup: exercise.includeWarmup || false,
+        order: 0
+      };
       updated[index] = {
         id: exercise.id,
-        type: 'superset' as const,
-        exercises: [
-          { exerciseId: exercise.exerciseId, type: (exercise.type || 'normal') as 'normal' | 'dropdown', sets: exercise.sets || 3, dropdowns: exercise.dropdowns }
-        ]
+        type: 'superset',
+        exerciseId: 0, // Placeholder, supersets have multiple exercises
+        sets: 0,
+        includeWarmup: false,
+        order: exercise.order,
+        supersetExercises: [supersetItem]
       };
       onChange(updated);
     }
@@ -304,17 +311,17 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
 
   const breakUpSuperset = (index: number) => {
     const superset = selectedExercises[index];
-    if (superset.exercises) {
+    if (superset.supersetExercises) {
       const updated = [...selectedExercises];
       // Remove superset and add individual exercises
       updated.splice(index, 1);
-      const individualExercises: WorkoutPresetExercise[] = superset.exercises.map((ex, i) => ({
-        id: `${superset.id}-${i}`,
+      const individualExercises: WorkoutPresetExercise[] = superset.supersetExercises.map((ex) => ({
+        id: Date.now() + Math.random(), // Generate unique numeric ID
         type: ex.type,
         exerciseId: ex.exerciseId,
-        sets: ex.sets,
-        dropdowns: ex.dropdowns,
-        warmup: ex.warmup
+        sets: 3,
+        includeWarmup: ex.includeWarmup,
+        order: 0
       }));
       onChange([...updated.slice(0, index), ...individualExercises, ...updated.slice(index)]);
     }
@@ -327,7 +334,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
     onChange(updated);
   };
 
-  const getExercise = (exerciseId: string) => {
+  const getExercise = (exerciseId: number) => {
     return exercises.find(e => e.id === exerciseId);
   };
 
@@ -350,7 +357,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
           </label>
           <div className="space-y-2">
             {selectedExercises.map((ex, index) => {
-              if (ex.type === 'superset' && ex.exercises) {
+              if (ex.type === 'superset' && ex.supersetExercises) {
                 // Superset rendering
                 return (
                   <div
@@ -418,7 +425,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
 
                     {/* Nested exercises in superset */}
                     <div className="space-y-2 pl-4">
-                      {ex.exercises.map((item, itemIndex) => {
+                      {ex.supersetExercises.map((item, itemIndex) => {
                         const exercise = getExercise(item.exerciseId);
                         if (!exercise) return null;
 
@@ -439,13 +446,13 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                               <>
                                 <select
                                   value={item.exerciseId}
-                                  onChange={(e) => updateSupersetExerciseItem(index, itemIndex, e.target.value)}
+                                  onChange={(e) => updateSupersetExerciseItem(index, itemIndex, Number(e.target.value))}
                                   className="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded"
                                   autoFocus
                                 >
                                   {exercises.filter(exc => {
                                     // Filter out exercises already in superset (except current one)
-                                    const currentIds = ex.exercises?.map(e => e.exerciseId) || [];
+                                    const currentIds = ex.supersetExercises?.map(e => e.exerciseId) || [];
                                     return exc.id === item.exerciseId || !currentIds.includes(exc.id);
                                   }).map(exc => (
                                     <option key={exc.id} value={exc.id}>{exc.name}</option>
@@ -491,15 +498,6 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                   ))}
                                 </select>
 
-                                <input
-                                  type="number"
-                                  value={item.sets}
-                                  onChange={(e) => updateSupersetExercise(index, itemIndex, 'sets', e.target.value)}
-                                  min="1"
-                                  className="w-10 px-1 py-0.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center"
-                                />
-                                <span className="text-gray-400 dark:text-gray-500 text-xs">sets</span>
-
                                 {item.type === 'dropdown' && (
                                   <>
                                     <input
@@ -516,8 +514,8 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                 <label className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 cursor-pointer ml-2">
                                   <input
                                     type="checkbox"
-                                    checked={item.warmup !== false}
-                                    onChange={(e) => updateSupersetExercise(index, itemIndex, 'warmup', e.target.checked)}
+                                    checked={item.includeWarmup}
+                                    onChange={(e) => updateSupersetExercise(index, itemIndex, 'includeWarmup', e.target.checked)}
                                     className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                                   />
                                   include warmup
@@ -565,7 +563,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                             setSearch('');
                             setFilterCategory('all');
                           }}
-                          excludedIds={ex.exercises.map(e => e.exerciseId)}
+                          excludedIds={ex.supersetExercises.map(e => e.exerciseId)}
                           title="Add Exercise to Superset"
                         />
                       )}
@@ -727,7 +725,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
             setSearch('');
             setFilterCategory('all');
           }}
-          excludedIds={selectedExercises.map(se => se.exerciseId).filter(Boolean) as string[]}
+          excludedIds={selectedExercises.map(se => se.exerciseId).filter(Boolean as unknown as (id: number | undefined) => id is number)}
         />
       ) : (
         <button

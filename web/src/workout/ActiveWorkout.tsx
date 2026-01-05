@@ -1,769 +1,423 @@
-import { useState, useEffect, useRef } from 'react';
+// ActiveWorkout.tsx - Clean implementation for active workout session
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { workoutsApi, exercisesApi, activeWorkoutStateApi, lastUsedWeightsApi, workoutSetsApi } from '../api';
+import { faPlus, faTrash, faChevronDown, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { workoutsApi, lastUsedWeightsApi } from '../api';
 import { ExercisePicker } from './ExerciseSelector';
 import SetRow, { type SetForm } from '../components/SetRow';
-import { WarmupSetItem, NormalSetItem, BodyweightSetItem, DropdownSetItem } from './setItems';
-import type { SetFormData, LastUsedData } from './setItems';
-import type { SetItem } from './setItems';
-import type { WorkoutPreset, WorkoutSession, Exercise, WorkoutSet } from '../types';
+import {
+  createSetItemFromBackend,
+  type SetItem,
+  type LastUsedData
+} from './setItems';
+import type { WorkoutSession, Exercise } from '../types';
 
 interface ActiveWorkoutProps {
-  preset: WorkoutPreset;
+  session: WorkoutSession;
+  exercises: Exercise[];
   onComplete: (workout: WorkoutSession) => void;
   onCancel: () => void;
-  onDelete?: (workoutId: string) => void; // Called when a workout is deleted
-  resumingWorkout?: WorkoutSession; // If provided, resume this workout instead of starting fresh
-  expectedStartDate?: Date; // Optional: the date that should be used as the workout start date
+  onDelete: (workoutId: number) => void;
 }
 
-const isBodyweight = (exercise: Exercise) => {
-  return exercise.bodyweight === true ||
-    !exercise.equipment || exercise.equipment.length === 0 ||
-    (exercise.equipment.length === 1 && exercise.equipment[0].toLowerCase() === 'bodyweight');
+// Get exercise info from ID
+const getExerciseInfo = (exerciseId: number, exercises: Exercise[]) => {
+  return exercises.find(e => e.id === exerciseId);
 };
 
-export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, resumingWorkout, expectedStartDate }: ActiveWorkoutProps) {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [setRows, setSetRows] = useState<SetItem[]>([]);
+// Group sets by exercise ID
+const groupSetsByExercise = (sets: SetItem[]) => {
+  const groups = new Map<number, SetItem[]>();
+  for (const set of sets) {
+    const existing = groups.get(set.exerciseId) || [];
+    groups.set(set.exerciseId, [...existing, set]);
+  }
+  return groups;
+};
+
+export default function ActiveWorkout({
+  session,
+  exercises,
+  onComplete,
+  onCancel,
+  onDelete
+}: ActiveWorkoutProps) {
+  // Session state
+  const [sessionId] = useState<number>(session.id);
+
+  // Sets state - derived from backend response
+  const [setItems, setSetItems] = useState<SetItem[]>([]);
+
+  // UI state
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [setForm, setSetForm] = useState<SetForm>({ reps: 10 });
-  const [showAddExercise, setShowAddExercise] = useState(false);
-  // Use expectedStartDate if provided (to match the selected date in UI), otherwise use current time
-  const [startTime, setStartTime] = useState(() => expectedStartDate ? new Date(expectedStartDate) : new Date());
   const [loading, setLoading] = useState(false);
-  const [workoutSessionId, setWorkoutSessionId] = useState<string | null>(null);
+  const [showAddExercise, setShowAddExercise] = useState(false);
   const [showAllIncomplete, setShowAllIncomplete] = useState(false);
   const [showAllCompleted, setShowAllCompleted] = useState(false);
-  const [isRestored, setIsRestored] = useState(false);
-  // Track which workout session we've already processed to avoid re-processing
-  const processedWorkoutIdRef = useRef<string | null>(null);
-
-  // Remember last weight/reps for each exercise
-  const [lastUsed, setLastUsed] = useState<Record<string, { weight?: number; reps: number }>>({});
 
   // Exercise picker state
   const [exerciseSearch, setExerciseSearch] = useState('');
-  const [exerciseFilterCategory, setExerciseFilterCategory] = useState<string>('all');
-  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
 
+  // Last used weights for each exercise
+  const [lastUsedWeights, setLastUsedWeights] = useState<Record<number, LastUsedData>>({});
+
+  // Initialize set items from session
   useEffect(() => {
-    exercisesApi.getAll().then(setExercises);
-  }, []);
-
-  // Sync startTime with expectedStartDate for fresh workouts
-  // This ensures the workout start date matches the selected date in the UI
-  useEffect(() => {
-    if (expectedStartDate && !resumingWorkout) {
-      setStartTime(new Date(expectedStartDate));
-    }
-  }, [expectedStartDate, resumingWorkout]);
-
-  // Load last used weights from preset (included in preset response from backend)
-  useEffect(() => {
-    // Skip if we're restoring an active session (which already has lastUsed data)
-    if (isRestored) return;
-
-    // Use lastUsedWeights from preset if available
-    if (preset && 'lastUsedWeights' in preset && preset.lastUsedWeights) {
-      setLastUsed(preset.lastUsedWeights as Record<string, LastUsedData>);
-    }
-  }, [preset, isRestored]);
-
-  // Filter exercises based on search and category
-  useEffect(() => {
-    let filtered = exercises;
-
-    if (exerciseSearch) {
-      filtered = filtered.filter(ex =>
-        ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()) ||
-        ex.muscleGroups?.some(mg => mg.toLowerCase().includes(exerciseSearch.toLowerCase()))
-      );
-    }
-
-    if (exerciseFilterCategory !== 'all') {
-      if (exerciseFilterCategory === 'upper') {
-        filtered = filtered.filter(ex =>
-          ex.muscleGroups?.some(mg => ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'traps', 'lats', 'forearms'].includes(mg))
+    if (session.sets && session.sets.length > 0) {
+      const items = session.sets.map((backendSet, idx) => {
+        const exerciseInfo = getExerciseInfo(backendSet.exerciseId, exercises);
+        const exerciseName = exerciseInfo?.name || backendSet.exerciseName || 'Unknown';
+        // Calculate set number per exercise
+        const previousSetsSameExercise = session.sets.filter(
+          (s, i) => i < idx && s.exerciseId === backendSet.exerciseId && s.setType !== 'warmup'
         );
-      } else if (exerciseFilterCategory === 'lower') {
-        filtered = filtered.filter(ex =>
-          ex.muscleGroups?.some(mg => ['quads', 'hamstrings', 'glutes', 'calves', 'abs', 'obliques'].includes(mg))
-        );
-      } else {
-        filtered = filtered.filter(ex => ex.category === exerciseFilterCategory);
-      }
-    }
-
-    setFilteredExercises(filtered);
-  }, [exercises, exerciseSearch, exerciseFilterCategory]);
-
-  // Restore workout state from server on mount (only once)
-  useEffect(() => {
-    if (exercises.length === 0) return; // Wait for exercises to load
-
-    // Don't mark as restored if we're waiting for resumingWorkout
-    // This allows the resume useEffect to run when resumingWorkout is set
-    // Server restoration is handled via resumingWorkout prop
-    // Only mark as restored if there's no resumingWorkout in progress
-    if (!resumingWorkout) {
-      setIsRestored(true);
-    }
-  }, [exercises, resumingWorkout]);
-
-  // Helper function to build sets from preset (extracted for reuse)
-  const buildSetsFromPreset = (preset: WorkoutPreset, exercises: Exercise[]): SetItem[] => {
-    if (preset.id === 'freestyle' || preset.exercises.length === 0) {
-      return [];
-    }
-
-    const items: SetItem[] = [];
-
-    preset.exercises.forEach(presetEx => {
-      // Handle superset - round robin order
-      if (presetEx.type === 'superset' && presetEx.exercises) {
-        const supersetExercises = presetEx.exercises.map(exDef => {
-          const ex = exercises.find(e => e.id === exDef.exerciseId);
-          return { ...exDef, exercise: ex };
-        }).filter(e => e.exercise);
-
-        if (supersetExercises.length === 0) return;
-
-        const numberOfSets = supersetExercises[0]?.sets || 3;
-        let baseWeight = 60;
-
-        // Add warmup sets for each exercise in superset (if enabled)
-        supersetExercises.forEach((supEx) => {
-          if (supEx.warmup) {
-            const bodyweight = isBodyweight(supEx.exercise!);
-            if (bodyweight) {
-              // Bodyweight warmup
-              items.push(new WarmupSetItem({
-                id: `warmup-superset-${presetEx.id}-${supEx.exerciseId}`,
-                exerciseId: supEx.exercise!.id,
-                exerciseName: supEx.exercise!.name,
-                exercise: supEx.exercise!,
-                setNumber: 0,
-                reps: 10,
-                completed: false,
-                isBodyweight: true,
-                isSuperset: true
-              }));
-            } else {
-              // Weighted warmup
-              const warmupWeight = Math.floor(baseWeight * 0.5);
-              items.push(new WarmupSetItem({
-                id: `warmup-superset-${presetEx.id}-${supEx.exerciseId}`,
-                exerciseId: supEx.exercise!.id,
-                exerciseName: supEx.exercise!.name,
-                exercise: supEx.exercise!,
-                setNumber: 0,
-                weight: warmupWeight,
-                reps: 10,
-                completed: false,
-                isBodyweight: false,
-                suggestedWeight: warmupWeight,
-                isSuperset: true
-              }));
-            }
-          }
-        });
-
-        // Round robin: for each set number, create a row for each exercise in superset
-        for (let setNum = 0; setNum < numberOfSets; setNum++) {
-          supersetExercises.forEach((supEx) => {
-            const exercise = supEx.exercise!;
-            const bodyweight = isBodyweight(exercise);
-            const weight = bodyweight ? undefined : baseWeight;
-
-            if (bodyweight) {
-              items.push(new BodyweightSetItem({
-                id: `superset-${presetEx.id}-${supEx.exerciseId}-${setNum}`,
-                exerciseId: exercise.id,
-                exerciseName: exercise.name,
-                exercise,
-                setNumber: setNum + 1,
-                reps: 10,
-                completed: false,
-                isBodyweight: true,
-                isSuperset: true
-              }));
-            } else {
-              items.push(new NormalSetItem({
-                id: `superset-${presetEx.id}-${supEx.exerciseId}-${setNum}`,
-                exerciseId: exercise.id,
-                exerciseName: exercise.name,
-                exercise,
-                setNumber: setNum + 1,
-                weight,
-                reps: 10,
-                completed: false,
-                isBodyweight: false,
-                isSuperset: true
-              }));
-            }
-          });
-        }
-
-        return;
-      }
-
-      // Handle dropdown sets (working + drop sets in one row)
-      if (presetEx.type === 'dropdown') {
-        const ex = exercises.find(e => e.id === presetEx.exerciseId);
-        if (!ex) return;
-
-        const bodyweight = isBodyweight(ex);
-        const numberOfSets = presetEx.sets || 3;
-        const numberOfDropdowns = presetEx.dropdowns || 2;
-        let baseWeight = 60;
-
-        // Create multiple dropdown set rows (one per set number)
-        for (let i = 0; i < numberOfSets; i++) {
-          const subSets: Array<{ weight: number; reps: number; completed: boolean; completedAt?: Date }> = [
-            { weight: baseWeight, reps: 10, completed: false } // Working set
-          ];
-          for (let d = 1; d <= numberOfDropdowns; d++) {
-            const dropWeight = baseWeight - (d * 2.5);
-            subSets.push({ weight: dropWeight, reps: 10, completed: false });
-          }
-
-          items.push(new DropdownSetItem({
-            id: `dropdown-${presetEx.id}-${i}`,
-            exerciseId: presetEx.exerciseId!,
-            exerciseName: ex.name,
-            exercise: ex,
-            setNumber: i + 1,
-            weight: baseWeight,
-            reps: 10,
-            completed: false,
-            isBodyweight: bodyweight,
-            suggestedWeight: baseWeight,
-            subSets
-          }));
-        }
-
-        return;
-      }
-
-      // Handle normal exercise
-      const ex = exercises.find(e => e.id === presetEx.exerciseId);
-      if (!ex) return;
-
-      const bodyweight = isBodyweight(ex);
-      const numberOfSets = presetEx.sets || 3;
-      let baseWeight = 60;
-
-      // Add warmup set if enabled
-      if (presetEx.warmup) {
-        if (bodyweight) {
-          items.push(new WarmupSetItem({
-            id: `warmup-${presetEx.id}`,
-            exerciseId: presetEx.exerciseId!,
-            exerciseName: ex.name,
-            exercise: ex,
-            setNumber: 0,
-            reps: 10,
-            completed: false,
-            isBodyweight: true
-          }));
-        } else {
-          const warmupWeight = Math.floor(baseWeight * 0.5);
-          items.push(new WarmupSetItem({
-            id: `warmup-${presetEx.id}`,
-            exerciseId: presetEx.exerciseId!,
-            exerciseName: ex.name,
-            exercise: ex,
-            setNumber: 0,
-            weight: warmupWeight,
-            reps: 10,
-            completed: false,
-            isBodyweight: false,
-            suggestedWeight: warmupWeight
-          }));
-        }
-      }
-
-      // Add working sets
-      for (let i = 0; i < numberOfSets; i++) {
-        const weight = bodyweight ? undefined : baseWeight;
-
-        if (bodyweight) {
-          items.push(new BodyweightSetItem({
-            id: `${presetEx.id}-${i}`,
-            exerciseId: presetEx.exerciseId!,
-            exerciseName: ex.name,
-            exercise: ex,
-            setNumber: i + 1,
-            reps: 10,
-            completed: false,
-            isBodyweight: true
-          }));
-        } else {
-          items.push(new NormalSetItem({
-            id: `${presetEx.id}-${i}`,
-            exerciseId: presetEx.exerciseId!,
-            exerciseName: ex.name,
-            exercise: ex,
-            setNumber: i + 1,
-            weight,
-            reps: 10,
-            completed: false,
-            isBodyweight: false
-          }));
-        }
-      }
-    });
-
-    return items;
-  };
-
-  const buildSetRows = () => {
-    const items = buildSetsFromPreset(preset, exercises);
-    // Add originalIndex to each item for re-sorting when uncompleted
-    const itemsWithIndex = items.map((item, idx) => {
-      item.originalIndex = idx;
-      return item;
-    });
-    setSetRows(itemsWithIndex);
-  };
-
-  // Set workout session ID immediately when resuming a workout (separate effect for immediate update)
-  useEffect(() => {
-    if (resumingWorkout) {
-      setWorkoutSessionId(String(resumingWorkout.id));
-      setStartTime(new Date(resumingWorkout.startedAt));
-    }
-  }, [resumingWorkout]);
-
-  // Resume an existing workout - process sets when exercises are loaded
-  useEffect(() => {
-    if (!resumingWorkout) return;
-
-    // Wait for exercises to load before processing sets
-    if (exercises.length === 0) return;
-
-    // Skip if we've already processed this specific workout session
-    if (processedWorkoutIdRef.current === String(resumingWorkout.id)) return;
-
-    // Build ALL sets from the preset first (not just completed ones)
-    let items = buildSetsFromPreset(preset, exercises);
-
-    // Then overlay the completed status from saved sets
-    if (resumingWorkout.sets && resumingWorkout.sets.length > 0) {
-      // Group saved sets by exerciseId for easier matching
-      const savedSetsByExercise = new Map<string, WorkoutSet[]>();
-      resumingWorkout.sets.forEach(savedSet => {
-        if (!savedSetsByExercise.has(savedSet.exerciseId)) {
-          savedSetsByExercise.set(savedSet.exerciseId, []);
-        }
-        savedSetsByExercise.get(savedSet.exerciseId)!.push(savedSet);
+        const setNumber = previousSetsSameExercise.length + 1;
+        return createSetItemFromBackend(backendSet, exerciseName, setNumber);
       });
-
-      // Track used saved sets by their database ID (not index)
-      const usedSetIds = new Set<string>();
-
-      // For each item, try to find a matching saved set
-      items = items.map(item => {
-        const savedSetsForExercise = savedSetsByExercise.get(item.exerciseId);
-        if (!savedSetsForExercise || savedSetsForExercise.length === 0) {
-          return item; // No saved sets for this exercise
-        }
-
-        // Find an unused saved set that matches this item's type
-        const matchingSet = savedSetsForExercise.find((savedSet) => {
-          if (usedSetIds.has(savedSet.id)) return false;
-
-          // Get the set type from the saved set
-          const savedSetType = savedSet.setType;
-
-          // For dropdown sets, backend saves as 'dropdown' or 'normal' type (for compatibility)
-          if (item.setType === 'dropdown') {
-            return savedSetType === 'dropdown' || savedSetType === 'normal' || !savedSetType;
-          }
-          // For warmup sets
-          if (item.setType === 'warmup') {
-            return savedSetType === 'warmup';
-          }
-          // For bodyweight sets
-          if (item.setType === 'bodyweight') {
-            return savedSetType === 'bodyweight' || !savedSetType;
-          }
-          // For normal sets
-          if (item.setType === 'normal') {
-            return savedSetType === 'normal' || !savedSetType;
-          }
-          return false;
-        });
-
-        if (matchingSet) {
-          // Mark as used by database ID
-          usedSetIds.add(matchingSet.id);
-
-          // Return the item with completed status (only if loggedAt is set)
-          const isCompleted = !!matchingSet.loggedAt;
-          // For dropdown sets, use the dropdownWeights from backend
-          const subSets = (item.setType === 'dropdown' && matchingSet.dropdownWeights)
-            ? matchingSet.dropdownWeights
-            : undefined;
-
-          // Use withChanges to preserve class methods
-          // Store the database set ID as workoutSetId for individual API calls
-          return item.withChanges({
-            weight: matchingSet.weight,
-            reps: matchingSet.reps,
-            bodyweight: matchingSet.bodyweight,
-            subSets,
-            completed: isCompleted,
-            completedAt: isCompleted ? new Date(matchingSet.loggedAt!) : undefined,
-            workoutSetId: matchingSet.id,
-            alreadySaved: isCompleted
-          } as any);
-        }
-
-        return item;
-      });
+      setSetItems(items);
     }
+  }, [session, exercises]);
 
-    // Add originalIndex to each item for proper sorting
-    const itemsWithIndex = items.map((item, idx) => {
-      item.originalIndex = idx;
-      return item;
-    });
-    setSetRows(itemsWithIndex);
-    // Mark this workout session as processed
-    processedWorkoutIdRef.current = String(resumingWorkout.id);
-    setIsRestored(true);
-  }, [resumingWorkout, exercises, preset]);
+  // Filter exercises for the picker
+  const filteredExercises = useMemo(() => {
+    if (!exerciseSearch) return exercises;
+    return exercises.filter(ex =>
+      ex.name.toLowerCase().includes(exerciseSearch.toLowerCase()) ||
+      ex.muscleGroups?.some(mg => mg.toLowerCase().includes(exerciseSearch.toLowerCase()))
+    );
+  }, [exercises, exerciseSearch]);
 
-  // Build default set rows after restoration check
-  useEffect(() => {
-    if (exercises.length > 0 && isRestored && setRows.length === 0) {
-      buildSetRows();
+  // Separate completed and incomplete sets
+  const completedSets = useMemo(() => setItems.filter(s => s.completed), [setItems]);
+  const incompleteSets = useMemo(() => setItems.filter(s => !s.completed), [setItems]);
+
+  // Visible sets based on expand/collapse state
+  const visibleCompletedSets = useMemo(() => {
+    if (showAllCompleted) return completedSets;
+    return completedSets.slice(-2); // Show last 2 completed
+  }, [completedSets, showAllCompleted]);
+
+  const visibleIncompleteSets = useMemo(() => {
+    if (showAllIncomplete) return incompleteSets;
+    return incompleteSets.slice(0, 3); // Show first 3 incomplete
+  }, [incompleteSets, showAllIncomplete]);
+
+  const visibleSetRows = useMemo(() => {
+    return [...visibleCompletedSets, ...visibleIncompleteSets];
+  }, [visibleCompletedSets, visibleIncompleteSets]);
+
+  // Get exercises that are in the current workout (for "add set" buttons)
+  const exercisesInWorkout = useMemo(() => {
+    const groups = groupSetsByExercise(setItems);
+    const result = new Map<number, { name: string; count: number }>();
+    for (const [exerciseId, sets] of groups) {
+      const exercise = getExerciseInfo(exerciseId, exercises);
+      if (exercise) {
+        result.set(exerciseId, { name: exercise.name, count: sets.length });
+      }
     }
-  }, [exercises, preset, isRestored]); // setRows.length ensures this only runs when needed
+    return result;
+  }, [setItems, exercises]);
 
-  // Clear stored state when workout is completed or cancelled
-  const clearStoredState = async () => {
-    try {
-      // Clear from server
-      await activeWorkoutStateApi.clear();
-    } catch (e) {
-      console.error('Failed to clear workout state:', e);
-    }
-  };
+  // Stats
+  const totalSets = setItems.length;
+  const completedCount = completedSets.length;
 
-  // Note: Auto-save removed - all saves are now explicit (on finish workout only)
-
-  const openSetForm = (item: SetItem) => {
+  // Open set form for editing
+  const openSetForm = useCallback((item: SetItem) => {
     setEditingSetId(item.id);
-    const lastForExercise = lastUsed[item.exerciseId];
-    // Use polymorphic method - each SetItem type knows how to get its initial form data
-    const formData = item.getInitialForm(lastForExercise);
-    setSetForm(formData as SetForm); // SetForm is compatible with SetFormData
-  };
 
-  const closeSetForm = () => {
+    // Pre-fill form with current values or last used weights
+    const lastUsed = lastUsedWeights[item.exerciseId];
+
+    if (item.setType === 'dropdown') {
+      // Dropdown sets have subSets
+      // Form will handle these
+      setSetForm({
+        reps: item.completed ? 10 : (lastUsed?.reps || 10),
+        subSets: lastUsed?.subSets || []
+      });
+    } else if (item.setType === 'bodyweight') {
+      setSetForm({
+        reps: lastUsed?.reps || 10
+      });
+    } else if (item.setType !== 'warmup') {
+      setSetForm({
+        weight: lastUsed?.weight,
+        reps: lastUsed?.reps || 10
+      });
+    } else {
+      setSetForm({ reps: 10 });
+    }
+  }, [lastUsedWeights]);
+
+  // Close set form
+  const closeSetForm = useCallback(() => {
     setEditingSetId(null);
     setSetForm({ reps: 10 });
-  };
+  }, []);
 
-  const submitSet = async () => {
-    if (!editingSetId) return;
+  // Submit set (complete it)
+  const submitSet = useCallback(async () => {
+    if (!sessionId) return;
 
-    // Find the item being edited
-    const itemToComplete = setRows.find(item => item.id === editingSetId);
-    if (!itemToComplete) return;
+    const item = setItems.find(s => s.id === editingSetId);
+    if (!item) return;
 
-    // Apply form and mark complete using polymorphic method
-    const completedItem = itemToComplete.applyFormAndComplete(setForm as SetFormData);
-
-    // Save last used data
-    const lastUsedData = completedItem.getLastUsedData(setForm as SetFormData);
-    setLastUsed(prevLast => ({
-      ...prevLast,
-      [itemToComplete.exerciseId]: lastUsedData
-    }));
-    lastUsedWeightsApi.set(itemToComplete.exerciseId, lastUsedData).catch(console.error);
-
-    // Update local state immediately for responsive UI
-    setSetRows(prev => prev.map(item =>
-      item.id === editingSetId ? completedItem : item
-    ));
-
-    // Get the workout set ID (database ID) for this set
-    const workoutSetId = (itemToComplete as any).workoutSetId;
-    const hasOriginalWorkoutSetId = (itemToComplete as any).originalWorkoutSetId;
-
-    // Persist to server using individual set API
-    if (workoutSetId || hasOriginalWorkoutSetId) {
-      // This set already exists in the database - just mark it complete
-      const setId = workoutSetId || hasOriginalWorkoutSetId;
-      const updateData: any = {
-        weight: completedItem.weight,
-        reps: completedItem.reps,
-        bodyweight: (completedItem as any).bodyweight
-      };
-      // For dropdown sets, include the dropdownWeights
-      if (completedItem.setType === 'dropdown' && (completedItem as any).subSets) {
-        updateData.dropdownWeights = (completedItem as any).subSets;
-      }
-      workoutSetsApi.complete(setId, updateData).catch(console.error);
-    } else {
-      // This shouldn't happen now that we call start_workout upfront, but handle gracefully
-      console.warn('Set has no database ID, skipping server persistence');
-    }
-
-    closeSetForm();
-  };
-
-  const uncompleteSet = async (setId: string) => {
-    if (!confirm('Uncomplete this set?')) return;
-
-    // Find the item being uncompleted
-    const itemToUncomplete = setRows.find(item => item.id === setId);
-    if (!itemToUncomplete) return;
-
-    // Get the workout set ID (database ID) for this set
-    const workoutSetId = (itemToUncomplete as any).workoutSetId;
-    const hasOriginalWorkoutSetId = (itemToUncomplete as any).originalWorkoutSetId;
-    const actualSetId = workoutSetId || hasOriginalWorkoutSetId;
-
-    if (!actualSetId) {
-      console.warn('Cannot uncomplete set: no database ID');
-      return;
-    }
-
-    // Update local state immediately
-    setSetRows(prev => prev.map(item =>
-      item.id === setId ? item.markUncompleted() : item
-    ));
-
-    // Persist to server using individual set API
-    workoutSetsApi.uncomplete(actualSetId).catch(console.error);
-  };
-
-  const deleteSet = async (setId: string) => {
-    if (!confirm('Delete this set?')) return;
-
-    // Find the item being deleted to get its database ID
-    const itemToDelete = setRows.find(item => item.id === setId);
-    if (!itemToDelete) return;
-
-    const workoutSetId = (itemToDelete as any).workoutSetId;
-    const hasOriginalWorkoutSetId = (itemToDelete as any).originalWorkoutSetId;
-    const actualSetId = workoutSetId || hasOriginalWorkoutSetId;
-
-    // Update local state immediately
-    setSetRows(prev => prev.filter(item => item.id !== setId));
-
-    // Delete from server if it has a database ID
-    if (actualSetId) {
-      workoutSetsApi.delete(actualSetId).catch(console.error);
-    }
-  };
-
-  // Add an extra set to an existing exercise
-  const addExtraSet = (exerciseId: string, exerciseName: string) => {
-    const exercise = exercises.find(e => e.id === exerciseId);
-    if (!exercise) return;
-
-    const bodyweight = isBodyweight(exercise);
-    const existingSetsForExercise = setRows.filter(r => r.exerciseId === exerciseId);
-    const nextSetNumber = existingSetsForExercise.length + 1;
-    const lastForExercise = lastUsed[exerciseId];
-    const lastSet = existingSetsForExercise[existingSetsForExercise.length - 1];
-
-    setSetRows(prev => {
-      const newItem = new NormalSetItem({
-        id: `extra-${Date.now()}`,
-        exerciseId,
-        exerciseName,
-        exercise,
-        setNumber: nextSetNumber,
-        weight: lastForExercise?.weight ?? ('weight' in lastSet ? lastSet.weight : undefined),
-        reps: lastForExercise?.reps ?? ('reps' in lastSet ? lastSet.reps : 10),
-        completed: false,
-        isBodyweight: bodyweight,
-        isExtra: true
-      });
-      newItem.originalIndex = prev.length;
-      return [...prev, newItem];
-    });
-  };
-
-  // Add a completely new exercise
-  const addNewExercise = (exerciseId: string) => {
-    const exercise = exercises.find(e => e.id === exerciseId);
-    if (!exercise) return;
-
-    const bodyweight = isBodyweight(exercise);
-
-    setSetRows(prev => {
-      const newItem = new NormalSetItem({
-        id: `new-${Date.now()}`,
-        exerciseId: exercise.id,
-        exerciseName: exercise.name,
-        exercise,
-        setNumber: 1,
-      weight: bodyweight ? undefined : 60,
-      reps: 10,
-      completed: false,
-      isBodyweight: bodyweight,
-      isExtra: true
-    });
-    newItem.originalIndex = prev.length;
-    return [...prev, newItem];
-    });
-
-    setShowAddExercise(false);
-    setExerciseSearch('');
-    setExerciseFilterCategory('all');
-  };
-
-  const calculateTotalVolume = () => {
-    return setRows.reduce((sum, item) => {
-      if (item.completed && item.weight) {
-        sum += item.weight * item.reps;
-      }
-      return sum;
-    }, 0);
-  };
-
-  const calculateCompletedSets = () => {
-    return setRows.reduce((count, item) => {
-      return count + (item.completed ? 1 : 0);
-    }, 0);
-  };
-
-  const calculateTotalSets = () => {
-    // Count each row as 1 set (dropdown rows count as 1, not by sub-sets)
-    return setRows.length;
-  };
-
-  const handleFinishWorkout = async () => {
     setLoading(true);
+
     try {
-      // For new sessions: only send newly completed sets
-      // For existing sessions (resuming): send ALL completed sets to replace the entire array
-      let workoutSets: WorkoutSet[];
-      if (workoutSessionId) {
-        // Updating existing session - send ALL completed sets
-        workoutSets = setRows
-          .filter(item => item.completed)
-          .map(item => ({
-            id: (item as any).workoutSetId || (item as any).originalWorkoutSetId || item.id,
-            exerciseId: item.exerciseId,
-            setType: item.setType === 'warmup' ? 'warmup' : item.setType === 'dropdown' ? 'dropdown' : 'normal',
-            weight: item.weight,
-            reps: item.reps,
-            bodyweight: (item as any).bodyweight,
-            loggedAt: item.completedAt || startTime
-          }));
-      } else {
-        // New session - only send newly completed sets
-        workoutSets = setRows.flatMap(item => item.toWorkoutSets(startTime));
+      const setId = parseInt(item.id);
+
+      // Prepare request data based on set type
+      const requestData: { weight?: number; reps?: number; dropdownWeights?: Array<{ weight: number; reps: number }> } = {};
+
+      if (item.setType === 'dropdown') {
+        requestData.dropdownWeights = setForm.subSets;
+        requestData.reps = setForm.subSets?.[0]?.reps || setForm.reps;
+        requestData.weight = setForm.subSets?.[0]?.weight;
+      } else if (item.setType === 'bodyweight') {
+        requestData.reps = setForm.reps;
+      } else if (item.setType !== 'warmup') {
+        requestData.weight = setForm.weight;
+        requestData.reps = setForm.reps;
       }
 
-      let workout: WorkoutSession;
+      // Call API to complete the set
+      await workoutsApi.completeSet(sessionId!, setId, requestData);
 
-      if (workoutSessionId) {
-        // Update existing session
-        try {
-          workout = await workoutsApi.update(workoutSessionId, {
-            sets: workoutSets,
-            endedAt: new Date()
-          });
-        } catch (error: any) {
-          // If workout not found (404), create a new session instead
-          if (error?.message?.includes('not found') || error?.message?.includes('404')) {
-            setWorkoutSessionId(null);
-            workout = await workoutsApi.create({
-              name: preset.name,
-              startedAt: startTime,
-              endedAt: new Date(),
-              sets: workoutSets
-            });
-          } else {
-            throw error;
-          }
+      // Update local state
+      setSetItems(prev => prev.map(s => {
+        if (s.id === editingSetId) {
+          return createSetItemFromBackend(
+            {
+              ...s,
+              loggedAt: new Date().toISOString()
+            } as any,
+            s.exerciseName,
+            s.setNumber
+          );
         }
-      } else {
-        // Create new session
-        workout = await workoutsApi.create({
-          name: preset.name,
-          startedAt: startTime,
-          endedAt: new Date(),
-          sets: workoutSets
-        });
-      }
-      workout.totalVolume = calculateTotalVolume();
+        return s;
+      }));
 
-      clearStoredState();
-      onComplete(workout);
+      // Save to last used weights
+      const lastUsedData: LastUsedData = { reps: setForm.reps };
+      if (setForm.weight !== undefined) lastUsedData.weight = setForm.weight;
+      if (setForm.subSets) lastUsedData.subSets = setForm.subSets;
+
+      await lastUsedWeightsApi.set(String(item.exerciseId), lastUsedData);
+
+      setLastUsedWeights(prev => ({
+        ...prev,
+        [item.exerciseId]: lastUsedData
+      }));
+
+      closeSetForm();
+    } catch (error) {
+      console.error('Failed to complete set:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionId, setItems, editingSetId, setForm, closeSetForm]);
 
-  const handleDeleteWorkout = () => {
-    if (confirm('Cancel and delete this workout? All progress will be lost.')) {
-      // If we have an auto-saved session, delete it and notify parent
-      if (workoutSessionId) {
-        workoutsApi.delete(workoutSessionId)
-          .then(() => {
-            // Notify parent to remove from list
-            onDelete?.(workoutSessionId);
-          })
-          .catch(console.error);
-      }
-      clearStoredState();
-      onCancel();
+  // Uncomplete a set
+  const uncompleteSet = useCallback(async (itemId?: string) => {
+    if (!sessionId) return;
+
+    const targetId = itemId || editingSetId;
+    const item = setItems.find(s => s.id === targetId);
+    if (!item) return;
+
+    setLoading(true);
+
+    try {
+      const setId = parseInt(item.id);
+      await workoutsApi.uncompleteSet(sessionId!, setId);
+
+      // Update local state
+      setSetItems(prev => prev.map(s => {
+        if (s.id === targetId) {
+          return createSetItemFromBackend(
+            {
+              ...s,
+              loggedAt: null
+            } as any,
+            s.exerciseName,
+            s.setNumber
+          );
+        }
+        return s;
+      }));
+
+      closeSetForm();
+    } catch (error) {
+      console.error('Failed to uncomplete set:', error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [sessionId, setItems, editingSetId, closeSetForm]);
 
-  const isFreestyle = preset.id === 'freestyle' || preset.exercises.length === 0;
+  // Delete a set
+  const deleteSet = useCallback(async (itemId?: string) => {
+    if (!sessionId) return;
 
-  // Completed sets sorted by completion time (oldest first)
-  const completedSets = setRows
-    .filter(row => row.isFullyCompleted)
-    .sort((a, b) => {
-      const aTime = a.completedAt?.getTime() ?? 0;
-      const bTime = b.completedAt?.getTime() ?? 0;
-      return aTime - bTime; // Oldest first
-    });
+    const targetId = itemId || editingSetId;
+    const item = setItems.find(s => s.id === targetId);
+    if (!item) return;
 
-  // Incomplete sets sorted by original order
-  const incompleteSets = setRows
-    .filter(row => !row.isFullyCompleted)
-    .sort((a, b) => (a.originalIndex ?? 0) - (b.originalIndex ?? 0));
+    setLoading(true);
 
-  // Show completed sets based on showAllCompleted, incomplete based on showAllIncomplete
-  const visibleSetRows: SetItem[] = [
-    // Completed sets - all or just last 2 (by completion time)
-    ...(showAllCompleted ? completedSets : completedSets.slice(-2)),
-    // Incomplete sets - all or just next 3
-    ...(showAllIncomplete ? incompleteSets : incompleteSets.slice(0, 3))
-  ];
+    try {
+      const setId = parseInt(item.id);
+      await workoutsApi.deleteSet(setId);
 
-  // For freestyle mode with no sets, show a message prompting to add exercises
-  const showFreestyleEmpty = isFreestyle && setRows.length === 0;
+      // Remove from local state
+      setSetItems(prev => prev.filter(s => s.id !== targetId));
+      closeSetForm();
+    } catch (error) {
+      console.error('Failed to delete set:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId, setItems, editingSetId, closeSetForm]);
+
+  // Add extra set for an exercise
+  const addExtraSet = useCallback(async (exerciseId: number, exerciseName: string) => {
+    if (!sessionId) return;
+
+    setLoading(true);
+
+    try {
+      // Get last used data for this exercise
+      const lastUsed = lastUsedWeights[exerciseId];
+      const exerciseInfo = getExerciseInfo(exerciseId, exercises);
+      const isBodyweight = exerciseInfo?.bodyweight || false;
+
+      // Count existing sets for this exercise (excluding warmup)
+      const existingSets = setItems.filter(
+        s => s.exerciseId === exerciseId && s.setType !== 'warmup'
+      );
+      const setNumber = existingSets.length + 1;
+
+      // Determine set type
+      const setType = isBodyweight ? 'bodyweight' : 'normal';
+
+      // Create the set via API
+      const response = await workoutsApi.addSet(sessionId!, {
+        exerciseId,
+        setType,
+        weight: lastUsed?.weight,
+        reps: lastUsed?.reps || 10,
+        dropdownWeights: lastUsed?.subSets
+      });
+
+      // Add to local state
+      const newItem = createSetItemFromBackend(
+        response,
+        exerciseName,
+        setNumber,
+        false,
+        true // isExtra
+      );
+      setSetItems(prev => [...prev, newItem]);
+    } catch (error) {
+      console.error('Failed to add set:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId, setItems, lastUsedWeights, exercises]);
+
+  // Add new exercise to workout
+  const addNewExercise = useCallback(async (exerciseId: number) => {
+    if (!sessionId) return;
+
+    const exercise = getExerciseInfo(exerciseId, exercises);
+    if (!exercise) return;
+
+    setLoading(true);
+
+    try {
+      const lastUsed = lastUsedWeights[exerciseId];
+      const isBodyweight = exercise.bodyweight || false;
+      const setType = isBodyweight ? 'bodyweight' : 'normal';
+
+      const response = await workoutsApi.addSet(sessionId!, {
+        exerciseId,
+        setType,
+        weight: lastUsed?.weight,
+        reps: lastUsed?.reps || 10
+      });
+
+      const newItem = createSetItemFromBackend(
+        response,
+        exercise.name,
+        1,
+        false,
+        false
+      );
+      setSetItems(prev => [...prev, newItem]);
+      setShowAddExercise(false);
+      setExerciseSearch('');
+    } catch (error) {
+      console.error('Failed to add exercise:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId, exercises, lastUsedWeights]);
+
+  // Finish workout
+  const finishWorkout = useCallback(async () => {
+    if (!sessionId) return;
+
+    setLoading(true);
+
+    try {
+      const response = await workoutsApi.finish(sessionId!);
+      onComplete(response);
+    } catch (error) {
+      console.error('Failed to finish workout:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId, onComplete]);
+
+  // Delete workout
+  const deleteWorkout = useCallback(async () => {
+    if (!sessionId) return;
+    if (!confirm('Are you sure you want to delete this workout?')) return;
+
+    setLoading(true);
+
+    try {
+      await workoutsApi.delete(sessionId!);
+      onDelete(sessionId);
+    } catch (error) {
+      console.error('Failed to delete workout:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId, onDelete]);
 
   return (
-    <div className="space-y-4" data-workout-id={workoutSessionId}>
+    <div className="space-y-4" data-workout-id={sessionId}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Active Workout {preset.name !== 'Freestyle' && preset.name}</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Active Workout: {session.name}
+          </h2>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">{calculateCompletedSets()}/{calculateTotalSets()}</div>
+            <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+              {completedCount}/{totalSets}
+            </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">sets</div>
           </div>
           <button
-            onClick={handleDeleteWorkout}
+            onClick={deleteWorkout}
             className="p-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
             title="Delete workout"
           >
@@ -772,25 +426,27 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
         </div>
       </div>
 
-      {/* Show more completed sets button (at top) */}
+      {/* Show more completed sets button */}
       {completedSets.length > 2 && (
         <button
           onClick={() => setShowAllCompleted(!showAllCompleted)}
-          className="w-full px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm"
+          className="w-full px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
         >
-          {showAllCompleted ? 'Show less' : `Show ${completedSets.length - 2} more completed`}
+          {showAllCompleted ? (
+            <>
+              <FontAwesomeIcon icon={faChevronDown} />
+              Show less
+            </>
+          ) : (
+            <>
+              <FontAwesomeIcon icon={faChevronRight} />
+              Show {completedSets.length - 2} more completed
+            </>
+          )}
         </button>
       )}
 
-      {/* Freestyle empty state message */}
-      {showFreestyleEmpty && (
-        <div className="text-center py-6 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
-          <p className="text-gray-600 dark:text-gray-300 mb-1">Freestyle mode - add exercises as you go</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500">Use the button below to add your first exercise</p>
-        </div>
-      )}
-
-      {/* Set Rows - using shared SetRow component */}
+      {/* Set Rows */}
       <div className="space-y-2">
         {visibleSetRows.map((item) => {
           const isEditing = editingSetId === item.id;
@@ -801,44 +457,53 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
               item={item}
               isEditing={isEditing}
               setForm={setForm}
-              onOpenSetForm={() => openSetForm(item)}
+              onOpenSetForm={openSetForm}
               onSubmitSet={submitSet}
               onCloseSetForm={closeSetForm}
-              onUncompleteSet={() => uncompleteSet(item.id)}
-              onDeleteSet={() => deleteSet(item.id)}
+              onUncompleteSet={() => uncompleteSet()}
+              onDeleteSet={() => deleteSet()}
               onSetFormChange={setSetForm}
             />
           );
         })}
       </div>
 
-      {/* Show more incomplete sets button (at bottom) */}
+      {/* Show more incomplete sets button */}
       {incompleteSets.length > 3 && (
         <button
           onClick={() => setShowAllIncomplete(!showAllIncomplete)}
-          className="w-full px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          className="w-full px-4 py-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          {showAllIncomplete ? 'Show less' : `Show ${incompleteSets.length - 3} more`}
+          {showAllIncomplete ? (
+            <>
+              <FontAwesomeIcon icon={faChevronDown} />
+              Show less
+            </>
+          ) : (
+            <>
+              <FontAwesomeIcon icon={faChevronRight} />
+              Show {incompleteSets.length - 3} more
+            </>
+          )}
         </button>
       )}
 
-      {/* Add Exercise/Section Buttons */}
-      <div className="flex flex-wrap gap-2">
-        {Object.entries(
-          setRows.reduce((acc, row) => {
-            acc[row.exerciseId] = acc[row.exerciseId] || { name: row.exerciseName, exercise: row.exercise };
-            return acc;
-          }, {} as Record<string, { name: string; exercise: Exercise }>)
-        ).map(([exerciseId, info]) => (
-          <button
-            key={exerciseId}
-            onClick={() => addExtraSet(exerciseId, info.name)}
-            className="px-3 py-1.5 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center gap-1"
-          >
-            <FontAwesomeIcon icon={faPlus} className="text-xs" /> Set for {info.name}
-          </button>
-        ))}
-      </div>
+      {/* Add Set Buttons */}
+      {exercisesInWorkout.size > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {Array.from(exercisesInWorkout.entries()).map(([exerciseId, info]) => (
+            <button
+              key={exerciseId}
+              onClick={() => addExtraSet(exerciseId, info.name)}
+              className="px-3 py-1.5 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors flex items-center gap-1"
+              disabled={loading}
+            >
+              <FontAwesomeIcon icon={faPlus} className="text-xs" />
+              Set for {info.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Add Exercise Button */}
       {exercises.length > 0 && (
@@ -851,35 +516,40 @@ export default function ActiveWorkout({ preset, onComplete, onCancel, onDelete, 
             Add Exercise
           </button>
 
-          {/* Exercise Picker - shown below button when adding */}
           {showAddExercise && (
             <ExercisePicker
               exercises={exercises}
               filteredExercises={filteredExercises}
               search={exerciseSearch}
               onSearchChange={setExerciseSearch}
-              filterCategory={exerciseFilterCategory}
-              onFilterChange={setExerciseFilterCategory}
+              filterCategory="all"
+              onFilterChange={() => {}}
               onExerciseClick={(exercise) => addNewExercise(exercise.id)}
               onClose={() => {
                 setShowAddExercise(false);
                 setExerciseSearch('');
-                setExerciseFilterCategory('all');
               }}
-              excludedIds={setRows.map(row => row.exerciseId)}
+              excludedIds={setItems.map(row => row.exerciseId)}
             />
           )}
         </div>
       )}
 
-      {/* Finish Button */}
-      <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+      {/* Action Buttons */}
+      <div className="flex justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
         <button
-          onClick={handleFinishWorkout}
-          disabled={loading || calculateCompletedSets() === 0}
+          onClick={onCancel}
+          className="px-6 py-3 text-lg font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          disabled={loading}
+        >
+          Cancel
+        </button>
+        <button
+          onClick={finishWorkout}
+          disabled={loading || completedCount === 0}
           className="px-6 py-3 text-lg font-medium text-white bg-green-600 dark:bg-green-700 rounded-lg hover:bg-green-700 dark:hover:bg-green-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
         >
-          {loading ? 'Saving...' : `Finish Workout (${calculateCompletedSets()}/${calculateTotalSets()} sets)`}
+          {loading ? 'Saving...' : `Finish Workout (${completedCount}/${totalSets} sets)`}
         </button>
       </div>
     </div>

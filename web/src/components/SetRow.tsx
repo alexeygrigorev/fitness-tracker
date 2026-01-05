@@ -6,7 +6,7 @@ import { DropdownSetItem } from '../workout/setItems';
 export interface SetForm {
   weight?: number;
   reps: number;
-  subSets?: Array<{ weight: number; reps: number; completed: boolean }>;
+  subSets?: Array<{ weight: number; reps: number; completed?: boolean }>;
 }
 
 interface SetRowProps {
@@ -214,11 +214,16 @@ function EditFormActions({ item, onSubmitSet, onUncompleteSet, onCloseSetForm, o
   onCloseSetForm: () => void;
   onDeleteSet: () => void;
 }) {
+  const handleSave = () => {
+    console.log('[EDIT FORM ACTIONS] Save button clicked!', { itemType: item.setType });
+    onSubmitSet();
+  };
+
   return (
     <>
       <button
         type="button"
-        onClick={onSubmitSet}
+        onClick={handleSave}
         className="px-3 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded text-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
       >
         Save

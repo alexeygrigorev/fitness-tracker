@@ -17,7 +17,7 @@ export type MuscleGroup =
   | 'lats';
 
 export interface Exercise {
-  id: string;
+  id: number; // Backend returns numeric IDs
   name: string;
   category?: 'compound' | 'isolation' | 'cardio'; // Optional - not always set from backend
   muscleGroups?: string[]; // Optional - array of muscle group names

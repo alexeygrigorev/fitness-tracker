@@ -141,17 +141,46 @@ npm test
 
 ### Environment Variables
 
-**Backend** (`backend-django/.env`):
+**Backend** (`backend-django/.env` or as environment variables):
 ```bash
 SECRET_KEY=your-secret-key
 DB_PATH=db/db.sqlite3
 ALLOWED_HOSTS=localhost,127.0.0.1
+SERVE_FRONTEND=false  # Set to 'true' to have Django serve the frontend (Docker only)
 ```
 
 **Frontend** (`web/.env`):
 ```bash
 VITE_API_URL=http://127.0.0.1:8000
 ```
+
+#### Frontend Serving Modes
+
+The frontend can be served in two ways:
+
+**Development Mode (default)**
+- Frontend runs on Vite dev server (`npm run dev`) on port 5173
+- Django serves API only on port 8000
+- `SERVE_FRONTEND=false` or not set
+
+**Production/Docker Mode**
+- Django serves both API and frontend static files from a single container
+- Frontend is pre-built and copied to `web/dist/`
+- `SERVE_FRONTEND=true` enables Django to serve the frontend
+- Use this for Docker builds or when testing production builds locally
+
+To test a production build locally:
+```bash
+# Build the frontend
+cd web
+npm run build
+
+# Start Django with SERVE_FRONTEND=true
+cd ../backend-django
+SERVE_FRONTEND=true uv run python manage.py runserver
+```
+
+Now Django will serve the frontend at http://localhost:8000 (same as Docker).
 
 ### Database Management
 
@@ -179,7 +208,7 @@ The `data.generate` module creates:
 
 ## Deployment
 
-The Dockerfile builds a production-ready single container serving both the React frontend (static files) and Django backend.
+The Dockerfile builds a production-ready single container serving both the React frontend (static files) and Django backend. The `SERVE_FRONTEND=true` environment variable is set in the Dockerfile to enable this mode.
 
 ```bash
 docker build -t fitness-tracker .
