@@ -37,7 +37,6 @@ def model_to_dict(instance):
                 'setType': s.set_type,
                 'weight': float(s.weight) if s.weight else None,
                 'reps': s.reps,
-                'bodyweight': float(s.bodyweight) if s.bodyweight else None,
                 'dropdownWeights': s.dropdown_weights,
                 'set_order': s.set_order,
                 'loggedAt': s.completed_at.isoformat() if s.completed_at else None,
@@ -109,11 +108,14 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return Response(model_to_dict(self.get_object()))
 
-    def partial_update(self, request, *args, **kwargs):
-        """Update set details (weight, reps, dropdown_weights) or mark as complete."""
+    @action(detail=True, methods=["post"])
+    def complete(self, request, pk=None):
+        """Mark a set as completed with current timestamp. Also updates weight/reps if provided."""
         obj = self.get_object()
+        from django.utils import timezone
+        print(f"[DEBUG complete] BEFORE: Set {obj.id}, completed_at={obj.completed_at}")
 
-        # Map frontend camelCase field names to backend snake_case
+        # First, update any fields provided in the request (weight, reps, dropdownWeights)
         field_mapping = {
             'dropdownWeights': 'dropdown_weights',
         }
@@ -122,19 +124,18 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
             # Map camelCase to snake_case
             field_name = field_mapping.get(k, k)
             setattr(obj, field_name, v)
-        obj.save()
-        # Use serializer for response to get correct field names
-        serializer = WorkoutSetSerializer(obj)
-        return Response(serializer.data)
 
-    @action(detail=True, methods=["post"])
-    def complete(self, request, pk=None):
-        """Mark a set as completed with current timestamp."""
-        obj = self.get_object()
-        from django.utils import timezone
+        # Then mark as complete
         obj.completed_at = timezone.now()
         obj.save()
-        return Response(model_to_dict(obj))
+        print(f"[DEBUG complete] AFTER SAVE: Set {obj.id}, completed_at={obj.completed_at}")
+        # Refresh from DB to confirm it was saved
+        obj.refresh_from_db()
+        print(f"[DEBUG complete] AFTER REFRESH: Set {obj.id}, completed_at={obj.completed_at}")
+        # Use serializer for response to get correct field names (loggedAt instead of completed_at)
+        serializer = WorkoutSetSerializer(obj)
+        print(f"[DEBUG complete] SERIALIZED: {serializer.data.get('loggedAt')}")
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def uncomplete(self, request, pk=None):
@@ -142,7 +143,9 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         obj.completed_at = None
         obj.save()
-        return Response(model_to_dict(obj))
+        # Use serializer for response to get correct field names (loggedAt instead of completed_at)
+        serializer = WorkoutSetSerializer(obj)
+        return Response(serializer.data)
 
 
 class WorkoutSessionViewSet(viewsets.ModelViewSet):
@@ -153,12 +156,33 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         # Use serializer to get camelCase field names and include related sets
-        serializer = self.serializer_class(self.get_queryset(), many=True)
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(queryset, many=True)
+        data = serializer.data
+        # DEBUG: Log first session's sets
+        if data:
+            print(f"\n[DEBUG list] Returning {len(data)} sessions")
+            first_session = data[0]
+            sets = first_session.get('sets', [])
+            print(f"[DEBUG list] First session '{first_session.get('name')}' has {len(sets)} sets")
+            for s in sets[:5]:
+                print(f"  Set: id={s.get('id')}, exerciseId={s.get('exerciseId')}, loggedAt={s.get('loggedAt')}")
+            print()
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        # Use serializer to get camelCase field names and include related sets
-        serializer = self.serializer_class(self.get_object())
+        # Use get_queryset to ensure sets are prefetched, then filter to get single object
+        obj = self.get_queryset().get(pk=self.kwargs.get('pk'))
+        serializer = self.serializer_class(obj)
+        # DEBUG: Log the sets being returned
+        print(f"[DEBUG retrieve] Session {obj.id}, sets count: {obj.sets.count() if hasattr(obj, 'sets') else 'N/A'}")
+        if hasattr(obj, 'sets'):
+            for s in obj.sets.all()[:5]:  # Log first 5 sets
+                print(f"  Set {s.id}: exercise_id={s.exercise_id}, set_type={s.set_type}, completed_at={s.completed_at}")
+        data = serializer.data
+        print(f"[DEBUG retrieve] Serialized sets count: {len(data.get('sets', []))}")
+        for s in data.get('sets', [])[:5]:
+            print(f"  Serialized set: {s}")
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
@@ -202,90 +226,15 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
                     'set_type': set_data.get('setType', 'normal'),
                     'weight': set_data.get('weight'),
                     'reps': set_data.get('reps'),
-                    'bodyweight': set_data.get('bodyweight'),
                     'completed_at': set_data.get('loggedAt'),
                 }
                 # Remove None values to let defaults apply
                 mapped_data = {k: v for k, v in mapped_data.items() if v is not None}
                 WorkoutSet.objects.create(**mapped_data)
 
-        return Response(model_to_dict(obj), status=201)
-
-    def partial_update(self, request, *args, **kwargs):
-        from datetime import datetime
-        obj = self.get_object()
-        # Handle special fields that aren't simple attributes
-        data = request.data.copy() if hasattr(request.data, 'copy') else request.data
-        sets_data = data.pop('sets', None)
-
-        # Map frontend field names to Django model field names
-        if 'startedAt' in data:
-            started_at = data.pop('startedAt')
-            if isinstance(started_at, str):
-                data['created_at'] = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-            else:
-                data['created_at'] = started_at
-        if 'endedAt' in data:
-            ended_at = data.pop('endedAt')
-            if isinstance(ended_at, str):
-                data['finished_at'] = datetime.fromisoformat(ended_at.replace('Z', '+00:00'))
-            else:
-                data['finished_at'] = ended_at
-
-        # Update simple attributes
-        for k, v in data.items():
-            setattr(obj, k, v)
-        obj.save()
-
-        # Handle sets update - sync with provided sets data
-        if sets_data is not None:
-            # Get existing sets for this session
-            existing_sets = list(WorkoutSet.objects.filter(session=obj))
-            existing_sets_by_id = {s.id: s for s in existing_sets}
-
-            # Track which set IDs have been processed
-            processed_set_ids = set()
-            created_sets = []
-
-            for idx, set_data in enumerate(sets_data):
-                # Check if this set has an ID that matches an existing set
-                set_id = set_data.get('id')
-                if set_id and set_id in existing_sets_by_id:
-                    # Update existing set
-                    set_obj = existing_sets_by_id[set_id]
-                    set_obj.set_order = set_data.get('set_order', idx)
-                    set_obj.exercise_id = set_data.get('exerciseId')
-                    set_obj.set_type = set_data.get('setType', 'normal')
-                    set_obj.weight = set_data.get('weight')
-                    set_obj.reps = set_data.get('reps')
-                    set_obj.bodyweight = set_data.get('bodyweight')
-                    set_obj.completed_at = set_data.get('loggedAt')
-                    set_obj.save()
-                    processed_set_ids.add(set_id)
-                else:
-                    # Create new set
-                    mapped_data = {
-                        'session': obj,
-                        'set_order': set_data.get('set_order', idx),
-                        'exercise_id': set_data.get('exerciseId'),
-                        'set_type': set_data.get('setType', 'normal'),
-                        'weight': set_data.get('weight'),
-                        'reps': set_data.get('reps'),
-                        'bodyweight': set_data.get('bodyweight'),
-                        'completed_at': set_data.get('loggedAt'),
-                    }
-                    # Remove None values to let defaults apply
-                    mapped_data = {k: v for k, v in mapped_data.items() if v is not None}
-                    new_set = WorkoutSet.objects.create(**mapped_data)
-                    created_sets.append(new_set)
-                    processed_set_ids.add(new_set.id)
-
-            # Delete sets that weren't in the update (sets that were "uncompleted" and removed)
-            for existing_set in existing_sets:
-                if existing_set.id not in processed_set_ids:
-                    existing_set.delete()
-
-        return Response(model_to_dict(obj))
+        # Use serializer to include sets in the response
+        serializer = self.serializer_class(obj)
+        return Response(serializer.data, status=201)
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
@@ -296,11 +245,62 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
     def finish(self, request, pk=None):
         """Mark the workout session as finished."""
         from django.utils import timezone
-        obj = self.get_object()
+        # Use get_queryset to ensure sets are prefetched
+        obj = self.get_queryset().get(pk=self.kwargs.get('pk'))
         obj.finished_at = timezone.now()
         obj.save()
         # Use serializer to ensure all fields are included
         serializer = WorkoutSessionSerializer(obj)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["patch"], url_path="sets/(?P<set_id>[^/.]+)")
+    def complete_set(self, request, pk=None, set_id=None):
+        """Complete a set and optionally update weight/reps.
+        URL: PATCH /api/workouts/sessions/{session_id}/sets/{set_id}/
+
+        Body: { weight?, reps?, dropdownWeights? }
+        Sets completed_at to now() and updates any provided fields.
+        """
+        from django.utils import timezone
+
+        # Get the set directly, verifying it belongs to this session
+        try:
+            workout_set = WorkoutSet.objects.get(pk=set_id, session_id=pk)
+        except WorkoutSet.DoesNotExist:
+            return Response({"error": "Set not found in this session"}, status=404)
+
+        # Update optional fields
+        field_mapping = {
+            'dropdownWeights': 'dropdown_weights',
+        }
+
+        for k, v in request.data.items():
+            field_name = field_mapping.get(k, k)
+            setattr(workout_set, field_name, v)
+
+        # Mark as complete
+        workout_set.completed_at = timezone.now()
+        workout_set.save()
+
+        serializer = WorkoutSetSerializer(workout_set)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["delete"], url_path="sets/(?P<set_id>[^/.]+)/completion")
+    def uncomplete_set(self, request, pk=None, set_id=None):
+        """Uncomplete a set (clear completed_at).
+        URL: DELETE /api/workouts/sessions/{session_id}/sets/{set_id}/completion/
+        """
+        # Get the set directly, verifying it belongs to this session
+        try:
+            workout_set = WorkoutSet.objects.get(pk=set_id, session_id=pk)
+        except WorkoutSet.DoesNotExist:
+            return Response({"error": "Set not found in this session"}, status=404)
+
+        # Clear completion
+        workout_set.completed_at = None
+        workout_set.save()
+
+        serializer = WorkoutSetSerializer(workout_set)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
@@ -447,12 +447,24 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def start_workout(self, request, pk=None):
         """Create a WorkoutSession from this preset with all sets.
-        Accepts optional 'startedAt' parameter to allow client-provided timestamp.
+        Accepts optional 'startedAt' and 'bodyweight' parameters.
+        Reuses an existing active session if one exists for this preset.
         """
         from django.utils import timezone
         from .serializers import WorkoutSessionSerializer, WorkoutSetSerializer
 
         preset = self.get_object()
+
+        # Check if there's an existing active workout session for this user
+        existing_active = WorkoutSession.objects.filter(
+            user=request.user,
+            finished_at__isnull=True
+        ).order_by('-created_at').first()
+
+        if existing_active:
+            # Finish the existing workout and create a new one
+            existing_active.finished_at = timezone.now()
+            existing_active.save()
 
         # Get client-provided start time if available, otherwise use server time
         started_at = request.data.get('startedAt')
@@ -466,12 +478,16 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         else:
             created_time = timezone.now()
 
+        # Get client-provided bodyweight if available
+        bodyweight = request.data.get('bodyweight')
+
         # Create the workout session
         session = WorkoutSession.objects.create(
             user=request.user,
             preset=preset,
             name=preset.name,
             notes=preset.notes,
+            bodyweight=bodyweight,
             created_at=created_time
         )
 
@@ -486,13 +502,30 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         # Bulk create
         WorkoutSet.objects.bulk_create(sets)
 
+        # Fetch the session from the database with its sets (refresh_from_db doesn't use prefetch_related)
+        session = WorkoutSession.objects.filter(
+            user=request.user,
+            pk=session.pk
+        ).prefetch_related('sets__exercise').first()
+
         # Use serializers to get camelCase field names for frontend
         session_serializer = WorkoutSessionSerializer(session)
-        sets_serializer = WorkoutSetSerializer(session.sets.all(), many=True)
+        # The session serializer includes nested sets, but frontend also expects sets at top level
+        # Extract the properly serialized sets from the session
+        sets_data = session_serializer.data.get('sets', [])
 
         return Response({
-            "session": session_serializer.data,
-            "sets": sets_serializer.data
+            "session": {
+                "id": session_serializer.data.get('id'),
+                "name": session_serializer.data.get('name'),
+                "notes": session_serializer.data.get('notes'),
+                "bodyweight": session_serializer.data.get('bodyweight'),
+                "startedAt": session_serializer.data.get('startedAt'),
+                "endedAt": session_serializer.data.get('endedAt'),
+                "user_id": session_serializer.data.get('user'),
+                "preset_id": session_serializer.data.get('preset')
+            },
+            "sets": sets_data
         }, status=201)
 
 

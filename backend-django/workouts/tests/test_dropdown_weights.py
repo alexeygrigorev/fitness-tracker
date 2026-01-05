@@ -1,7 +1,6 @@
 """
 Tests for dropdown set functionality with dropdown_weights JSONField.
 """
-import time
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -108,8 +107,8 @@ class TestDropdownWeights(TestCase):
         session = response.data
         self.assertIn("sets", session)
 
-        # Check dropdown sets have dropdown_weights
-        dropdown_sets = [s for s in session["sets"] if s["set_type"] == "dropdown"]
+        # Check dropdown sets have dropdown_weights (using frontend field names)
+        dropdown_sets = [s for s in session["sets"] if s["setType"] == "dropdown"]
         self.assertGreater(len(dropdown_sets), 0)
 
         for dropdown_set in dropdown_sets:

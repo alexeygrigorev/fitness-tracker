@@ -1,31 +1,20 @@
 import { test, expect, type Page } from '@playwright/test';
-
-async function login(page: Page) {
-  await page.goto('/login');
-  // Debug: check if page loaded
-  console.log('Page URL:', page.url());
-  console.log('Page title:', await page.title());
-
-  // Wait for React to mount
-  const hasUsernameInput = await page.waitForSelector('input[placeholder="Enter your username"]', { timeout: 10000 })
-    .then(() => true)
-    .catch(async () => {
-      console.error('Username input not found!');
-      return false;
-    });
-
-  if (!hasUsernameInput) {
-    throw new Error('Login page did not load - username input not found');
-  }
-
-  await page.getByPlaceholder('Enter your username').fill('test');
-  await page.getByPlaceholder('Enter your password').fill('test');
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL(/^(?!.*\/login).*$/, { timeout: 10000 });
-}
+import { login, clearAllWorkoutState, ensureTestPresets } from './helpers';
 
 test.describe('Active Workout Persistence', () => {
   test.beforeEach(async ({ page }) => {
+    // Set cache disable to ensure fresh content is loaded
+    await page.route('**', route => {
+      const headers = route.request().headers();
+      route.continue({
+        headers: {
+          ...headers,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+        }
+      });
+    });
+
     // Auto-accept all confirmation dialogs
     page.on('dialog', dialog => dialog.accept());
 
@@ -49,25 +38,23 @@ test.describe('Active Workout Persistence', () => {
     await page.waitForLoadState('networkidle');
 
     // Clear any existing active workout from previous tests
-    const existingActiveWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
-    const hasExistingWorkout = await existingActiveWorkout.isVisible().catch(() => false);
-    if (hasExistingWorkout) {
-      // Delete the active workout if it exists
-      const deleteButton = page.locator('button[title="Delete workout"]');
-      await deleteButton.click();
-      await page.waitForTimeout(500);
-      await page.goto('/workouts');
-      await page.waitForLoadState('networkidle');
-    }
+    await clearAllWorkoutState(page);
+
+    // Ensure test user has the required presets (created from templates if needed)
+    await ensureTestPresets(page);
 
     // Start Push Day workout
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
     await pushDayPreset.click();
 
     // Wait for active workout mode and network to settle
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
     await expect(activeWorkout).toContainText('Push Day');
+
+    // Wait for exercises to load and set rows to be rendered
+    await page.waitForTimeout(3000);
+
     await page.waitForLoadState('networkidle');
 
     // Wait for workout session ID to be set (from start_workout API)
@@ -78,12 +65,14 @@ test.describe('Active Workout Persistence', () => {
     }).toPass({ timeout: 10000 });
 
     // Complete one set to ensure the workout session is created on the server
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
+    // Note: Set 1 is a warmup set, so we need to find the first dropdown set
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ });
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 
-    // Wait for edit form to expand
-    await page.waitForTimeout(500);
+    // Wait for edit form to expand and inputs to be visible
+    const firstKgInput = page.locator('input[placeholder="kg"]').first();
+    await expect(firstKgInput).toBeVisible({ timeout: 5000 });
 
     // Fill in and save the set
     await page.locator('input[placeholder="kg"]').nth(0).fill('60');
@@ -120,7 +109,7 @@ test.describe('Active Workout Persistence', () => {
     await expect(activeWorkoutAfterRefresh).toContainText('Push Day');
 
     // Verify the completed set is still marked as completed
-    const firstSetRowAfterRefresh = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
+    const firstSetRowAfterRefresh = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ });
     await expect(firstSetRowAfterRefresh.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 })
       .catch(() => {
         throw new Error('Completed set should still be marked as completed after refresh');
@@ -166,7 +155,7 @@ test.describe('Active Workout Persistence', () => {
     }
 
     // Step 1: Start Push Day workout and complete ONE dropdown set first to test basic persistence
-    const pushDayPreset = page1.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    const pushDayPreset = page1.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
     await pushDayPreset.click();
 
     const activeWorkout1 = page1.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
@@ -180,9 +169,14 @@ test.describe('Active Workout Persistence', () => {
       expect(workoutId).not.toBe('null');
     }).toPass({ timeout: 10000 });
 
-    // Complete Bench Press Set 1 (dropdown set)
-    const benchPressSet1 = page1.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
+    // Complete Bench Press dropdown set (Set 1 is warmup, so we target the first Dropdown set)
+    const benchPressSet1 = page1.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ });
     await benchPressSet1.click();
+
+    // Wait for edit form to expand and inputs to be visible
+    const firstKgInput1 = page1.locator('input[placeholder="kg"]').first();
+    await expect(firstKgInput1).toBeVisible({ timeout: 5000 });
+
     await page1.locator('input[placeholder="kg"]').nth(0).fill('60');
     await page1.locator('input[placeholder="reps"]').nth(0).fill('10');
     await page1.locator('input[placeholder="kg"]').nth(1).fill('57.5');
@@ -210,8 +204,8 @@ test.describe('Active Workout Persistence', () => {
     const activeWorkoutContainer2 = page2.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkoutContainer2).toBeVisible({ timeout: 5000 });
 
-    // Verify Bench Press Set 1 is marked as completed on page2
-    const benchPressSet1_2 = page2.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ }).first();
+    // Verify Bench Press dropdown set is marked as completed on page2
+    const benchPressSet1_2 = page2.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ });
     await expect(benchPressSet1_2).toBeVisible({ timeout: 5000 });
     await expect(benchPressSet1_2.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 

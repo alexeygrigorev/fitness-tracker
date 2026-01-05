@@ -32,6 +32,19 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:8000',
     headless: true,
+    // Ignore browser cache for testing
+    ignoreHTTPSErrors: true,
+    // Capture console logs
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
+  // Capture console logs from browser
+  beforeEach: async ({ page }, testInfo) => {
+    page.on('console', msg => {
+      if (msg.type() === 'error' || msg.type() === 'warn' || msg.text().includes('[DEBUG')) {
+        console.log(`[Browser ${msg.type()}] ${msg.text()}`);
+      }
+    });
   },
 
   projects: [
@@ -39,7 +52,16 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        // Force fresh context for each test to avoid caching
+        launchOptions: {
+          args: ['--disable-blink-features=AutomationControlled', '--disable-dev-shm-usage', '--disable-cache']
+        },
+        contextOptions: {
+          // Bypass browser cache entirely
+          storageState: undefined,
+        },
       },
     },
   ],
 });
+

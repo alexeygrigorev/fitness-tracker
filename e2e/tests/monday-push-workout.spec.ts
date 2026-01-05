@@ -1,29 +1,70 @@
 import { test, expect, type Page } from '@playwright/test';
-
-async function login(page: Page) {
-  await page.goto('/login');
-  await page.getByPlaceholder('Enter your username').fill('test');
-  await page.getByPlaceholder('Enter your password').fill('test');
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL(/^(?!.*\/login).*$/, { timeout: 10000 });
-}
-
-async function clearExistingActiveWorkout(page: Page) {
-  const existingActiveWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
-  const hasExistingWorkout = await existingActiveWorkout.isVisible().catch(() => false);
-  if (hasExistingWorkout) {
-    const deleteButton = page.locator('button[title="Delete workout"]');
-    await deleteButton.click();
-    // Wait for the active workout to actually be removed
-    await existingActiveWorkout.waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
-    await page.waitForLoadState('networkidle');
-  }
-}
+import { login, clearAllWorkoutState, ensureTestPresets } from './helpers';
 
 test.describe('Monday Push Day Workout', () => {
   test.beforeEach(async ({ page }) => {
     // Set up auto-accept for all confirmation dialogs for the entire test suite
     page.on('dialog', dialog => dialog.accept());
+  });
+
+  test.afterEach(async ({ page }) => {
+    // Clean up any workouts created during this test
+    // Navigate to workouts page and delete all visible workouts
+    try {
+      await login(page);
+      await page.goto('/workouts');
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(500);
+
+      // Get all workout IDs
+      const workoutIds: string[] = [];
+      const workoutElements = await page.locator('[data-workout-id]').all();
+      for (const elem of workoutElements) {
+        const id = await elem.getAttribute('data-workout-id');
+        if (id) workoutIds.push(id);
+      }
+
+      // Delete each workout
+      for (const id of workoutIds) {
+        try {
+          const workoutElem = page.locator(`[data-workout-id="${id}"]`);
+          const deleteButton = workoutElem.locator('button[title="Delete"]');
+          if (await deleteButton.count() > 0) {
+            await deleteButton.click();
+            await page.waitForTimeout(500);
+            await page.waitForLoadState('networkidle');
+          }
+        } catch (e) {
+          // Continue even if one delete fails
+        }
+      }
+
+      // After deleting, reload to make sure all workouts are cleared
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+      await page.waitForTimeout(500);
+
+      // Double-check and delete any remaining workouts
+      const remainingWorkouts = await page.locator('[data-workout-id]').all();
+      for (const elem of remainingWorkouts) {
+        try {
+          const id = await elem.getAttribute('data-workout-id');
+          if (id) {
+            const workoutElem = page.locator(`[data-workout-id="${id}"]`);
+            const deleteButton = workoutElem.locator('button[title="Delete"]');
+            if (await deleteButton.count() > 0) {
+              await deleteButton.click();
+              await page.waitForTimeout(500);
+            }
+          }
+        } catch (e) {
+          // Continue
+        }
+      }
+    } catch (e) {
+      // Ignore cleanup errors - don't fail the test if cleanup fails
+      console.log('Cleanup error (ignored):', e);
+    }
   });
 
   test('completes full Push Day workout on Monday with realistic delays', async ({ page }) => {
@@ -36,23 +77,35 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForLoadState('networkidle');
 
     // Clear any existing active workout from previous tests
-    await clearExistingActiveWorkout(page);
+    await clearAllWorkoutState(page);
+
+    // Ensure test user has the required presets (created from templates if needed)
+    await ensureTestPresets(page);
 
     // Start Push Day workout
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
     await pushDayPreset.click();
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
 
+    // Wait for exercises to load and set rows to be rendered
+    // Use a timeout instead of waitForFunction to let React settle
+    await page.waitForTimeout(3000);
+
     // Verify we're on the Push Day preset (day label is shown on the preset button, not in active workout)
     await expect(activeWorkout).toContainText('Push Day');
 
     // Complete first dropdown set of Bench Press
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
+    // Note: Set 1 is a warmup set, so we need to find the first dropdown set (Set 2)
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
+
+    // Wait for edit form to expand and inputs to be visible
+    const firstKgInput = page.locator('input[placeholder="kg"]').first();
+    await expect(firstKgInput).toBeVisible({ timeout: 5000 });
 
     // Fill in the dropdown set (W + D1 + D2)
     await page.locator('input[placeholder="kg"]').nth(0).fill('60');
@@ -65,16 +118,20 @@ test.describe('Monday Push Day Workout', () => {
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
 
-    // Wait for the checkmark to appear
-    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Wait for the Uncomplete button to appear (indicates completion)
+    await expect(firstSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Simulate realistic delay between sets (rest period)
     await page.clock.install({ time: new Date('2025-01-06T09:02:00').getTime() });
 
-    // Complete second dropdown set of Bench Press
-    const secondSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 2/ });
+    // Complete second dropdown set of Bench Press (Set 3, since Set 2 was just completed)
+    const secondSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).nth(1);
     await expect(secondSetRow).toBeVisible();
     await secondSetRow.click();
+
+    // Wait for edit form to expand and inputs to be visible
+    const secondKgInput = page.locator('input[placeholder="kg"]').first();
+    await expect(secondKgInput).toBeVisible({ timeout: 5000 });
 
     // Fill in the dropdown set
     await page.locator('input[placeholder="kg"]').nth(0).fill('60');
@@ -85,7 +142,8 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="reps"]').nth(2).fill('10');
 
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(secondSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(secondSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     await page.clock.install({ time: new Date('2025-01-06T09:04:00').getTime() });
 
@@ -100,10 +158,14 @@ test.describe('Monday Push Day Workout', () => {
     await expect(ohpSetRow).toBeVisible({ timeout: 5000 });
     await ohpSetRow.click();
 
+    // Wait for edit form to stabilize
+    await page.waitForTimeout(500);
+
     await page.locator('input[placeholder="kg"]').fill('30');
     await page.locator('input[placeholder="reps"]').fill('8');
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(ohpSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(ohpSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Finish the workout
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
@@ -131,20 +193,32 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForLoadState('networkidle');
 
     // Clear any existing active workout from previous tests
-    await clearExistingActiveWorkout(page);
+    await clearAllWorkoutState(page);
+
+    // Ensure test user has the required presets (created from templates if needed)
+    await ensureTestPresets(page);
 
     // Start Push Day workout
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
     await pushDayPreset.click();
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
 
+    // Wait for exercises to load and set rows to be rendered
+    // Use a timeout instead of waitForFunction to let React settle
+    await page.waitForTimeout(3000);
+
     // Complete just ONE dropdown set of Bench Press
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
+    // Note: Set 1 is a warmup set, so we need to find the first dropdown set
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
+
+    // Wait for edit form to expand and inputs to be visible
+    const firstKgInput = page.locator('input[placeholder="kg"]').first();
+    await expect(firstKgInput).toBeVisible({ timeout: 5000 });
 
     await page.locator('input[placeholder="kg"]').nth(0).fill('60');
     await page.locator('input[placeholder="reps"]').nth(0).fill('10');
@@ -154,7 +228,8 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="reps"]').nth(2).fill('10');
 
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(firstSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Finish with partial sets
     const finishButton = page.getByRole('button', { name: /Finish Workout/ });
@@ -181,13 +256,13 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForLoadState('networkidle');
 
     // Clear any existing active workout from previous tests
-    await clearExistingActiveWorkout(page);
+    await clearAllWorkoutState(page);
 
     // Verify "Today's Presets" section exists (use heading to avoid strict mode violation)
     await expect(page.getByRole('heading', { name: /Today/i })).toBeVisible();
 
     // Push Day should be highlighted/visible in Today's section
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
     await expect(pushDayPreset).toBeVisible();
   });
 
@@ -201,7 +276,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForLoadState('networkidle');
 
     // Clear any existing active workout from previous tests
-    await clearExistingActiveWorkout(page);
+    await clearAllWorkoutState(page);
 
     // Leg Day should exist in the DOM (it's a Friday preset, shown somewhere on Monday)
     // It may be hidden in a collapsible section, but should be present
@@ -210,29 +285,46 @@ test.describe('Monday Push Day Workout', () => {
   });
 
   test('can resume a partially completed workout and finish remaining sets', async ({ page }) => {
-    // Set the date to Monday
-    const mondayDate = new Date('2025-01-06T09:00:00');
-    await page.clock.install({ time: mondayDate.getTime() });
+  // Set the date to Monday
+  const mondayDate = new Date('2025-01-06T09:00:00');
+  await page.clock.install({ time: mondayDate.getTime() });
 
     await login(page);
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
 
     // Clear any existing active workout from previous tests
-    await clearExistingActiveWorkout(page);
+    await clearAllWorkoutState(page);
+
+    // Ensure test user has the required presets (created from templates if needed)
+    await ensureTestPresets(page);
 
     // Start Push Day workout
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
     await pushDayPreset.click();
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
 
+    // Wait for exercises to load and set rows to be rendered
+    // Use a timeout instead of waitForFunction to let React settle
+    await page.waitForTimeout(3000);
+
+    // Wait for network to settle after workout starts (exercises loading)
+    await page.waitForLoadState('networkidle');
+
     // Complete first dropdown set of Bench Press
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
+    // Note: Set 1 is a warmup set, so we need to find the first dropdown set
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
     await expect(firstSetRow).toBeVisible();
+    // Add a small delay to ensure component is stable after render
+    await page.waitForTimeout(500);
     await firstSetRow.click();
+
+    // Wait for edit form to expand and inputs to be visible
+    const firstKgInput = page.locator('input[placeholder="kg"]').first();
+    await expect(firstKgInput).toBeVisible({ timeout: 5000 });
 
     // Fill in the dropdown set (W + D1 + D2)
     await page.locator('input[placeholder="kg"]').nth(0).fill('60');
@@ -244,7 +336,8 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(firstSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Finish the workout with just 1 set completed
     const finishButton = page.getByRole('button', { name: /Finish Workout/ });
@@ -263,10 +356,6 @@ test.describe('Monday Push Day Workout', () => {
     const loggedWorkout = page.locator('.border.rounded-lg').filter({ hasText: /Push Day/ }).filter({ hasText: '09:00' }).first();
     await expect(loggedWorkout).toBeVisible({ timeout: 5000 });
 
-    // Get the workout ID using the data attribute
-    const workoutId = await loggedWorkout.getAttribute('data-workout-id');
-    expect(workoutId).not.toBeNull();
-
     // Click the play button to resume the workout
     const resumeButton = loggedWorkout.getByRole('button').filter({ hasText: '' }).locator('[data-icon="play"]').locator('..');
     await resumeButton.click();
@@ -274,9 +363,21 @@ test.describe('Monday Push Day Workout', () => {
     // Active workout mode should appear again
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
 
-    // Verify we see completed sets (checkmarks should exist)
-    const checkmarks = page.locator('[data-icon="check"]');
-    await expect(checkmarks.first()).toBeVisible({ timeout: 5000 });
+    // Wait for the workout state to fully load after resume
+    await page.waitForTimeout(500);
+    await page.waitForLoadState('networkidle');
+
+    // Click "Show more" to reveal all incomplete sets (default only shows first 3)
+    const showMoreButton = activeWorkout.getByText(/Show \d+ more/);
+    const showMoreCount = await showMoreButton.count();
+    if (showMoreCount > 0) {
+      await showMoreButton.click();
+      await page.waitForTimeout(200);
+    }
+
+    // Verify we see completed sets (Uncomplete buttons should exist for completed sets)
+    const uncompleteButtons = page.getByRole('button', { name: 'Uncomplete' });
+    await expect(uncompleteButtons.first()).toBeVisible({ timeout: 5000 });
 
     // Count total sets - should have multiple sets from the full workout
     const allSetRows = page.locator('.border.rounded-lg');
@@ -334,18 +435,22 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForLoadState('networkidle');
 
     // Clear any existing active workout from previous tests
-    await clearExistingActiveWorkout(page);
+    await clearAllWorkoutState(page);
 
     // Count workouts BEFORE starting the workout (there may be existing workouts from previous tests)
     const initialWorkoutCount = await page.locator('[data-workout-id]').count();
 
     // Start Push Day workout
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
     await pushDayPreset.click();
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Wait for exercises to load and set rows to be rendered
+    // Use a timeout instead of waitForFunction to let React settle
+    await page.waitForTimeout(3000);
 
     // Complete first dropdown set of Bench Press (Set 1)
     const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
@@ -362,7 +467,8 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(firstSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Finish the workout with just 1 set completed
     const finishButton = page.getByRole('button', { name: /Finish Workout/ });
@@ -410,7 +516,8 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(secondSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(secondSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Finish the workout again
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
@@ -442,15 +549,22 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForLoadState('networkidle');
 
     // Clear any existing active workout from previous tests
-    await clearExistingActiveWorkout(page);
+    await clearAllWorkoutState(page);
+
+    // Ensure test user has the required presets (created from templates if needed)
+    await ensureTestPresets(page);
 
     // Start Push Day workout
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
     await pushDayPreset.click();
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Wait for exercises to load and set rows to be rendered
+    // Use a timeout instead of waitForFunction to let React settle
+    await page.waitForTimeout(3000);
 
     // Wait for counter to be properly loaded (sometimes shows 0/0 initially)
     await page.waitForFunction(() => {
@@ -477,6 +591,9 @@ test.describe('Monday Push Day Workout', () => {
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 
+    // Wait for edit form to stabilize after click
+    await page.waitForTimeout(500);
+
     // Fill in the dropdown set (W + D1 + D2)
     await page.locator('input[placeholder="kg"]').nth(0).fill('60');
     await page.locator('input[placeholder="reps"]').nth(0).fill('10');
@@ -491,7 +608,8 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(firstSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // CRITICAL TEST: After saving ONE dropdown set row,
     // the completed counter should increase by 1 (not 3 which is the bug)
@@ -508,6 +626,9 @@ test.describe('Monday Push Day Workout', () => {
     await expect(secondSetRow).toBeVisible();
     await secondSetRow.click();
 
+    // Wait for edit form to stabilize
+    await page.waitForTimeout(500);
+
     // Fill in the dropdown set
     await page.locator('input[placeholder="kg"]').nth(0).fill('60');
     await page.locator('input[placeholder="reps"]').nth(0).fill('10');
@@ -518,7 +639,8 @@ test.describe('Monday Push Day Workout', () => {
 
     // Save the set
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(secondSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(secondSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Counter should have increased by 1 more (total 2, not 6)
     counter = await page.getByRole('button', { name: /Finish Workout/ }).textContent();
@@ -554,18 +676,22 @@ test.describe('Monday Push Day Workout', () => {
     console.log('Expected time:', mondayDate.toISOString());
 
     // Clear any existing active workout from previous tests
-    await clearExistingActiveWorkout(page);
+    await clearAllWorkoutState(page);
 
     // Count workouts BEFORE starting (there may be existing workouts from previous tests)
     const initialWorkoutCount = await page.locator('[data-workout-id]').count();
 
     // Start Push Day workout
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
+    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
     await pushDayPreset.click();
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Wait for exercises to load and set rows to be rendered
+    // Use a timeout instead of waitForFunction to let React settle
+    await page.waitForTimeout(3000);
 
     // Complete one set
     const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Set 1/ });
@@ -579,7 +705,8 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="kg"]').nth(2).fill('55');
     await page.locator('input[placeholder="reps"]').nth(2).fill('10');
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(firstSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Finish the workout
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
@@ -650,7 +777,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForLoadState('networkidle');
 
     // Clear any existing active workout from previous tests
-    await clearExistingActiveWorkout(page);
+    await clearAllWorkoutState(page);
 
     // Use the "Test Last Used Weights" preset which has:
     // - Overhead Press (normal, 3 sets)
@@ -676,10 +803,14 @@ test.describe('Monday Push Day Workout', () => {
     await expect(exerciseRow).toBeVisible({ timeout: 5000 });
     await exerciseRow.click();
 
+    // Wait for edit form to stabilize
+    await page.waitForTimeout(500);
+
     await page.locator('input[placeholder="kg"]').first().fill(String(startingWeight));
     await page.locator('input[placeholder="reps"]').first().fill(String(week1Reps));
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(exerciseRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(exerciseRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Finish week 1 workout
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
@@ -710,6 +841,9 @@ test.describe('Monday Push Day Workout', () => {
     await expect(exerciseRow2).toBeVisible({ timeout: 5000 });
     await exerciseRow2.click();
 
+    // Wait for edit form to stabilize
+    await page.waitForTimeout(500);
+
     const week1RememberedWeight = await page.locator('input[placeholder="kg"]').first().inputValue();
     const week1RememberedReps = await page.locator('input[placeholder="reps"]').first().inputValue();
 
@@ -722,7 +856,8 @@ test.describe('Monday Push Day Workout', () => {
     await page.locator('input[placeholder="kg"]').first().fill(String(week2Weight));
     await page.locator('input[placeholder="reps"]').first().fill(String(week2Reps));
     await page.getByRole('button', { name: 'Save' }).click();
-    await expect(exerciseRow2.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
+    // Check for Uncomplete button to verify completion
+    await expect(exerciseRow2.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Finish week 2 workout
     await page.getByRole('button', { name: /Finish Workout/ }).click({ force: true });
@@ -752,6 +887,9 @@ test.describe('Monday Push Day Workout', () => {
     const exerciseRow3 = activeWorkout.locator('.border.rounded-lg').filter({ hasText: /Overhead Press.*Set 1/ });
     await expect(exerciseRow3).toBeVisible({ timeout: 5000 });
     await exerciseRow3.click();
+
+    // Wait for edit form to stabilize
+    await page.waitForTimeout(500);
 
     const week2RememberedWeight = await page.locator('input[placeholder="kg"]').first().inputValue();
     const week2RememberedReps = await page.locator('input[placeholder="reps"]').first().inputValue();

@@ -112,36 +112,3 @@ class ExerciseSettingsTests(TestCase):
 
         self.assertEqual(settings1.weight, 80)
         self.assertEqual(settings2.weight, 60)
-
-    def test_preset_includes_last_used_weights(self):
-        """Test that preset response includes last used weights"""
-        from workouts.models import WorkoutPreset, WorkoutPresetExercise
-
-        # Create exercise settings
-        ExerciseSettings.objects.create(
-            user=self.user,
-            exercise=self.exercise,
-            weight=80,
-            reps=10
-        )
-
-        # Create a preset with this exercise
-        preset = WorkoutPreset.objects.create(
-            user=self.user,
-            name='Test Preset'
-        )
-        WorkoutPresetExercise.objects.create(
-            preset=preset,
-            exercise=self.exercise,
-            type='normal',
-            sets=3,
-            order=0
-        )
-
-        # Fetch preset via API
-        response = self.client.get(f'/api/workouts/presets/{preset.id}/')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn('lastUsedWeights', response.data)
-        self.assertIn(str(self.exercise.id), response.data['lastUsedWeights'])
-        self.assertEqual(response.data['lastUsedWeights'][str(self.exercise.id)]['weight'], 80)
-        self.assertEqual(response.data['lastUsedWeights'][str(self.exercise.id)]['reps'], 10)

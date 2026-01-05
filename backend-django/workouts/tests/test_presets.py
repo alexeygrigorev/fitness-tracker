@@ -11,6 +11,7 @@ from workouts.models import (
     WorkoutSet,
 )
 from users.models import User
+from users.models import ExerciseSettings
 
 
 class TestGenerateSets(TestCase):
@@ -457,3 +458,51 @@ class TestPresetExercisesInAPI(TestCase):
         superset_ids = [item["exerciseId"] for item in superset_data["supersetExercises"]]
         self.assertIn(self.exercise1.id, superset_ids)
         self.assertIn(self.exercise2.id, superset_ids)
+
+
+class TestPresetLastUsedWeights(TestCase):
+    """Test that preset responses include last used weights from exercise settings."""
+
+    def setUp(self):
+        """Set up test client and user."""
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.force_authenticate(user=self.user)
+
+        # Create a test exercise
+        self.exercise = Exercise.objects.create(
+            name='Bench Press',
+            is_compound=True,
+            is_bodyweight=False
+        )
+
+    def test_preset_includes_last_used_weights(self):
+        """Test that preset response includes last used weights"""
+        # Create exercise settings
+        ExerciseSettings.objects.create(
+            user=self.user,
+            exercise=self.exercise,
+            weight=80,
+            reps=10
+        )
+
+        # Create a preset with this exercise
+        preset = WorkoutPreset.objects.create(
+            user=self.user,
+            name='Test Preset'
+        )
+        WorkoutPresetExercise.objects.create(
+            preset=preset,
+            exercise=self.exercise,
+            type='normal',
+            sets=3,
+            order=0
+        )
+
+        # Fetch preset via API
+        response = self.client.get(f'/api/workouts/presets/{preset.id}/')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('lastUsedWeights', response.data)
+        self.assertIn(self.exercise.id, response.data['lastUsedWeights'])
+        self.assertEqual(response.data['lastUsedWeights'][self.exercise.id]['weight'], 80.0)
+        self.assertEqual(response.data['lastUsedWeights'][self.exercise.id]['reps'], 10)

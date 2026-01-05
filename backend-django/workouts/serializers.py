@@ -34,10 +34,11 @@ class ExerciseSerializer(serializers.ModelSerializer):
     bodyweight = serializers.BooleanField(source='is_bodyweight', read_only=True)
     muscleGroups = serializers.SerializerMethodField()
     equipment = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
 
     class Meta:
         model = Exercise
-        fields = ['id', 'name', 'muscleGroups', 'equipment', 'bodyweight']
+        fields = ['id', 'name', 'muscleGroups', 'equipment', 'bodyweight', 'category']
 
     def get_muscleGroups(self, obj):
         """Return muscle group names as an array."""
@@ -47,28 +48,50 @@ class ExerciseSerializer(serializers.ModelSerializer):
         """Return equipment name or empty string if none."""
         return obj.equipment.name if obj.equipment else None
 
+    def get_category(self, obj):
+        """Derive category from is_compound field."""
+        return 'compound' if obj.is_compound else 'isolation'
+
 
 class WorkoutSetSerializer(serializers.ModelSerializer):
     exerciseId = serializers.ReadOnlyField(source='exercise.id')
-    loggedAt = serializers.DateTimeField(source='completed_at', allow_null=True)
+    exerciseName = serializers.ReadOnlyField(source='exercise.name')  # Include exercise name for fallback matching
+    # Use a custom method field to ensure loggedAt is always included
+    loggedAt = serializers.SerializerMethodField()
     dropdownWeights = serializers.JSONField(source='dropdown_weights', required=False)
     setType = serializers.CharField(source='set_type')
+
+    def get_loggedAt(self, obj):
+        """Always return completed_at, even if None."""
+        # DEBUG: Log the completed_at value
+        print(f"[DEBUG get_loggedAt] Set {obj.id}: completed_at={obj.completed_at}")
+        return obj.completed_at
 
     class Meta:
         model = WorkoutSet
         # Use camelCase for frontend
-        fields = ['id', 'exerciseId', 'session', 'set_order', 'setType', 'weight', 'reps', 'bodyweight', 'dropdownWeights', 'loggedAt']
+        fields = ['id', 'exerciseId', 'exerciseName', 'session', 'set_order', 'setType', 'weight', 'reps', 'dropdownWeights', 'loggedAt']
 
 
 class WorkoutSessionSerializer(serializers.ModelSerializer):
     sets = WorkoutSetSerializer(many=True, read_only=True)
     startedAt = serializers.DateTimeField(source='created_at')
     endedAt = serializers.DateTimeField(source='finished_at', allow_null=True)
+    bodyweight = serializers.DecimalField(max_digits=6, decimal_places=2, allow_null=True, required=False)
+
+    def to_representation(self, instance):
+        """Ensure sets are always included in the representation."""
+        data = super().to_representation(instance)
+        # DEBUG: Log the sets being serialized
+        print(f"[DEBUG WorkoutSessionSerializer.to_representation] Session {instance.id}, sets count: {len(data.get('sets', []))}")
+        for s in data.get('sets', [])[:3]:
+            print(f"  Serialized set: id={s.get('id')}, exerciseId={s.get('exerciseId')}, loggedAt={s.get('loggedAt')}")
+        return data
 
     class Meta:
         model = WorkoutSession
         # Explicitly list fields to use camelCase names for frontend
-        fields = ['id', 'name', 'notes', 'startedAt', 'endedAt', 'user', 'preset', 'sets']
+        fields = ['id', 'name', 'notes', 'bodyweight', 'startedAt', 'endedAt', 'user', 'preset', 'sets']
 
 
 class SupersetExerciseItemSerializer(serializers.ModelSerializer):
@@ -158,7 +181,7 @@ class WorkoutPresetSerializer(serializers.ModelSerializer):
                 data['weight'] = setting.weight
             if setting.sub_sets:
                 data['subSets'] = setting.sub_sets
-            result[str(setting.exercise_id)] = data
+            result[setting.exercise_id] = data  # Use numeric key for frontend
 
         return result
 

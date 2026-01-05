@@ -180,6 +180,7 @@ class WorkoutSession(models.Model):
     preset = models.ForeignKey(WorkoutPreset, on_delete=models.SET_NULL, null=True, blank=True, related_name='sessions')
 
     notes = models.TextField(blank=True, null=True)
+    bodyweight = models.DecimalField(null=True, blank=True, max_digits=6, decimal_places=2, help_text="User's bodyweight at the time of the workout")
 
     # Allow client-provided timestamps (for testing and offline support)
     # Defaults to current time if not provided
