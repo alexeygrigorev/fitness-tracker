@@ -47,7 +47,7 @@ test.describe('User Isolation', () => {
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
 
     // Complete one set - use the Dropdown badge selector
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press/ }).filter({ hasText: /Dropdown/ }).first();
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 

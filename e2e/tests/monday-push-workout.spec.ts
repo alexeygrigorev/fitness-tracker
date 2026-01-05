@@ -98,7 +98,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Complete first dropdown set of Bench Press
     // Note: Set 1 is a warmup set, so we need to find the first dropdown set (Set 2)
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 
@@ -124,7 +124,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForTimeout(2000);
 
     // Complete second dropdown set of Bench Press (Set 3, since Set 2 was just completed)
-    const secondSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).nth(1);
+    const secondSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).nth(1);
     await expect(secondSetRow).toBeVisible();
     await secondSetRow.click();
 
@@ -207,7 +207,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Complete just ONE dropdown set of Bench Press
     // Note: Set 1 is a warmup set, so we need to find the first dropdown set
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 
@@ -226,7 +226,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.getByRole('button', { name: 'Save' }).click();
     // Check for Uncomplete button to verify completion
     // Re-query the set row after save since DOM changes back
-    const completedSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const completedSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(completedSetRow.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
     // Finish with partial sets
@@ -309,7 +309,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Complete first dropdown set of Bench Press
     // Note: Set 1 is a warmup set, so we need to find the first dropdown set
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(firstSetRow).toBeVisible();
     // Add a small delay to ensure component is stable after render
     await page.waitForTimeout(500);
@@ -442,7 +442,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForTimeout(3000);
 
     // Complete first dropdown set of Bench Press
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 
@@ -488,7 +488,7 @@ test.describe('Monday Push Day Workout', () => {
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
 
     // Complete a SECOND dropdown set (find another dropdown set that isn't completed yet)
-    const secondSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).nth(1);
+    const secondSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).nth(1);
     await expect(secondSetRow).toBeVisible();
     await secondSetRow.click();
 
@@ -577,7 +577,7 @@ test.describe('Monday Push Day Workout', () => {
 
     // Complete first dropdown set of Bench Press
     // This dropdown has W + D1 + D2 = 3 sub-sets, but should count as 1 set
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 
@@ -612,7 +612,7 @@ test.describe('Monday Push Day Workout', () => {
     expect(completedAfterFirst).toBe(1);
 
     // Complete second dropdown set (find another dropdown set)
-    const secondSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).nth(1);
+    const secondSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).nth(1);
     await expect(secondSetRow).toBeVisible();
     await secondSetRow.click();
 
@@ -675,7 +675,7 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForTimeout(3000);
 
     // Complete one set
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(firstSetRow).toBeVisible({ timeout: 5000 });
     await firstSetRow.click();
 

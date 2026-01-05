@@ -66,7 +66,7 @@ test.describe('Active Workout Persistence', () => {
 
     // Complete one set to ensure the workout session is created on the server
     // Note: Set 1 is a warmup set, so we need to find the first dropdown set
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(firstSetRow).toBeVisible();
     await firstSetRow.click();
 
@@ -109,7 +109,7 @@ test.describe('Active Workout Persistence', () => {
     await expect(activeWorkoutAfterRefresh).toContainText('Push Day');
 
     // Verify the completed set is still marked as completed
-    const firstSetRowAfterRefresh = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const firstSetRowAfterRefresh = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(firstSetRowAfterRefresh.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 })
       .catch(() => {
         throw new Error('Completed set should still be marked as completed after refresh');
@@ -170,7 +170,7 @@ test.describe('Active Workout Persistence', () => {
     }).toPass({ timeout: 10000 });
 
     // Complete Bench Press dropdown set (Set 1 is warmup, so we target the first Dropdown set)
-    const benchPressSet1 = page1.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const benchPressSet1 = page1.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await benchPressSet1.click();
 
     // Wait for edit form to expand and inputs to be visible
@@ -205,7 +205,7 @@ test.describe('Active Workout Persistence', () => {
     await expect(activeWorkoutContainer2).toBeVisible({ timeout: 5000 });
 
     // Verify Bench Press dropdown set is marked as completed on page2
-    const benchPressSet1_2 = page2.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Dropdown/ }).first();
+    const benchPressSet1_2 = page2.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
     await expect(benchPressSet1_2).toBeVisible({ timeout: 5000 });
     await expect(benchPressSet1_2.getByRole('button', { name: 'Uncomplete' })).toBeVisible({ timeout: 5000 });
 
