@@ -38,7 +38,6 @@ RUN mkdir -p /app/backend/db && chmod 777 /app/backend/db
 
 # Run migrations and start server
 ENV DJANGO_SETTINGS_MODULE=config.settings
-ENV SECRET_KEY=prod-secret-change-me
 ENV ALLOWED_HOSTS=*
 ENV DB_PATH=/app/backend/db/db.sqlite3
 ENV SERVE_FRONTEND=true
@@ -53,5 +52,4 @@ EXPOSE 80
 VOLUME ["/app/backend/db"]
 
 CMD uv run python manage.py migrate && \
-    uv run python data/generate.py && \
     uv run python manage.py runserver 0.0.0.0:80

@@ -4,7 +4,7 @@ from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-b#@mp%j3-exh2(sz)_7gf_fkec)vs+l3vvxid&2o#5moy7=e0r'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'local-secret')
 DEBUG = True
 ALLOWED_HOSTS = ['*']
 

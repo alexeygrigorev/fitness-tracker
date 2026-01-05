@@ -27,6 +27,10 @@ for i in {1..30}; do
   sleep 2
 done
 
+# Generate test data
+echo "Generating test data..."
+docker exec fitness-tracker-e2e uv run python data/generate.py
+
 # Cleanup on exit
 trap "docker stop fitness-tracker-e2e 2>/dev/null; docker rm fitness-tracker-e2e 2>/dev/null" EXIT
 
