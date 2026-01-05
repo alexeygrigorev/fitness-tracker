@@ -29,7 +29,7 @@ from food.models import FoodItem, Meal, MealFoodItem  # noqa: E402
 
 User = get_user_model()
 
-# Create admin user
+# Create admin user (for admin access)
 admin_user, created = User.objects.get_or_create(
     username="admin", defaults={"email": "admin@example.com"}
 )
@@ -212,161 +212,7 @@ for name, is_bw, primary_muscles, secondary_muscles, equipment, tags in exercise
         print(f"Created exercise: {exercise.name}")
     exercise_objects[name] = exercise
 
-# Create workout presets for admin user
-push_day_preset, _ = WorkoutPreset.objects.get_or_create(
-    user=admin_user,
-    name="Push Day",
-    defaults={"notes": "Weekly push workout for chest, shoulders, and triceps", "day_label": "Monday", "status": "active", "tags": ["strength"]}
-)
-# Ensure day_label is Monday even if preset already existed
-push_day_preset.day_label = "Monday"
-push_day_preset.status = "active"
-push_day_preset.save()
-
-# Add exercises to Push Day preset
-WorkoutPresetExercise.objects.get_or_create(
-    preset=push_day_preset,
-    exercise=exercise_objects["Bench Press"],
-    defaults={"type": "dropdown", "sets": 4, "dropdowns": 2, "include_warmup": True, "order": 0}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=push_day_preset,
-    exercise=exercise_objects["Incline Dumbbell Press"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 1}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=push_day_preset,
-    exercise=exercise_objects["Overhead Press"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 2}
-)
-
-# Create superset for shoulders (Lateral Raises + Front Raises)
-shoulders_superset, _ = WorkoutPresetExercise.objects.get_or_create(
-    preset=push_day_preset,
-    type="superset",
-    defaults={"sets": 3, "include_warmup": False, "order": 3}
-)
-
-SupersetExerciseItem.objects.get_or_create(
-    superset=shoulders_superset,
-    exercise=exercise_objects["Lateral Raises"],
-    defaults={"order": 0, "include_warmup": False}
-)
-
-SupersetExerciseItem.objects.get_or_create(
-    superset=shoulders_superset,
-    exercise=exercise_objects["Front Raises"],
-    defaults={"order": 1, "include_warmup": False}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=push_day_preset,
-    exercise=exercise_objects["Cable Flyes"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 4}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=push_day_preset,
-    exercise=exercise_objects["Tricep Pushdowns"],
-    defaults={"type": "normal", "sets": 4, "include_warmup": False, "order": 5}
-)
-
-pull_day_preset, _ = WorkoutPreset.objects.get_or_create(
-    user=admin_user,
-    name="Pull Day",
-    defaults={"notes": "Weekly pull workout for back and biceps", "day_label": "Wednesday", "status": "active", "tags": ["strength"]}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=pull_day_preset,
-    exercise=exercise_objects["Deadlifts"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": True, "order": 0}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=pull_day_preset,
-    exercise=exercise_objects["Barbell Rows"],
-    defaults={"type": "dropdown", "sets": 4, "dropdowns": 2, "include_warmup": False, "order": 1}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=pull_day_preset,
-    exercise=exercise_objects["Pull-ups"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 2}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=pull_day_preset,
-    exercise=exercise_objects["Lat Pulldown"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 3}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=pull_day_preset,
-    exercise=exercise_objects["Face Pulls"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 4}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=pull_day_preset,
-    exercise=exercise_objects["Bicep Curls"],
-    defaults={"type": "normal", "sets": 4, "include_warmup": False, "order": 5}
-)
-
-leg_day_preset, _ = WorkoutPreset.objects.get_or_create(
-    user=admin_user,
-    name="Leg Day",
-    defaults={"notes": "Weekly leg workout", "day_label": "Friday", "status": "active", "tags": ["strength"]}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=leg_day_preset,
-    exercise=exercise_objects["Squats"],
-    defaults={"type": "dropdown", "sets": 4, "dropdowns": 2, "include_warmup": True, "order": 0}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=leg_day_preset,
-    exercise=exercise_objects["Leg Press"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 1}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=leg_day_preset,
-    exercise=exercise_objects["Leg Extensions"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 2}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=leg_day_preset,
-    exercise=exercise_objects["Leg Curls"],
-    defaults={"type": "normal", "sets": 3, "include_warmup": False, "order": 3}
-)
-
-WorkoutPresetExercise.objects.get_or_create(
-    preset=leg_day_preset,
-    exercise=exercise_objects["Calf Raises"],
-    defaults={"type": "normal", "sets": 4, "include_warmup": False, "order": 4}
-)
-
-# Create some past workout sessions
-for i in range(4):
-    date = datetime.now() - timedelta(days=7 * (i + 1))
-    session, created = WorkoutSession.objects.get_or_create(
-        user=admin_user,
-        name=f"Push Day - {date.strftime('%Y-%m-%d')}",
-        defaults={
-            "preset": push_day_preset,
-            "notes": "Good workout!",
-            "created_at": date,
-        }
-    )
-    if created:
-        print(f"Created session: {session.name}")
-
-# Create workout presets for test user (same exercises)
+# Create workout presets for test user (used in E2E tests)
 test_push_preset, created = WorkoutPreset.objects.get_or_create(
     user=test_user,
     name="Push Day",
@@ -480,11 +326,11 @@ print(f"  - Dips (bodyweight, 3 sets)")
 print(f"  - Bench Press (dropdown, 4 sets, 2 dropdowns)")
 
 print("\nData generation complete!")
-print(f"Admin user: admin / admin")
+print(f"Admin user: admin / admin (for admin panel access)")
 print(f"Test user: test / test")
+print(f"Test user2: test2 / test2")
 print(f"Created {Exercise.objects.count()} exercises")
 print(f"Created {WorkoutPreset.objects.count()} workout presets")
-print(f"Created {WorkoutSession.objects.count()} workout sessions")
 
 # Create canonical food items (available to all users)
 from decimal import Decimal  # noqa: E402
@@ -653,83 +499,4 @@ for (name, category, serving_size, serving_unit, calories, protein,
     else:
         print(f"Created food item: {food.name}")
 
-# Create some sample meals for admin user
-today = datetime.now().date()
-
-breakfast, _ = Meal.objects.get_or_create(
-    user=admin_user,
-    name="Breakfast",
-    date=today,
-    defaults={
-        "meal_type": "breakfast",
-        "source": "manual"
-    }
-)
-
-# Add foods to breakfast meal
-eggs = FoodItem.objects.get(name="Eggs")
-oats = FoodItem.objects.get(name="Oats")
-banana = FoodItem.objects.get(name="Banana")
-
-MealFoodItem.objects.get_or_create(
-    meal=breakfast,
-    food=eggs,
-    defaults={"grams": Decimal("100"), "order": 0}
-)
-MealFoodItem.objects.get_or_create(
-    meal=breakfast,
-    food=oats,
-    defaults={"grams": Decimal("80"), "order": 1}
-)
-MealFoodItem.objects.get_or_create(
-    meal=breakfast,
-    food=banana,
-    defaults={"grams": Decimal("120"), "order": 2}
-)
-
-lunch, _ = Meal.objects.get_or_create(
-    user=admin_user,
-    name="Lunch",
-    date=today,
-    defaults={
-        "meal_type": "lunch",
-        "source": "manual"
-    }
-)
-
-chicken = FoodItem.objects.get(name="Chicken Breast")
-rice = FoodItem.objects.get(name="Brown Rice")
-broccoli = FoodItem.objects.get_or_create(
-    name="Broccoli",
-    source='canonical',
-    defaults={
-        "category": "mixed",
-        "serving_size": Decimal("100"),
-        "serving_unit": "g",
-        "calories": Decimal("34"),
-        "protein": Decimal("2.8"),
-        "carbs": Decimal("7"),
-        "fat": Decimal("0.4"),
-        "fiber": Decimal("2.6"),
-        "sugar": Decimal("1.5"),
-    }
-)[0]
-
-MealFoodItem.objects.get_or_create(
-    meal=lunch,
-    food=chicken,
-    defaults={"grams": Decimal("150"), "order": 0}
-)
-MealFoodItem.objects.get_or_create(
-    meal=lunch,
-    food=rice,
-    defaults={"grams": Decimal("100"), "order": 1}
-)
-MealFoodItem.objects.get_or_create(
-    meal=lunch,
-    food=broccoli,
-    defaults={"grams": Decimal("100"), "order": 2}
-)
-
-print(f"Created {Meal.objects.count()} meals")
 print(f"Created {FoodItem.objects.count()} food items")

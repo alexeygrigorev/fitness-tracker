@@ -1,9 +1,11 @@
 @import "tailwindcss";
 
 /* Configure Tailwind v4 to use class-based dark mode instead of media query */
+/* Note: @variant must come before other @imports to avoid dark mode issues */
 @variant dark (&:where(.dark, .dark *));
 
 /* Force class-based dark mode only - ignore browser's prefers-color-scheme */
+/* PostCSS warning: @import after @variant is intentional here - changing order breaks dark mode */
 @import "tailwindcss/preflight" layer(base);
 
 /* When app is in dark mode, tell the browser we're using dark scheme */
