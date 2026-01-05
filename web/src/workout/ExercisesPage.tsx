@@ -164,8 +164,10 @@ export default function ExercisesPage() {
 
   // Handle preset deletion
   const handleDeletePreset = async (id: number) => {
-    await workoutPresetsApi.delete(id);
-    setPresets(prev => prev.filter(p => p.id !== id));
+    if (confirm('Are you sure you want to delete this preset?')) {
+      await workoutPresetsApi.delete(id);
+      setPresets(prev => prev.filter(p => p.id !== id));
+    }
   };
 
   // Handle workout deletion

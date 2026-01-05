@@ -45,13 +45,13 @@ ENV SERVE_FRONTEND=true
 
 # Health check using Python instead of curl
 HEALTHCHECK --interval=5s --timeout=5s --retries=10 --start-period=30s \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=5)"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost/api/health/', timeout=5)"
 
-EXPOSE 8000
+EXPOSE 80
 
 # Persist database via volume
 VOLUME ["/app/backend/db"]
 
 CMD uv run python manage.py migrate && \
     uv run python data/generate.py && \
-    uv run python manage.py runserver 0.0.0.0:8000
+    uv run python manage.py runserver 0.0.0.0:80

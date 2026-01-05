@@ -506,3 +506,288 @@ class TestPresetLastUsedWeights(TestCase):
         self.assertIn(self.exercise.id, response.data['lastUsedWeights'])
         self.assertEqual(response.data['lastUsedWeights'][self.exercise.id]['weight'], 80.0)
         self.assertEqual(response.data['lastUsedWeights'][self.exercise.id]['reps'], 10)
+
+
+class TestCreatePresetWithExercisesViaAPI(TestCase):
+    """Test creating a preset with exercises in a single API request."""
+
+    def setUp(self):
+        """Set up test client and user."""
+        self.client = APIClient()
+        self.user = User.objects.create_user(username="presetuser", password="testpass")
+        self.client.force_authenticate(user=self.user)
+
+        # Create a test exercise
+        self.bench_press = Exercise.objects.create(
+            name="Bench Press",
+            is_bodyweight=False
+        )
+
+    def test_create_preset_with_exercises_in_single_request(self):
+        """
+        Test creating a preset with exercises via API in a single request.
+        This models the same scenario as the E2E test:
+        - Create preset with name, day, type, and exercises
+        - Verify preset was created with exercises
+        - Delete the preset
+        - Verify it's not in the list anymore
+        """
+        # Step 1: Create a preset with exercises via API
+        preset_data = {
+            "name": "Test Bench Press Preset",
+            "dayLabel": "Monday",
+            "tags": ["strength"],
+            "exercises": [
+                {
+                    "exerciseId": self.bench_press.id,
+                    "type": "normal",
+                    "sets": 3,
+                    "includeWarmup": True,
+                    "order": 0
+                }
+            ]
+        }
+
+        response = self.client.post(reverse("workoutpreset-list"), preset_data, format="json")
+        self.assertEqual(response.status_code, 201, f"Expected 201, got {response.status_code}: {response.data}")
+
+        # Step 2: Verify the preset was created
+        preset_id = response.data["id"]
+        self.assertEqual(response.data["name"], "Test Bench Press Preset")
+        self.assertEqual(response.data["dayLabel"], "Monday")
+        self.assertEqual(response.data["tags"], ["strength"])
+
+        # Step 3: Fetch the preset and verify exercises were created
+        response = self.client.get(reverse("workoutpreset-detail", kwargs={"pk": preset_id}))
+        self.assertEqual(response.status_code, 200)
+
+        # Verify exercises are present
+        self.assertIn("exercises", response.data)
+        exercises = response.data["exercises"]
+        self.assertEqual(len(exercises), 1, "Preset should have 1 exercise")
+
+        # Verify exercise details
+        exercise = exercises[0]
+        self.assertEqual(exercise["exerciseId"], self.bench_press.id)
+        self.assertEqual(exercise["type"], "normal")
+        self.assertEqual(exercise["sets"], 3)
+        self.assertEqual(exercise["includeWarmup"], True)
+        self.assertEqual(exercise["order"], 0)
+
+        # Step 4: Verify the preset appears in the list
+        response = self.client.get(reverse("workoutpreset-list"))
+        self.assertEqual(response.status_code, 200)
+        preset_ids = [p["id"] for p in response.data]
+        self.assertIn(preset_id, preset_ids, "Preset should be in the list")
+
+        # Step 5: Delete the preset
+        response = self.client.delete(reverse("workoutpreset-detail", kwargs={"pk": preset_id}))
+        self.assertEqual(response.status_code, 204)
+
+        # Step 6: Verify the preset is not in the list anymore
+        response = self.client.get(reverse("workoutpreset-list"))
+        self.assertEqual(response.status_code, 200)
+        preset_ids = [p["id"] for p in response.data]
+        self.assertNotIn(preset_id, preset_ids, "Deleted preset should not be in the list")
+
+        # Verify database: preset should be deleted
+        self.assertFalse(
+            WorkoutPreset.objects.filter(id=preset_id).exists(),
+            "Preset should be deleted from database"
+        )
+
+    def test_create_preset_with_multiple_exercises(self):
+        """Test creating a preset with multiple exercises via API."""
+        # Create more exercises
+        squat = Exercise.objects.create(name="Squat", is_bodyweight=False)
+        deadlift = Exercise.objects.create(name="Deadlift", is_bodyweight=False)
+
+        preset_data = {
+            "name": "Lower Day",
+            "dayLabel": "Tuesday",
+            "tags": ["strength"],
+            "exercises": [
+                {
+                    "exerciseId": squat.id,
+                    "type": "normal",
+                    "sets": 3,
+                    "includeWarmup": True,
+                    "order": 0
+                },
+                {
+                    "exerciseId": deadlift.id,
+                    "type": "dropdown",
+                    "sets": 3,
+                    "dropdowns": 2,
+                    "includeWarmup": True,
+                    "order": 1
+                },
+                {
+                    "exerciseId": self.bench_press.id,
+                    "type": "normal",
+                    "sets": 3,
+                    "includeWarmup": False,
+                    "order": 2
+                }
+            ]
+        }
+
+        response = self.client.post(reverse("workoutpreset-list"), preset_data, format="json")
+        self.assertEqual(response.status_code, 201)
+        preset_id = response.data["id"]
+
+        # Verify all exercises were created
+        response = self.client.get(reverse("workoutpreset-detail", kwargs={"pk": preset_id}))
+        self.assertEqual(response.status_code, 200)
+        exercises = response.data["exercises"]
+        self.assertEqual(len(exercises), 3)
+
+        # Verify order is correct
+        self.assertEqual(exercises[0]["exerciseId"], squat.id)
+        self.assertEqual(exercises[0]["order"], 0)
+        self.assertEqual(exercises[1]["exerciseId"], deadlift.id)
+        self.assertEqual(exercises[1]["order"], 1)
+        self.assertEqual(exercises[2]["exerciseId"], self.bench_press.id)
+        self.assertEqual(exercises[2]["order"], 2)
+
+
+class TestCreatePresetWithSuperset(TestCase):
+    """Test creating a preset with superset exercises via API."""
+
+    def setUp(self):
+        """Set up test client and user."""
+        self.client = APIClient()
+        self.user = User.objects.create_user(username="supersetuser", password="testpass")
+        self.client.force_authenticate(user=self.user)
+
+        # Create test exercises
+        self.bench_press = Exercise.objects.create(name="Bench Press", is_bodyweight=False)
+        self.barbell_row = Exercise.objects.create(name="Barbell Row", is_bodyweight=False)
+
+    def test_create_preset_with_superset_exercises(self):
+        """
+        Test creating a preset with superset exercises via API.
+        Verifies that superset exercises with warmup settings are persisted correctly.
+        """
+        # Create a preset with superset: Bench Press (with warmup) + Barbell Row (no warmup)
+        preset_data = {
+            "name": "Chest Back Superset",
+            "dayLabel": "Monday",
+            "tags": ["strength"],
+            "exercises": [
+                {
+                    "type": "superset",
+                    "sets": 4,
+                    "order": 0,
+                    "supersetExercises": [
+                        {
+                            "exerciseId": self.bench_press.id,
+                            "type": "normal",
+                            "includeWarmup": True,
+                            "order": 0
+                        },
+                        {
+                            "exerciseId": self.barbell_row.id,
+                            "type": "normal",
+                            "includeWarmup": False,
+                            "order": 1
+                        }
+                    ]
+                }
+            ]
+        }
+
+        response = self.client.post(reverse("workoutpreset-list"), preset_data, format="json")
+        self.assertEqual(response.status_code, 201, f"Expected 201, got {response.status_code}: {response.data}")
+
+        # Verify the preset was created
+        preset_id = response.data["id"]
+        self.assertEqual(response.data["name"], "Chest Back Superset")
+        self.assertEqual(response.data["dayLabel"], "Monday")
+
+        # Fetch the preset to verify exercises
+        response = self.client.get(reverse("workoutpreset-detail", kwargs={"pk": preset_id}))
+        self.assertEqual(response.status_code, 200)
+
+        # Verify exercises array exists
+        self.assertIn("exercises", response.data)
+        exercises = response.data["exercises"]
+        self.assertEqual(len(exercises), 1, "Should have 1 superset exercise")
+
+        # Verify the superset exercise
+        superset = exercises[0]
+        self.assertEqual(superset["type"], "superset")
+        self.assertEqual(superset["sets"], 4)
+
+        # Verify supersetExercises nested array
+        self.assertIn("supersetExercises", superset)
+        superset_items = superset["supersetExercises"]
+        self.assertEqual(len(superset_items), 2, "Superset should have 2 exercises")
+
+        # Verify Bench Press (first item) with warmup
+        self.assertEqual(superset_items[0]["exerciseId"], self.bench_press.id)
+        self.assertEqual(superset_items[0]["type"], "normal")
+        self.assertEqual(superset_items[0]["includeWarmup"], True)
+        self.assertEqual(superset_items[0]["order"], 0)
+
+        # Verify Barbell Row (second item) without warmup
+        self.assertEqual(superset_items[1]["exerciseId"], self.barbell_row.id)
+        self.assertEqual(superset_items[1]["type"], "normal")
+        self.assertEqual(superset_items[1]["includeWarmup"], False)
+        self.assertEqual(superset_items[1]["order"], 1)
+
+    def test_create_preset_with_superset_all_without_warmup(self):
+        """
+        Test creating a preset with superset where all exercises have no warmup.
+        """
+        preset_data = {
+            "name": "Superset No Warmup",
+            "dayLabel": "Tuesday",
+            "tags": ["strength"],
+            "exercises": [
+                {
+                    "type": "superset",
+                    "sets": 3,
+                    "order": 0,
+                    "supersetExercises": [
+                        {
+                            "exerciseId": self.bench_press.id,
+                            "type": "normal",
+                            "includeWarmup": False,
+                            "order": 0
+                        },
+                        {
+                            "exerciseId": self.barbell_row.id,
+                            "type": "normal",
+                            "includeWarmup": False,
+                            "order": 1
+                        }
+                    ]
+                }
+            ]
+        }
+
+        response = self.client.post(reverse("workoutpreset-list"), preset_data, format="json")
+        self.assertEqual(response.status_code, 201)
+        preset_id = response.data["id"]
+
+        # Fetch and verify
+        response = self.client.get(reverse("workoutpreset-detail", kwargs={"pk": preset_id}))
+        self.assertEqual(response.status_code, 200)
+
+        exercises = response.data["exercises"]
+        self.assertEqual(len(exercises), 1)
+
+        superset_items = exercises[0]["supersetExercises"]
+        self.assertEqual(len(superset_items), 2)
+
+        # Both should have includeWarmup: False
+        self.assertFalse(superset_items[0]["includeWarmup"])
+        self.assertFalse(superset_items[1]["includeWarmup"])
+
+        # Delete and verify
+        response = self.client.delete(reverse("workoutpreset-detail", kwargs={"pk": preset_id}))
+        self.assertEqual(response.status_code, 204)
+
+        response = self.client.get(reverse("workoutpreset-list"))
+        self.assertNotIn(preset_id, [p["id"] for p in response.data])

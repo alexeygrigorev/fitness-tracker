@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend build test test-backend test-frontend test-docker clean
+.PHONY: dev dev-backend dev-frontend build test test-backend test-frontend test-docker clean deploy
 
 dev:
 	@echo "Starting frontend and backend..."
@@ -32,3 +32,7 @@ clean:
 	docker stop fitness-tracker-e2e 2>/dev/null || true
 	docker rm fitness-tracker-e2e 2>/dev/null || true
 	cd web && rm -rf dist node_modules/.vite
+
+deploy:
+	@echo "Deploying to AWS ECS..."
+	cd infra && ./deploy.sh

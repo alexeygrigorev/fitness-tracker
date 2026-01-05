@@ -174,71 +174,319 @@ test.describe('Preset Management', () => {
     }
   });
 
-  test('can update preset day to Monday and verify', async ({ page }) => {
+  test('can create a preset with bench press, update day, and delete', async ({ page }) => {
     await login(page);
     await page.goto('/workouts/presets');
     await page.waitForLoadState('networkidle');
 
-    // Find a preset card that has a day label (purple badge)
-    const presetWithDay = page.locator('[data-preset-id]').filter({ hasText: /Push Day|Pull Day|Leg Day/i }).first();
-    const count = await presetWithDay.count();
+    // Use timestamp for unique preset name to avoid conflicts with previous test runs
+    const timestamp = Date.now().toString().slice(-6);
+    const presetName = `Bench Preset ${timestamp}`;
 
-    if (count === 0) {
-      test.skip(true, 'No editable presets found');
-      return;
-    }
+    // Click "+ New Preset" button
+    await page.getByRole('button', { name: '+ New Preset' }).click();
 
-    // Get the preset ID for reliable re-selection later
-    const presetId = await presetWithDay.getAttribute('data-preset-id');
-    expect(presetId).not.toBeNull();
-
-    // Click edit button (use first())
-    await presetWithDay.getByTitle('Edit').first().click();
-
-    // Wait for modal
+    // Wait for the form modal to appear
     await expect(page.locator('form')).toBeVisible();
 
-    // Find the day dropdown by its label
+    // Fill in preset name
+    const nameInput = page.getByPlaceholder('e.g., Upper Body A, Push Day');
+    await nameInput.fill(presetName);
+
+    // Select type: strength
+    const typeLabel = page.getByText('Type');
+    const typeSelect = typeLabel.locator('..').locator('select');
+    await typeSelect.selectOption('strength');
+
+    // Click "Add Exercise" button
+    await page.getByRole('button', { name: 'Add Exercise' }).click();
+
+    // Wait for exercise picker to appear
+    await expect(page.getByPlaceholder('Search exercises by name or muscle')).toBeVisible();
+
+    // Search for Bench Press
+    const searchInput = page.getByPlaceholder('Search exercises by name or muscle');
+    await searchInput.fill('Bench Press');
+    await page.waitForTimeout(200);
+
+    // Click on Bench Press exercise button
+    const benchPressButton = page.locator('button').filter({ hasText: 'Bench Press' }).locator('visible=true').first();
+    await benchPressButton.click();
+
+    // Wait for exercise to be added
+    await page.waitForTimeout(500);
+
+    // Verify exercise was added
+    await expect(page.getByText('Exercises (1)')).toBeVisible();
+    await expect(page.locator('form').getByText('Bench Press').first()).toBeVisible();
+
+    // Check "include warmup" checkbox
+    const warmupCheckbox = page.getByLabel('include warmup');
+    await expect(warmupCheckbox).toBeChecked();
+
+    // Click "Create Preset" button
+    await page.getByRole('button', { name: 'Create Preset' }).click();
+
+    // Wait for modal to close
+    await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
+
+    // Verify preset was created
+    await expect(page.getByText(presetName)).toBeVisible();
+
+    // Reopen the preset to update day to Monday
+    const cardContainer = page.locator('.grid > div').filter({ hasText: presetName });
+    await expect(cardContainer).toBeVisible();
+    await cardContainer.getByTitle('Edit').first().click();
+
+    // Wait for edit form
+    await expect(page.locator('form')).toBeVisible();
+
+    // Update day to Monday
     const dayLabel = page.getByText('Day of Week');
-    const hasDaySelector = await dayLabel.count() > 0;
+    const daySelect = dayLabel.locator('..').locator('select');
+    await daySelect.selectOption('Monday');
 
-    if (hasDaySelector) {
-      // Find the select element near the label
-      const daySelect = page.locator('label:has-text("Day of Week") + select');
-      const originalDay = await daySelect.inputValue();
+    // Save changes
+    await page.getByRole('button', { name: 'Save Changes' }).click();
 
-      await daySelect.selectOption('Monday');
+    // Wait for modal to close
+    await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
 
-      // Save changes
-      await page.getByRole('button', { name: 'Save Changes' }).click();
-      await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
+    // Reopen again to verify the day was saved
+    await cardContainer.getByTitle('Edit').first().click();
+    await expect(page.locator('form')).toBeVisible();
 
-      // Wait for save to complete
-      await page.waitForTimeout(500);
+    // Verify day is Monday
+    await expect(daySelect).toHaveValue('Monday');
 
-      // Reload to see updated data
-      await page.reload();
-      await page.waitForLoadState('networkidle');
+    // Close and delete the preset
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
 
-      // Find the same preset card again by ID
-      const sameCard = page.locator(`[data-preset-id="${presetId}"]`);
-      await expect(sameCard).toBeVisible();
-      await sameCard.getByTitle('Edit').first().click();
-      await expect(page.locator('form')).toBeVisible();
+    // Delete the test preset
+    page.on('dialog', dialog => dialog.accept());
+    await cardContainer.getByTitle('Delete').click();
 
-      // Verify Monday is still selected
-      await expect(daySelect).toHaveValue('Monday');
+    // Wait for deletion to complete
+    await page.waitForTimeout(500);
 
-      // Restore the original day value to clean up test data
-      await daySelect.selectOption(originalDay);
-      await page.getByRole('button', { name: 'Save Changes' }).click();
-      await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
+    // Verify preset was deleted
+    await expect(page.getByText(presetName)).not.toBeVisible();
+  });
 
-      // Close modal
-      await page.keyboard.press('Escape');
-    } else {
-      // No day selector found
-      await page.keyboard.press('Escape');
-    }
+  test('can create a superset preset with warmup and verify persistence', async ({ page }) => {
+    await login(page);
+    await page.goto('/workouts/presets');
+    await page.waitForLoadState('networkidle');
+
+    const timestamp = Date.now().toString().slice(-6);
+    const presetName = `Superset Preset ${timestamp}`;
+
+    // Click "+ New Preset" button
+    await page.getByRole('button', { name: '+ New Preset' }).click();
+    await expect(page.locator('form')).toBeVisible();
+
+    // Fill in preset name
+    const nameInput = page.getByPlaceholder('e.g., Upper Body A, Push Day');
+    await nameInput.fill(presetName);
+
+    // Select day: Wednesday
+    const dayLabel = page.getByText('Day of Week');
+    const daySelect = dayLabel.locator('..').locator('select');
+    await daySelect.selectOption('Wednesday');
+
+    // Select type: strength
+    const typeLabel = page.getByText('Type');
+    const typeSelect = typeLabel.locator('..').locator('select');
+    await typeSelect.selectOption('strength');
+
+    // Click "Add Exercise" button
+    await page.getByRole('button', { name: 'Add Exercise' }).click();
+    await expect(page.getByPlaceholder('Search exercises by name or muscle')).toBeVisible();
+
+    // Search and add Bench Press
+    const searchInput = page.getByPlaceholder('Search exercises by name or muscle');
+    await searchInput.fill('Bench Press');
+    await page.waitForTimeout(200);
+    await page.locator('button').filter({ hasText: 'Bench Press' }).locator('visible=true').first().click();
+    await page.waitForTimeout(500);
+
+    // Verify "Exercises (1)" is visible
+    await expect(page.getByText('Exercises (1)')).toBeVisible();
+
+    // Warmup checkbox is checked by default
+    const warmupCheckbox = page.getByLabel('include warmup').first();
+    await expect(warmupCheckbox).toBeChecked();
+
+    // Change sets to 4
+    const setsInput = page.locator('input[title="Sets"]').first();
+    await setsInput.fill('4');
+    await expect(setsInput).toHaveValue('4');
+
+    // Convert Bench Press to superset
+    const typeDropdown = page.locator('select').filter({ hasText: /Normal|Dropdown|Superset/ }).first();
+    await typeDropdown.selectOption('superset');
+
+    // Verify it's now a superset (should see "Break up" button)
+    await expect(page.getByText('Break up')).toBeVisible();
+
+    // Verify warmup checkbox is still checked after conversion (now fixed!)
+    await expect(warmupCheckbox).toBeChecked();
+
+    // Add Barbell Rows to the superset
+    await page.getByRole('button', { name: '+ Add exercise' }).click();
+    // Use the second (visible) search input for the superset picker
+    const supersetSearchInput = page.getByPlaceholder('Search exercises by name or muscle').nth(1);
+    await supersetSearchInput.fill('Barbell Row');
+    await page.waitForTimeout(200);
+    await page.locator('button').filter({ hasText: /Barbell Row/i }).locator('visible=true').first().click();
+    await page.waitForTimeout(500);
+
+    // Verify we now have 2 exercises in superset (still shows "Exercises (1)")
+    await expect(page.getByText('Exercises (1)')).toBeVisible();
+
+    // Barbell Row warmup is checked by default for new superset items
+    const barbellRowWarmup = page.getByLabel('include warmup').nth(1);
+    await expect(barbellRowWarmup).toBeChecked();
+
+    // Uncheck Barbell Row warmup as per test requirements
+    await barbellRowWarmup.uncheck();
+    await expect(barbellRowWarmup).not.toBeChecked();
+
+    // Save the preset
+    await page.getByRole('button', { name: 'Create Preset' }).click();
+    await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
+
+    // Verify preset was created
+    await expect(page.getByText(presetName)).toBeVisible();
+
+    // Reopen the preset to verify persistence
+    const cardContainer = page.locator('.grid > div').filter({ hasText: presetName });
+    await cardContainer.getByTitle('Edit').first().click();
+    await expect(page.locator('form')).toBeVisible();
+
+    // Verify name
+    await expect(nameInput).toHaveValue(presetName);
+
+    // Verify day is Wednesday
+    await expect(daySelect).toHaveValue('Wednesday');
+
+    // Verify type is strength
+    await expect(typeSelect).toHaveValue('strength');
+
+    // Verify superset exists
+    await expect(page.getByText('Break up')).toBeVisible();
+
+    // Get fresh references to elements after reopening - scope to form
+    const formWarmups = page.locator('form').getByLabel('include warmup');
+    const reopenedWarmup1 = formWarmups.nth(0);
+    const reopenedWarmup2 = formWarmups.nth(1);
+
+    // Verify Bench Press warmup is checked (persisted correctly now!)
+    await expect(reopenedWarmup1).toBeChecked();
+
+    // Verify Barbell Row warmup is unchecked (persisted)
+    await expect(reopenedWarmup2).not.toBeChecked();
+
+    // Close and delete
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    page.on('dialog', dialog => dialog.accept());
+    await cardContainer.getByTitle('Delete').click();
+    await page.waitForTimeout(500);
+    await expect(page.getByText(presetName)).not.toBeVisible();
+  });
+
+  test('can create a superset preset without warmup and verify persistence', async ({ page }) => {
+    await login(page);
+    await page.goto('/workouts/presets');
+    await page.waitForLoadState('networkidle');
+
+    const timestamp = Date.now().toString().slice(-6);
+    const presetName = `Superset No Warmup ${timestamp}`;
+
+    // Click "+ New Preset" button
+    await page.getByRole('button', { name: '+ New Preset' }).click();
+    await expect(page.locator('form')).toBeVisible();
+
+    // Fill in preset name
+    const nameInput = page.getByPlaceholder('e.g., Upper Body A, Push Day');
+    await nameInput.fill(presetName);
+
+    // Click "Add Exercise" button
+    await page.getByRole('button', { name: 'Add Exercise' }).click();
+    await expect(page.getByPlaceholder('Search exercises by name or muscle')).toBeVisible();
+
+    // Search and add Bench Press
+    const searchInput = page.getByPlaceholder('Search exercises by name or muscle');
+    await searchInput.fill('Bench Press');
+    await page.waitForTimeout(200);
+    await page.locator('button').filter({ hasText: 'Bench Press' }).locator('visible=true').first().click();
+    await page.waitForTimeout(500);
+
+    // Warmup checkbox is checked by default - uncheck it explicitly
+    const warmupCheckbox = page.getByLabel('include warmup').first();
+    await warmupCheckbox.uncheck();
+    await expect(warmupCheckbox).not.toBeChecked();
+
+    // Change sets to 4
+    const setsInput = page.locator('input[title="Sets"]').first();
+    await setsInput.fill('4');
+    await expect(setsInput).toHaveValue('4');
+
+    // Convert Bench Press to superset
+    const typeDropdown = page.locator('select').filter({ hasText: /Normal|Dropdown|Superset/ }).first();
+    await typeDropdown.selectOption('superset');
+
+    // BUG: After converting to superset, warmup resets to unchecked (matches our desired state)
+    await expect(warmupCheckbox).not.toBeChecked();
+
+    // BUG: After converting to superset, sets input disappears (no UI to edit sets for supersets)
+
+    // Add Barbell Rows to the superset
+    await page.getByRole('button', { name: '+ Add exercise' }).click();
+    // Use the second (visible) search input for the superset picker
+    const supersetSearchInput = page.getByPlaceholder('Search exercises by name or muscle').nth(1);
+    await supersetSearchInput.fill('Barbell Row');
+    await page.waitForTimeout(200);
+    await page.locator('button').filter({ hasText: /Barbell Row/i }).locator('visible=true').first().click();
+    await page.waitForTimeout(500);
+
+    // Barbell Row warmup is checked by default - uncheck it as per test requirements
+    const barbellRowWarmup = page.getByLabel('include warmup').nth(1);
+    await expect(barbellRowWarmup).toBeChecked();
+    await barbellRowWarmup.uncheck();
+    await expect(barbellRowWarmup).not.toBeChecked();
+
+    // Save the preset
+    await page.getByRole('button', { name: 'Create Preset' }).click();
+    await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
+
+    // Verify preset was created
+    await expect(page.getByText(presetName)).toBeVisible();
+
+    // Reopen to verify persistence
+    const cardContainer = page.locator('.grid > div').filter({ hasText: presetName });
+    await cardContainer.getByTitle('Edit').first().click();
+    await expect(page.locator('form')).toBeVisible();
+
+    // Get fresh references - need to find warmup checkboxes within the form only
+    const formWarmups = page.locator('form').getByLabel('include warmup');
+    const reopenedWarmup1 = formWarmups.nth(0);
+    const reopenedWarmup2 = formWarmups.nth(1);
+
+    // Verify Bench Press warmup is unchecked (persisted)
+    await expect(reopenedWarmup1).not.toBeChecked();
+
+    // Verify Barbell Row warmup is unchecked (persisted)
+    await expect(reopenedWarmup2).not.toBeChecked();
+
+    // Clean up
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    page.on('dialog', dialog => dialog.accept());
+    await cardContainer.getByTitle('Delete').click();
+    await page.waitForTimeout(500);
+    await expect(page.getByText(presetName)).not.toBeVisible();
   });
 });

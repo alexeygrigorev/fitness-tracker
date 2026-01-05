@@ -92,10 +92,11 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
 
 class SupersetExerciseItemSerializer(serializers.ModelSerializer):
     exerciseId = serializers.ReadOnlyField(source='exercise.id')
+    includeWarmup = serializers.ReadOnlyField(source='include_warmup')
 
     class Meta:
         model = SupersetExerciseItem
-        fields = ['id', 'exerciseId', 'type', 'dropdowns', 'include_warmup', 'order']
+        fields = ['id', 'exerciseId', 'type', 'dropdowns', 'includeWarmup', 'order']
 
 
 class WorkoutPresetExerciseSerializer(serializers.ModelSerializer):
@@ -169,6 +170,55 @@ class WorkoutPresetSerializer(serializers.ModelSerializer):
             result[setting.exercise_id] = data  # Use numeric key for frontend
 
         return result
+
+    def create(self, validated_data):
+        """Handle creating preset with nested exercises."""
+        # Extract exercises data from context (not in validated_data due to read_only)
+        exercises_data = self.context.get('exercises_data', [])
+
+        # Create the preset without exercises first
+        # Note: user is already in validated_data (passed from perform_create)
+        preset = WorkoutPreset.objects.create(**validated_data)
+
+        # Create exercises for the preset
+        for ex_data in exercises_data:
+            exercise_id = ex_data.get('exerciseId')
+            exercise_type = ex_data.get('type', 'normal')
+
+            if exercise_type == 'superset':
+                # Create superset exercise with nested items
+                superset_ex = WorkoutPresetExercise.objects.create(
+                    preset=preset,
+                    exercise_id=None,  # Supersets don't have a single exercise
+                    type='superset',
+                    sets=ex_data.get('sets', 3),
+                    order=ex_data.get('order', 0)
+                )
+
+                # Create nested superset items
+                superset_items_data = ex_data.get('supersetExercises', [])
+                for item_data in superset_items_data:
+                    SupersetExerciseItem.objects.create(
+                        superset=superset_ex,
+                        exercise_id=item_data.get('exerciseId'),
+                        type=item_data.get('type', 'normal'),
+                        dropdowns=item_data.get('dropdowns'),
+                        include_warmup=item_data.get('includeWarmup', False),
+                        order=item_data.get('order', 0)
+                    )
+            elif exercise_id:
+                # Create normal exercise
+                WorkoutPresetExercise.objects.create(
+                    preset=preset,
+                    exercise_id=exercise_id,
+                    type=exercise_type,
+                    sets=ex_data.get('sets', 3),
+                    dropdowns=ex_data.get('dropdowns'),
+                    include_warmup=ex_data.get('includeWarmup', False),
+                    order=ex_data.get('order', 0)
+                )
+
+        return preset
 
     def update(self, instance, validated_data):
         """Handle updating nested exercises."""

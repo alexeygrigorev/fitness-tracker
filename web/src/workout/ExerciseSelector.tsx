@@ -195,7 +195,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
       type: 'normal',
       exerciseId: exercise.id,
       sets: 3,
-      includeWarmup: false,
+      includeWarmup: true, // Default to checked
       order: selectedExercises.length,
     };
     onChange([...selectedExercises, newExercise]);
@@ -263,7 +263,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
         ...superset,
         supersetExercises: [
           ...superset.supersetExercises,
-          { id: Date.now(), exerciseId: exercise.id, type: 'normal', dropdowns: 0, includeWarmup: false, order: superset.supersetExercises.length }
+          { id: Date.now(), exerciseId: exercise.id, type: 'normal', dropdowns: 0, includeWarmup: true, order: superset.supersetExercises.length }
         ]
       };
       onChange(updated);
@@ -297,14 +297,14 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
         exerciseId: exercise.exerciseId,
         type: exercise.type || 'normal',
         dropdowns: exercise.dropdowns,
-        includeWarmup: exercise.includeWarmup || false,
+        includeWarmup: exercise.includeWarmup ?? true, // Preserve warmup state, default to true if undefined
         order: 0
       };
       updated[index] = {
         id: exercise.id,
         type: 'superset',
         exerciseId: 0, // Placeholder, supersets have multiple exercises
-        sets: 0,
+        sets: exercise.sets || 3, // Preserve the sets value
         includeWarmup: false,
         order: exercise.order,
         supersetExercises: [supersetItem]
@@ -689,8 +689,8 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                   <label className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={ex.warmup !== false}
-                      onChange={(e) => updateExercise(index, 'warmup', e.target.checked)}
+                      checked={ex.includeWarmup || false}
+                      onChange={(e) => updateExercise(index, 'includeWarmup', e.target.checked)}
                       className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                     />
                     include warmup
