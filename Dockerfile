@@ -51,5 +51,4 @@ EXPOSE 80
 # Persist database via volume
 VOLUME ["/app/backend/db"]
 
-CMD uv run python manage.py migrate && \
-    uv run python manage.py runserver 0.0.0.0:80
+CMD ["sh", "-c", "uv run python manage.py migrate && uv run python manage.py runserver 0.0.0.0:80"]
