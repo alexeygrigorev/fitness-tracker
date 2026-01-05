@@ -5,17 +5,17 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * Run tests against any URL by setting BASE_URL:
  *
- *   # Local Docker instance
- *   BASE_URL=http://localhost:8000 npm test
+ *   # Default: local dev server (frontend on :5173, backend on :8000)
+ *   npm test
  *
- *   # Dev server (frontend on :5173, backend on :8000)
- *   BASE_URL=http://localhost:5173 npm test
+ *   # Docker instance (both frontend and backend on :8000)
+ *   BASE_URL=http://localhost:8000 npm test
  *
  *   # Remote staging/production
  *   BASE_URL=https://staging.example.com npm test
  *
  *   # Run with UI mode
- *   BASE_URL=http://localhost:8000 npm run test:ui
+ *   npm run test:ui
  */
 export default defineConfig({
   testDir: './tests',
@@ -28,9 +28,9 @@ export default defineConfig({
   reporter: 'list',
   globalTimeout: 5 * 60 * 1000,
 
-  // Read BASE_URL from environment, default to localhost:8000 (Docker)
+  // Read BASE_URL from environment, default to frontend dev server
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:8000',
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
     headless: true,
     // Ignore browser cache for testing
     ignoreHTTPSErrors: true,

@@ -32,20 +32,30 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
   onDeleteSet: () => void;
 }) {
   // Dropdown sets have multiple sub-sets - show inputs for each
+  // Structure: W (main weight) + D1, D2, ... (dropdownWeights)
   if (item.setType === 'dropdown') {
     const ddItem = item as DropdownSetItem;
+    // Combine main weight (W) with dropdown weights (D1, D2, etc.)
+    const allSubSets = [
+      { weight: ddItem.weight, reps: ddItem.reps, label: 'W' },  // Main working weight
+      ...ddItem.subSets.map((s, i) => ({ ...s, label: `D${i + 1}` }))  // Drops
+    ];
+
     return (
       <div className="p-3 space-y-2">
-        {ddItem.subSets.map((subSet, idx) => (
+        {allSubSets.map((subSet, idx) => (
           <div key={idx} className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400 w-6">{idx === 0 ? 'W' : `D${idx}`}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 w-6">{subSet.label}</span>
             <input
               type="number"
-              value={setForm.subSets?.[idx]?.weight ?? subSet.weight}
+              value={setForm.subSets?.[idx]?.weight ?? subSet.weight ?? ''}
               onChange={(e) => {
                 const newWeight = parseFloat(e.target.value) || 0;
-                const currentSubSets = setForm.subSets || ddItem.subSets.map(s => ({ ...s, completed: false }));
+                const currentSubSets = setForm.subSets || allSubSets.map(s => ({ weight: s.weight, reps: s.reps }));
                 const newSubSets = [...currentSubSets];
+                while (newSubSets.length <= idx) {
+                  newSubSets.push({ weight: 0, reps: 10 });
+                }
                 newSubSets[idx] = { ...newSubSets[idx], weight: newWeight };
                 onSetFormChange({ ...setForm, subSets: newSubSets });
               }}
@@ -55,11 +65,14 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
             <span className="text-gray-400 dark:text-gray-500 text-xs">kg</span>
             <input
               type="number"
-              value={setForm.subSets?.[idx]?.reps ?? subSet.reps}
+              value={setForm.subSets?.[idx]?.reps ?? subSet.reps ?? ''}
               onChange={(e) => {
                 const newReps = parseInt(e.target.value) || 0;
-                const currentSubSets = setForm.subSets || ddItem.subSets.map(s => ({ ...s, completed: false }));
+                const currentSubSets = setForm.subSets || allSubSets.map(s => ({ weight: s.weight, reps: s.reps }));
                 const newSubSets = [...currentSubSets];
+                while (newSubSets.length <= idx) {
+                  newSubSets.push({ weight: 0, reps: 10 });
+                }
                 newSubSets[idx] = { ...newSubSets[idx], reps: newReps };
                 onSetFormChange({ ...setForm, subSets: newSubSets });
               }}

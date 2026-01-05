@@ -28,8 +28,7 @@ def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], ses
             for sup_item in superset_items:
                 if sup_item.include_warmup:
                     exercise = sup_item.exercise
-                    bodyweight = exercise.is_bodyweight
-                    set_type = "bodyweight" if bodyweight else "normal"
+                    set_type = "warmup"  # Warmup sets always have type "warmup"
                     weight = None  # Warmup sets have no weight
 
                     sets.append(WorkoutSet(
@@ -71,7 +70,7 @@ def generate_sets_from_preset(preset_exercises: List[WorkoutPresetExercise], ses
 
             # Warmup
             if preset_ex.include_warmup:
-                set_type = "bodyweight" if bodyweight else "normal"
+                set_type = "warmup"  # Warmup sets always have type "warmup"
                 weight = None  # Warmup sets have no weight
 
                 sets.append(WorkoutSet(

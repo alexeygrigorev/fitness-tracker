@@ -207,6 +207,10 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
 
   const updateExercise = (index: number, field: keyof WorkoutPresetExercise, value: any) => {
     const updated = [...selectedExercises];
+    // Convert dropdowns to number
+    if (field === 'dropdowns') {
+      value = Number(value) || 0;
+    }
     updated[index] = { ...updated[index], [field]: value };
     onChange(updated);
   };

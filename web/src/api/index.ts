@@ -262,6 +262,12 @@ export const workoutsApi = {
       headers: await getHeaders(),
     });
     return handleResponse(response);
+  },
+  getActive: async () => {
+    const response = await fetch(`${API_BASE}/api/workouts/sessions/active/`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
   }
 };
 
@@ -573,6 +579,12 @@ export const aiMealApi = {
 
 // Last Used Weights API (backend for cross-device sync)
 export const lastUsedWeightsApi = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE}/api/auth/exercise-settings/`, {
+      headers: await getHeaders(),
+    });
+    return handleResponse(response);
+  },
   set: async (exerciseId: string, data: { weight?: number; reps: number; subSets?: Array<{ weight: number; reps: number }> }) => {
     const response = await fetch(`${API_BASE}/api/auth/exercise-settings/${exerciseId}/`, {
       method: 'POST',

@@ -100,6 +100,12 @@ test.describe('Preset Management', () => {
   });
 
   test('can edit exercise dropdowns and save changes', async ({ page }) => {
+    // Handle any unexpected alerts
+    page.on('dialog', dialog => {
+      console.log('Dialog detected:', dialog.message());
+      dialog.accept();
+    });
+
     await login(page);
     await page.goto('/workouts/presets');
     await page.waitForLoadState('networkidle');
@@ -135,9 +141,23 @@ test.describe('Preset Management', () => {
       await dropdownInput.clear();
       await dropdownInput.fill(newValue);
 
-      // Save changes
-      await page.getByRole('button', { name: 'Save Changes' }).click();
-      await expect(page.locator('form')).not.toBeVisible({ timeout: 5000 });
+      // Verify the value was actually changed
+      await expect(dropdownInput).toHaveValue(newValue);
+
+      // Wait for React to process the state change
+      await page.waitForTimeout(100);
+
+      // Save changes - click the submit button directly
+      const saveButton = page.locator('button[type="submit"]').filter({ hasText: 'Save Changes' });
+      await saveButton.click({ force: true });
+      await page.waitForLoadState('networkidle');
+
+      // Wait a bit more for the modal to close
+      await page.waitForTimeout(500);
+
+      // Check that modal is closed by checking for the modal title text
+      const modalTitle = page.getByText('Edit Preset');
+      await expect(modalTitle).not.toBeVisible({ timeout: 5000 });
 
       // Reopen to verify
       await firstCard.getByTitle('Edit').first().click();

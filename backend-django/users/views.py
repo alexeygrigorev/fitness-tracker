@@ -125,3 +125,18 @@ def exercise_settings_upsert(request, exercise_id):
         result['subSets'] = setting.sub_sets
 
     return Response(result)
+
+
+@api_view(['GET'])
+def exercise_settings_list(request):
+    """Get all exercise settings for the current user."""
+    settings = ExerciseSettings.objects.filter(user=request.user)
+    result = {}
+    for setting in settings:
+        data = {'reps': setting.reps}
+        if setting.weight is not None:
+            data['weight'] = setting.weight
+        if setting.sub_sets:
+            data['subSets'] = setting.sub_sets
+        result[str(setting.exercise.id)] = data
+    return Response(result)

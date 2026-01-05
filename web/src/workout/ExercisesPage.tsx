@@ -99,12 +99,19 @@ export default function ExercisesPage() {
       exercisesApi.getAll(),
       workoutsApi.getAll(),
       workoutPresetsApi.getAll(),
-      workoutPresetsApi.getTemplates()
-    ]).then(([exs, wks, prsts, tmpls]) => {
+      workoutPresetsApi.getTemplates(),
+      workoutsApi.getActive()
+    ]).then(([exs, wks, prsts, tmpls, activeSessions]) => {
       setExercises(exs);
       setWorkouts(wks);
       setPresets(prsts);
       setTemplates(tmpls);
+      // Restore active workout session if exists
+      if (activeSessions.length > 0) {
+        // Get the most recent active session
+        const activeSession = activeSessions[0];
+        setActiveWorkoutSession(activeSession);
+      }
       setLoading(false);
     }).catch((error) => {
       console.error('Failed to load data:', error);
@@ -385,7 +392,7 @@ export default function ExercisesPage() {
         <div className="space-y-6">
           {/* Active Workout Session */}
           {activeWorkoutSession && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow p-6 border-2 border-blue-400 dark:border-blue-600">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow p-6 border-2 border-blue-400 dark:border-blue-600" data-workout-id={activeWorkoutSession.id}>
               <ActiveWorkout
                 session={activeWorkoutSession}
                 exercises={exercises}
@@ -504,7 +511,7 @@ export default function ExercisesPage() {
             ) : (
               <div className="space-y-3">
                 {workoutsForDate.map(workout => (
-                  <div key={workout.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div key={workout.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4" data-workout-id={workout.id}>
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="font-medium text-gray-900 dark:text-gray-100">{workout.name}</div>

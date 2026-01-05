@@ -196,6 +196,7 @@ class WorkoutSet(models.Model):
         ('normal', 'Normal'),
         ('bodyweight', 'Bodyweight'),
         ('dropdown', 'Dropdown'),
+        ('warmup', 'Warmup'),
     ]
 
     id = models.AutoField(primary_key=True)

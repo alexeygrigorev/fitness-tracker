@@ -42,9 +42,6 @@ export default function ActiveWorkout({
   onCancel,
   onDelete
 }: ActiveWorkoutProps) {
-  // Session state
-  const [sessionId] = useState<number>(session.id);
-
   // Sets state - derived from backend response
   const [setItems, setSetItems] = useState<SetItem[]>([]);
 
@@ -61,6 +58,24 @@ export default function ActiveWorkout({
 
   // Last used weights for each exercise
   const [lastUsedWeights, setLastUsedWeights] = useState<Record<number, LastUsedData>>({});
+
+  // Fetch last used weights from server on mount
+  useEffect(() => {
+    const fetchLastUsedWeights = async () => {
+      try {
+        const data = await lastUsedWeightsApi.getAll();
+        // Convert string keys to numbers and type the data
+        const weights: Record<number, LastUsedData> = {};
+        for (const [key, value] of Object.entries(data)) {
+          weights[parseInt(key)] = value as LastUsedData;
+        }
+        setLastUsedWeights(weights);
+      } catch (error) {
+        console.error('Failed to fetch last used weights:', error);
+      }
+    };
+    fetchLastUsedWeights();
+  }, []);
 
   // Initialize set items from session
   useEffect(() => {
@@ -160,7 +175,7 @@ export default function ActiveWorkout({
 
   // Submit set (complete it)
   const submitSet = useCallback(async () => {
-    if (!sessionId) return;
+    if (!session.id) return;
 
     const item = setItems.find(s => s.id === editingSetId);
     if (!item) return;
@@ -185,7 +200,7 @@ export default function ActiveWorkout({
       }
 
       // Call API to complete the set
-      await workoutsApi.completeSet(sessionId!, setId, requestData);
+      await workoutsApi.completeSet(session.id, setId, requestData);
 
       // Update local state
       setSetItems(prev => prev.map(s => {
@@ -220,11 +235,11 @@ export default function ActiveWorkout({
     } finally {
       setLoading(false);
     }
-  }, [sessionId, setItems, editingSetId, setForm, closeSetForm]);
+  }, [session.id, setItems, editingSetId, setForm, closeSetForm]);
 
   // Uncomplete a set
   const uncompleteSet = useCallback(async (itemId?: string) => {
-    if (!sessionId) return;
+    if (!session.id) return;
 
     const targetId = itemId || editingSetId;
     const item = setItems.find(s => s.id === targetId);
@@ -234,7 +249,7 @@ export default function ActiveWorkout({
 
     try {
       const setId = parseInt(item.id);
-      await workoutsApi.uncompleteSet(sessionId!, setId);
+      await workoutsApi.uncompleteSet(session.id, setId);
 
       // Update local state
       setSetItems(prev => prev.map(s => {
@@ -257,11 +272,11 @@ export default function ActiveWorkout({
     } finally {
       setLoading(false);
     }
-  }, [sessionId, setItems, editingSetId, closeSetForm]);
+  }, [session.id, setItems, editingSetId, closeSetForm]);
 
   // Delete a set
   const deleteSet = useCallback(async (itemId?: string) => {
-    if (!sessionId) return;
+    if (!session.id) return;
 
     const targetId = itemId || editingSetId;
     const item = setItems.find(s => s.id === targetId);
@@ -281,11 +296,11 @@ export default function ActiveWorkout({
     } finally {
       setLoading(false);
     }
-  }, [sessionId, setItems, editingSetId, closeSetForm]);
+  }, [session.id, setItems, editingSetId, closeSetForm]);
 
   // Add extra set for an exercise
   const addExtraSet = useCallback(async (exerciseId: number, exerciseName: string) => {
-    if (!sessionId) return;
+    if (!session.id) return;
 
     setLoading(true);
 
@@ -305,7 +320,7 @@ export default function ActiveWorkout({
       const setType = isBodyweight ? 'bodyweight' : 'normal';
 
       // Create the set via API
-      const response = await workoutsApi.addSet(sessionId!, {
+      const response = await workoutsApi.addSet(session.id, {
         exerciseId,
         setType,
         weight: lastUsed?.weight,
@@ -327,11 +342,11 @@ export default function ActiveWorkout({
     } finally {
       setLoading(false);
     }
-  }, [sessionId, setItems, lastUsedWeights, exercises]);
+  }, [session.id, setItems, lastUsedWeights, exercises]);
 
   // Add new exercise to workout
   const addNewExercise = useCallback(async (exerciseId: number) => {
-    if (!sessionId) return;
+    if (!session.id) return;
 
     const exercise = getExerciseInfo(exerciseId, exercises);
     if (!exercise) return;
@@ -343,7 +358,7 @@ export default function ActiveWorkout({
       const isBodyweight = exercise.bodyweight || false;
       const setType = isBodyweight ? 'bodyweight' : 'normal';
 
-      const response = await workoutsApi.addSet(sessionId!, {
+      const response = await workoutsApi.addSet(session.id, {
         exerciseId,
         setType,
         weight: lastUsed?.weight,
@@ -365,43 +380,43 @@ export default function ActiveWorkout({
     } finally {
       setLoading(false);
     }
-  }, [sessionId, exercises, lastUsedWeights]);
+  }, [session.id, exercises, lastUsedWeights]);
 
   // Finish workout
   const finishWorkout = useCallback(async () => {
-    if (!sessionId) return;
+    if (!session.id) return;
 
     setLoading(true);
 
     try {
-      const response = await workoutsApi.finish(sessionId!);
+      const response = await workoutsApi.finish(session.id);
       onComplete(response);
     } catch (error) {
       console.error('Failed to finish workout:', error);
     } finally {
       setLoading(false);
     }
-  }, [sessionId, onComplete]);
+  }, [session.id, onComplete]);
 
   // Delete workout
   const deleteWorkout = useCallback(async () => {
-    if (!sessionId) return;
+    if (!session.id) return;
     if (!confirm('Are you sure you want to delete this workout?')) return;
 
     setLoading(true);
 
     try {
-      await workoutsApi.delete(sessionId!);
-      onDelete(sessionId);
+      await workoutsApi.delete(session.id);
+      onDelete(session.id);
     } catch (error) {
       console.error('Failed to delete workout:', error);
     } finally {
       setLoading(false);
     }
-  }, [sessionId, onDelete]);
+  }, [session.id, onDelete]);
 
   return (
-    <div className="space-y-4" data-workout-id={sessionId}>
+    <div className="space-y-4" data-workout-id={session.id}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -60,6 +60,8 @@ class WorkoutSetSerializer(serializers.ModelSerializer):
     loggedAt = serializers.SerializerMethodField()
     dropdownWeights = serializers.JSONField(source='dropdown_weights', required=False)
     setType = serializers.CharField(source='set_type')
+    # Return weight as a number (not string) - use Decimal with coerce_to_string=False
+    weight = serializers.DecimalField(max_digits=6, decimal_places=2, allow_null=True, required=False, coerce_to_string=False)
 
     def get_loggedAt(self, obj):
         """Always return completed_at, even if None."""
@@ -77,7 +79,7 @@ class WorkoutSessionSerializer(serializers.ModelSerializer):
     sets = WorkoutSetSerializer(many=True, read_only=True)
     startedAt = serializers.DateTimeField(source='created_at')
     endedAt = serializers.DateTimeField(source='finished_at', allow_null=True)
-    bodyweight = serializers.DecimalField(max_digits=6, decimal_places=2, allow_null=True, required=False)
+    bodyweight = serializers.DecimalField(max_digits=6, decimal_places=2, allow_null=True, required=False, coerce_to_string=False)
 
     def to_representation(self, instance):
         """Ensure sets are always included in the representation."""
