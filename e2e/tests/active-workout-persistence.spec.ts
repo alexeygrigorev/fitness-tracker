@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { login, clearAllWorkoutState, ensureTestPresets } from './helpers';
+import { login, clearAllWorkoutState, ensureTestPresets, findAndClickPreset } from './helpers';
 
 test.describe('Active Workout Persistence', () => {
   test.beforeEach(async ({ page }) => {
@@ -29,10 +29,6 @@ test.describe('Active Workout Persistence', () => {
   });
 
   test('active workout persists across page refresh', async ({ page }) => {
-    // Set the date to Monday
-    const mondayDate = new Date('2025-01-06T09:00:00');
-    await page.clock.install({ time: mondayDate.getTime() });
-
     await login(page);
     await page.goto('/workouts');
     await page.waitForLoadState('networkidle');
@@ -44,8 +40,7 @@ test.describe('Active Workout Persistence', () => {
     await ensureTestPresets(page);
 
     // Start Push Day workout
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
-    await pushDayPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
 
     // Wait for active workout mode and network to settle
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
@@ -126,15 +121,11 @@ test.describe('Active Workout Persistence', () => {
   });
 
   test('active workout persists across different devices/sessions', async ({ browser }) => {
-    // Set the date to Monday
-    const mondayDate = new Date('2025-01-06T09:00:00');
-
     // Context 1: Start a workout on device 1
     const context1 = await browser.newContext({
       timezoneId: 'America/New_York'
     });
     const page1 = await context1.newPage();
-    await page1.clock.install({ time: mondayDate.getTime() });
 
     // Auto-accept dialogs for page1
     page1.on('dialog', dialog => dialog.accept());
@@ -155,8 +146,7 @@ test.describe('Active Workout Persistence', () => {
     }
 
     // Step 1: Start Push Day workout and complete ONE dropdown set first to test basic persistence
-    const pushDayPreset = page1.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
-    await pushDayPreset.click();
+    await findAndClickPreset(page1, /Push Day/i);
 
     const activeWorkout1 = page1.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
     await expect(activeWorkout1).toBeVisible({ timeout: 5000 });
@@ -194,7 +184,6 @@ test.describe('Active Workout Persistence', () => {
       timezoneId: 'America/New_York'
     });
     const page2 = await context2.newPage();
-    await page2.clock.install({ time: mondayDate.getTime() });
     page2.on('dialog', dialog => dialog.accept());
 
     await login(page2);

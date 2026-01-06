@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { login, clearAllWorkoutState, ensureTestPresets } from './helpers';
+import { login, clearAllWorkoutState, ensureTestPresets, findAndClickPreset } from './helpers';
 
 test.describe('Monday Push Day Workout', () => {
   test.beforeEach(async ({ page }) => {
@@ -79,8 +79,7 @@ test.describe('Monday Push Day Workout', () => {
     await ensureTestPresets(page);
 
     // Start Push Day workout (find it in Today's presets or Other days)
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
-    await pushDayPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
@@ -190,8 +189,7 @@ test.describe('Monday Push Day Workout', () => {
     await ensureTestPresets(page);
 
     // Start Push Day workout (find it in Today's presets or Other days)
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
-    await pushDayPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
@@ -290,8 +288,7 @@ test.describe('Monday Push Day Workout', () => {
     await ensureTestPresets(page);
 
     // Start Push Day workout (find it in Today's presets or Other days)
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
-    await pushDayPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
@@ -430,8 +427,7 @@ test.describe('Monday Push Day Workout', () => {
     const initialWorkoutCount = await page.locator('[data-workout-id]').count();
 
     // Start Push Day workout (find it in Today's presets or Other days)
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
-    await pushDayPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
@@ -546,8 +542,7 @@ test.describe('Monday Push Day Workout', () => {
     await ensureTestPresets(page);
 
     // Start Push Day workout (find it in Today's presets or Other days)
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
-    await pushDayPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
@@ -663,8 +658,7 @@ test.describe('Monday Push Day Workout', () => {
     const initialWorkoutCount = await page.locator('[data-workout-id]').count();
 
     // Start Push Day workout (find it in Today's presets or Other days)
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i }).first();
-    await pushDayPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');

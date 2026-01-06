@@ -194,3 +194,32 @@ export async function ensureTestPresets(page: Page): Promise<void> {
   await page.goto('/workouts');
   await page.waitForLoadState('networkidle');
 }
+
+/**
+ * Find and click a preset by name
+ * First looks in "Today's Presets" (green border), then in "Other days" section (gray border)
+ */
+export async function findAndClickPreset(page: Page, presetName: string | RegExp): Promise<void> {
+  // First try to find in Today's presets (green border)
+  const todayPreset = page.locator('.border-2.border-green-400').filter({ hasText: presetName }).first();
+  const todayCount = await todayPreset.count();
+
+  if (todayCount > 0) {
+    await todayPreset.click();
+    return;
+  }
+
+  // Not in Today's presets - check Other days section
+  // Click the "Other days" details/summary to expand it
+  const otherDaysSummary = page.getByText('Other days');
+  const isExpanded = await otherDaysSummary.getAttribute('open');
+
+  if (!isExpanded) {
+    await otherDaysSummary.click();
+    await page.waitForTimeout(300);
+  }
+
+  // Find the preset in Other days section (gray border)
+  const otherDaysPreset = page.locator('details[open] .border.border-gray-200').filter({ hasText: presetName }).first();
+  await otherDaysPreset.click();
+}
