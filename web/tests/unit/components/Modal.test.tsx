@@ -64,9 +64,10 @@ describe('Modal Component', () => {
 
     it('should call onClose when backdrop is clicked', async () => {
       const onClose = vi.fn();
-      render(<Modal {...defaultProps} onClose={onClose} />);
+      const { container } = render(<Modal {...defaultProps} onClose={onClose} />);
 
-      const backdrop = screen.getByText('Test Modal').closest('.fixed');
+      // Find the backdrop element (has bg-black/50 class)
+      const backdrop = container.querySelector('.bg-black\\/50');
       if (backdrop) {
         await userEvent.click(backdrop);
         expect(onClose).toHaveBeenCalledTimes(1);

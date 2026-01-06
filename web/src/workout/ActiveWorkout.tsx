@@ -202,14 +202,24 @@ export default function ActiveWorkout({
       // Call API to complete the set
       await workoutsApi.completeSet(session.id, setId, requestData);
 
-      // Update local state
+      // Update local state - properly convert SetItem to WorkoutSet format
       setSetItems(prev => prev.map(s => {
         if (s.id === editingSetId) {
+          // For dropdown sets, convert subSets to dropdownWeights
+          const backendSet: any = {
+            id: parseInt(s.id),
+            exerciseId: s.exerciseId,
+            exerciseName: s.exerciseName,
+            setType: s.setType,
+            weight: s.setType === 'dropdown' ? (s as any).weight : s.showWeightInput ? (s as any).weight : undefined,
+            reps: (s as any).reps || requestData.reps,
+            loggedAt: new Date().toISOString()
+          };
+          if (s.setType === 'dropdown') {
+            backendSet.dropdownWeights = (s as any).subSets || requestData.dropdownWeights;
+          }
           return createSetItemFromBackend(
-            {
-              ...s,
-              loggedAt: new Date().toISOString()
-            } as any,
+            backendSet,
             s.exerciseName,
             s.setNumber
           );
@@ -251,14 +261,24 @@ export default function ActiveWorkout({
       const setId = parseInt(item.id);
       await workoutsApi.uncompleteSet(session.id, setId);
 
-      // Update local state
+      // Update local state - properly convert SetItem to WorkoutSet format
       setSetItems(prev => prev.map(s => {
         if (s.id === targetId) {
+          // For dropdown sets, convert subSets to dropdownWeights
+          const backendSet: any = {
+            id: parseInt(s.id),
+            exerciseId: s.exerciseId,
+            exerciseName: s.exerciseName,
+            setType: s.setType,
+            weight: s.setType === 'dropdown' ? (s as any).weight : s.showWeightInput ? (s as any).weight : undefined,
+            reps: (s as any).reps,
+            loggedAt: null
+          };
+          if (s.setType === 'dropdown') {
+            backendSet.dropdownWeights = (s as any).subSets;
+          }
           return createSetItemFromBackend(
-            {
-              ...s,
-              loggedAt: null
-            } as any,
+            backendSet,
             s.exerciseName,
             s.setNumber
           );

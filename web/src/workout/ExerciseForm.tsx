@@ -148,13 +148,13 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
       {/* Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Exercise Name *</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Exercise Name *</label>
         <input
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="e.g., Barbell Bench Press"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
           required
           autoFocus
         />
@@ -162,11 +162,11 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
       {/* Category */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
         <select
           value={category}
           onChange={e => setCategory(e.target.value as Exercise['category'])}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
         >
           {CATEGORIES.map(cat => (
             <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
@@ -176,17 +176,17 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
       {/* Muscle Groups */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Muscle Groups</label>
-        <div className="flex flex-wrap gap-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Muscle Groups</label>
+        <div className="flex flex-wrap gap-1.5">
           {MUSCLE_GROUPS.map(mg => (
             <button
               key={mg}
               type="button"
               onClick={() => toggleMuscleGroup(mg)}
-              className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors touch-manipulation ${
                 muscleGroups.includes(mg)
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               {mg.charAt(0).toUpperCase() + mg.slice(1)}
@@ -197,7 +197,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
       {/* Equipment */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Equipment</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Equipment</label>
         <div className="flex gap-2 mb-2">
           <input
             type="text"
@@ -205,31 +205,31 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
             onChange={e => setEquipmentInput(e.target.value)}
             onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addEquipment())}
             placeholder="e.g., barbell, dumbbells"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
           />
           <button
             type="button"
             onClick={addEquipment}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 touch-manipulation"
           >
             Add
           </button>
         </div>
         <div className="flex flex-wrap gap-2">
           {equipment && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">
               {equipment}
               <button
                 type="button"
                 onClick={() => removeEquipment()}
-                className="text-gray-500 hover:text-red-600"
+                className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
               >
                 &times;
               </button>
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-500 mt-1">Leave empty for bodyweight exercises</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty for bodyweight exercises</p>
       </div>
 
       {/* Bodyweight Checkbox */}
@@ -239,16 +239,16 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
           id="bodyweight"
           checked={bodyweight}
           onChange={e => setBodyweight(e.target.checked)}
-          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
         />
-        <label htmlFor="bodyweight" className="text-sm font-medium text-gray-700">
+        <label htmlFor="bodyweight" className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Bodyweight exercise (e.g., pull-ups, dips, push-ups)
         </label>
       </div>
 
       {/* Instructions */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Instructions</label>
         <div className="flex gap-2 mb-2">
           <input
             type="text"
@@ -256,61 +256,66 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
             onChange={e => setInstructionInput(e.target.value)}
             onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addInstruction())}
             placeholder="e.g., Lie flat on bench"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
           />
           <button
             type="button"
             onClick={addInstruction}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+            className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 touch-manipulation"
           >
             Add
           </button>
         </div>
-        <ol className="space-y-1">
+        <ul className="space-y-2">
           {instructions.map((inst, i) => (
-            <li key={i} className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500">{i + 1}.</span>
-              <span className="flex-1">{inst}</span>
-              <button
-                type="button"
-                onClick={() => moveInstruction(i, Math.max(0, i - 1))}
-                disabled={i === 0}
-                className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                onClick={() => moveInstruction(i, Math.min(instructions.length - 1, i + 1))}
-                disabled={i === instructions.length - 1}
-                className="text-gray-400 hover:text-gray-600 disabled:opacity-30"
-              >
-                ↓
-              </button>
-              <button
-                type="button"
-                onClick={() => removeInstruction(i)}
-                className="text-gray-400 hover:text-red-600"
-              >
-                ×
-              </button>
+            <li key={i} className="flex items-start gap-2 text-sm bg-gray-50 dark:bg-gray-700/50 rounded-md p-2">
+              <span className="text-gray-500 dark:text-gray-400 shrink-0 pt-0.5">{i + 1}.</span>
+              <span className="flex-1 break-words">{inst}</span>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => moveInstruction(i, Math.max(0, i - 1))}
+                  disabled={i === 0}
+                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 touch-manipulation rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                  title="Move up"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveInstruction(i, Math.min(instructions.length - 1, i + 1))}
+                  disabled={i === instructions.length - 1}
+                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 touch-manipulation rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                  title="Move down"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeInstruction(i)}
+                  className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 touch-manipulation rounded hover:bg-red-50 dark:hover:bg-red-900/30"
+                  title="Remove"
+                >
+                  ×
+                </button>
+              </div>
             </li>
           ))}
-        </ol>
+        </ul>
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t">
+      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+          className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 touch-manipulation"
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700"
+          className="px-4 py-2 text-white bg-blue-600 dark:bg-blue-700 rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 touch-manipulation"
         >
           {exercise ? 'Save Changes' : 'Create Exercise'}
         </button>

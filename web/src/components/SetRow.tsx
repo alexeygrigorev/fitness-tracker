@@ -44,8 +44,8 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
     return (
       <div className="p-3 space-y-2">
         {allSubSets.map((subSet, idx) => (
-          <div key={idx} className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400 w-6">{subSet.label}</span>
+          <div key={idx} className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400 w-6 shrink-0">{subSet.label}</span>
             <input
               type="number"
               value={setForm.subSets?.[idx]?.weight ?? subSet.weight ?? ''}
@@ -60,9 +60,9 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
                 onSetFormChange({ ...setForm, subSets: newSubSets });
               }}
               placeholder="kg"
-              className="w-16 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-14 sm:w-16 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <span className="text-gray-400 dark:text-gray-500 text-xs">kg</span>
+            <span className="text-gray-400 dark:text-gray-500 text-xs shrink-0">kg</span>
             <input
               type="number"
               value={setForm.subSets?.[idx]?.reps ?? subSet.reps ?? ''}
@@ -77,9 +77,9 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
                 onSetFormChange({ ...setForm, subSets: newSubSets });
               }}
               placeholder="reps"
-              className="w-14 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-12 sm:w-14 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            <span className="text-gray-400 dark:text-gray-500 text-xs">reps</span>
+            <span className="text-gray-400 dark:text-gray-500 text-xs shrink-0">reps</span>
           </div>
         ))}
 
@@ -105,7 +105,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
               <button
                 type="button"
                 onClick={() => { onUncompleteSet(); onCloseSetForm(); }}
-                className="px-2 py-1 text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+                className="px-3 py-1.5 text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors touch-manipulation"
                 title="Uncomplete this set"
               >
                 Uncomplete
@@ -115,7 +115,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
             <button
               type="button"
               onClick={onSubmitSet}
-              className="px-3 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded text-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+              className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded text-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors touch-manipulation"
             >
               Complete
             </button>
@@ -146,7 +146,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
     return (
       <div className="p-3">
         <div
-          className="flex items-center gap-2"
+          className="flex items-center gap-1.5 sm:gap-2"
           onKeyDown={(e) => {
             if (e.key === 'Enter') onSubmitSet();
             if (e.key === 'Escape') onCloseSetForm();
@@ -157,10 +157,10 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
             value={setForm.reps}
             onChange={(e) => onSetFormChange({ ...setForm, reps: parseInt(e.target.value) || 0 })}
             placeholder="reps"
-            className="w-14 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-16 sm:w-20 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
             autoFocus
           />
-          <span className="text-gray-400 dark:text-gray-500 text-xs">reps</span>
+          <span className="text-gray-400 dark:text-gray-500 text-xs shrink-0">reps</span>
 
           <EditFormActions
             item={item}
@@ -178,7 +178,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
   return (
     <div className="p-3">
       <div
-        className="flex items-center gap-2"
+        className="flex items-center gap-1.5 sm:gap-2 flex-wrap"
         onKeyDown={(e) => {
           if (e.key === 'Enter') onSubmitSet();
           if (e.key === 'Escape') onCloseSetForm();
@@ -191,10 +191,10 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
               value={setForm.weight ?? ''}
               onChange={(e) => onSetFormChange({ ...setForm, weight: parseFloat(e.target.value) || undefined })}
               placeholder="kg"
-              className="w-16 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-16 sm:w-20 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
               autoFocus
             />
-            <span className="text-gray-400 dark:text-gray-500 text-xs">kg</span>
+            <span className="text-gray-400 dark:text-gray-500 text-xs shrink-0">kg</span>
           </>
         )}
 
@@ -203,9 +203,9 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
           value={setForm.reps}
           onChange={(e) => onSetFormChange({ ...setForm, reps: parseInt(e.target.value) || 0 })}
           placeholder="reps"
-          className="w-14 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-16 sm:w-20 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
         />
-        <span className="text-gray-400 dark:text-gray-500 text-xs">reps</span>
+        <span className="text-gray-400 dark:text-gray-500 text-xs shrink-0">reps</span>
 
         <EditFormActions
           item={item}
@@ -228,11 +228,11 @@ function EditFormActions({ item, onSubmitSet, onUncompleteSet, onCloseSetForm, o
   onDeleteSet: () => void;
 }) {
   return (
-    <>
+    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
       <button
         type="button"
         onClick={onSubmitSet}
-        className="px-3 py-1.5 bg-green-600 dark:bg-green-700 text-white rounded text-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+        className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded text-sm hover:bg-green-700 dark:hover:bg-green-600 transition-colors touch-manipulation"
       >
         Save
       </button>
@@ -241,7 +241,7 @@ function EditFormActions({ item, onSubmitSet, onUncompleteSet, onCloseSetForm, o
         <button
           type="button"
           onClick={() => { onUncompleteSet(); onCloseSetForm(); }}
-          className="px-2 py-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors text-sm"
+          className="px-3 py-2 text-sm text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors touch-manipulation"
           title="Uncomplete this set"
         >
           Uncomplete
@@ -251,7 +251,7 @@ function EditFormActions({ item, onSubmitSet, onUncompleteSet, onCloseSetForm, o
       <button
         type="button"
         onClick={onCloseSetForm}
-        className="px-2 py-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors text-sm"
+        className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors touch-manipulation"
       >
         Cancel
       </button>
@@ -259,12 +259,12 @@ function EditFormActions({ item, onSubmitSet, onUncompleteSet, onCloseSetForm, o
       <button
         type="button"
         onClick={onDeleteSet}
-        className="px-2 py-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors text-sm ml-2"
+        className="px-2 py-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors touch-manipulation"
         title="Delete set"
       >
-        <FontAwesomeIcon icon={faTrash} />
+        <FontAwesomeIcon icon={faTrash} className="text-sm" />
       </button>
-    </>
+    </div>
   );
 }
 
@@ -275,13 +275,15 @@ function CompletedDataDisplay({ item }: { item: SetItem }) {
   if (displayData.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap">
       {displayData.map((data, idx) => {
         if ('isTimestamp' in data) {
           return (
             <span key={idx} className="text-gray-400 dark:text-gray-500 flex items-center gap-1" title="Completed at">
               <FontAwesomeIcon icon={faClock} className="text-xs" />
-              {data.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <span className="hidden sm:inline">
+                {data.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </span>
           );
         }
@@ -330,10 +332,10 @@ export default function SetRow({ item, isEditing, setForm, onOpenSetForm, onSubm
       ) : (
         <div
           onClick={() => onOpenSetForm(item)}
-          className="w-full p-3 flex items-center justify-between"
+          className="w-full p-3 sm:p-4 flex items-center justify-between gap-2"
         >
-          <div className="flex items-center gap-3 flex-1">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm ${
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 text-sm ${
               item.completed
                 ? 'bg-green-500 dark:bg-green-600 text-white'
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300'
@@ -342,35 +344,37 @@ export default function SetRow({ item, isEditing, setForm, onOpenSetForm, onSubm
             </div>
 
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium text-gray-900 dark:text-gray-100">{item.exerciseName}</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base truncate">{item.exerciseName}</span>
                 {item.badgeLabel && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${item.badgeColor}`}>{item.badgeLabel}</span>
+                  <span className={`text-xs px-1.5 sm:px-2 py-0.5 rounded-full ${item.badgeColor} shrink-0`}>{item.badgeLabel}</span>
                 )}
                 {item.isSuperset && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300">Superset</span>
+                  <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300 shrink-0">Superset</span>
                 )}
                 {item.isExtra && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">Extra</span>
+                  <span className="text-xs px-1.5 sm:px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 shrink-0">Extra</span>
                 )}
               </div>
               {setNumberDisplay}
             </div>
 
             {item.completed && item.showCompletedData && (
-              <CompletedDataDisplay item={item} />
+              <div className="hidden sm:block">
+                <CompletedDataDisplay item={item} />
+              </div>
             )}
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {!item.completed ? (
-                <span className="text-sm text-gray-400 dark:text-gray-500 italic">
+                <span className="hidden sm:block text-sm text-gray-400 dark:text-gray-500 italic">
                   {item.setType === 'warmup' ? 'Click to complete' : 'Click to fill'}
                 </span>
               ) : (
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); onUncompleteSet(); }}
-                  className="px-2 py-1 text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+                  className="px-2 sm:px-3 py-1.5 text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors touch-manipulation"
                   title="Uncomplete this set"
                 >
                   Uncomplete
@@ -379,13 +383,20 @@ export default function SetRow({ item, isEditing, setForm, onOpenSetForm, onSubm
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onDeleteSet(); }}
-                className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors touch-manipulation"
                 title="Delete set"
               >
                 <FontAwesomeIcon icon={faTrash} className="text-xs" />
               </button>
             </div>
           </div>
+
+          {/* Mobile: Show completed data below main row */}
+          {item.completed && item.showCompletedData && (
+            <div className="sm:hidden mt-2 ml-10 pr-2">
+              <CompletedDataDisplay item={item} />
+            </div>
+          )}
         </div>
       )}
     </div>

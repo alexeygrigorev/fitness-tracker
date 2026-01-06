@@ -17,7 +17,7 @@ type Tab = 'dashboard' | 'exercises' | 'nutrition' | 'sleep' | 'metabolism' | 'p
 
 const tabs = [
   { id: 'dashboard' as Tab, label: 'Dashboard', icon: faChartBar },
-  { id: 'exercises' as Tab, label: 'Exercises', icon: faDumbbell },
+  { id: 'exercises' as Tab, label: 'Workouts', icon: faDumbbell },
   { id: 'nutrition' as Tab, label: 'Nutrition', icon: faAppleWhole },
   { id: 'weight' as Tab, label: 'Weight', icon: faWeightScale },
   { id: 'sleep' as Tab, label: 'Sleep', icon: faBed },
@@ -28,7 +28,8 @@ const tabs = [
 function App() {
   const { user, logout, darkMode, toggleDarkMode } = useAuth();
   const location = useLocation();
-  // Map pathname to Tab - /workouts maps to 'exercises', /nutrition/* maps to 'nutrition'
+
+  // Map pathname to Tab
   const getPathTab = (): Tab => {
     const path = location.pathname;
     if (path === '/' || path === '') return 'dashboard';
@@ -38,7 +39,7 @@ function App() {
   };
   const currentTab = getPathTab();
 
-  // Auth pages (login/register) have their own layout
+  // Auth pages have their own layout
   if (location.pathname === '/login' || location.pathname === '/register') {
     return (
       <Routes>
@@ -49,14 +50,17 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 pb-16 md:pb-0">
+      {/* Header */}
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="text-xl font-bold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+          <div className="flex items-center justify-between h-14 md:h-16">
+            <Link to="/" className="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               Fitness Tracker
             </Link>
-            <div className="flex items-center gap-4">
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-4">
               <nav className="flex space-x-1">
                 {tabs.map(tab => {
                   const path = tab.id === 'dashboard'
@@ -98,11 +102,55 @@ function App() {
                 </button>
               </div>
             </div>
+
+            {/* Mobile: Dark mode toggle only */}
+            <div className="flex md:hidden">
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                <FontAwesomeIcon icon={darkMode ? faSun : faMoon} />
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-bottom">
+        <div className="flex items-center justify-around h-16">
+          {tabs.map(tab => {
+            const path = tab.id === 'dashboard'
+              ? '/'
+              : tab.id === 'exercises'
+              ? '/workouts'
+              : `/${tab.id}`;
+            const isActive = currentTab === tab.id;
+            return (
+              <NavLink
+                key={tab.id}
+                to={path}
+                className={({ isActive: navActive }) =>
+                  `flex flex-col items-center justify-center w-full h-full px-1 transition-colors touch-manipulation ${
+                    navActive
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`
+                }
+              >
+                <FontAwesomeIcon
+                  icon={tab.icon}
+                  className={`text-lg mb-1 ${isActive ? 'scale-110' : ''}`}
+                />
+                <span className="text-[10px] leading-tight">{tab.label}</span>
+              </NavLink>
+            );
+          })}
+        </div>
+      </nav>
+
+      <main className="max-w-6xl mx-auto px-4 py-4 md:py-6">
         <ProtectedRoute>
           {currentTab === 'dashboard' && <Dashboard />}
           {location.pathname.startsWith('/workouts') && <ExercisesPage />}

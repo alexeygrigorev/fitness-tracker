@@ -529,20 +529,20 @@ export default function ExercisesPage() {
                           <div className="text-sm text-orange-600 dark:text-orange-400">~{workout.estimatedRecovery}h recovery</div>
                         )}
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 sm:gap-2">
                         <button
                           onClick={() => handleResumeWorkout(workout)}
-                          className="text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 p-1"
+                          className="text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 p-2 rounded transition-colors touch-manipulation"
                           title="Resume"
                         >
-                          <FontAwesomeIcon icon={faPlay} />
+                          <FontAwesomeIcon icon={faPlay} className="text-sm" />
                         </button>
                         <button
                           onClick={() => handleDeleteWorkout(workout.id)}
-                          className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
+                          className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded transition-colors touch-manipulation"
                           title="Delete"
                         >
-                          <FontAwesomeIcon icon={faTrash} />
+                          <FontAwesomeIcon icon={faTrash} className="text-sm" />
                         </button>
                       </div>
                     </div>
@@ -637,20 +637,20 @@ export default function ExercisesPage() {
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{totalSets} sets</div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">{(preset.exercises || []).length} exercises</div>
                         </div>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 sm:gap-2">
                           <button
                             onClick={() => openEditPreset(preset)}
-                            className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
+                            className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2 rounded transition-colors touch-manipulation"
                             title="Edit"
                           >
-                            <FontAwesomeIcon icon={faPen} />
+                            <FontAwesomeIcon icon={faPen} className="text-sm" />
                           </button>
                           <button
                             onClick={() => handleDeletePreset(preset.id)}
-                            className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
+                            className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded transition-colors touch-manipulation"
                             title="Delete"
                           >
-                            <FontAwesomeIcon icon={faTrash} />
+                            <FontAwesomeIcon icon={faTrash} className="text-sm" />
                           </button>
                         </div>
                       </div>
@@ -665,128 +665,226 @@ export default function ExercisesPage() {
 
       {/* Exercises Tab */}
       {activeTab === 'library' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
+        <>
+          {/* Mobile: Header with action buttons */}
+          <div className="md:hidden bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Exercises</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowExerciseAIModal(true)}
-                  className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 flex items-center gap-1"
+                  className="px-2 py-1.5 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 flex items-center gap-1"
                 >
                   <FontAwesomeIcon icon={faPlay} className="text-xs" />
-                  Add with AI
+                  <span className="hidden sm:inline">AI</span>
                 </button>
                 <button
                   onClick={openAddExercise}
-                  className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center gap-1"
+                  className="px-2 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center gap-1"
                 >
                   <FontAwesomeIcon icon={faPlus} className="text-xs" />
-                  Add Exercise
+                  <span className="hidden sm:inline">Add</span>
                 </button>
               </div>
             </div>
-            <div className="space-y-2">
-              {exercises.map(exercise => (
+          </div>
+
+          {/* Mobile: Exercise list with inline expand/collapse for details */}
+          <div className="md:hidden space-y-3">
+            {exercises.map(exercise => (
+              <div key={exercise.id} className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                {/* Exercise row - always clickable */}
                 <div
-                  key={exercise.id}
-                  onClick={() => setSelectedExercise(exercise)}
-                  className={`p-3 rounded-lg border transition-colors flex items-center justify-between cursor-pointer ${
-                    selectedExercise?.id === exercise.id
-                      ? 'bg-blue-500/10 border-blue-500 dark:bg-blue-500/20'
-                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  onClick={() => setSelectedExercise(selectedExercise?.id === exercise.id ? null : exercise)}
+                  className={`p-4 flex items-center justify-between cursor-pointer ${
+                    selectedExercise?.id === exercise.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                   }`}
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0 pr-3">
+                    <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-gray-900 dark:text-gray-100">{exercise.name}</span>
                       {exercise.bodyweight && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">BW</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 shrink-0">BW</span>
                       )}
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 capitalize shrink-0">
+                        {exercise.category}
+                      </span>
                     </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 capitalize">{exercise.category || 'Exercise'}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500">{exercise.muscleGroups?.join(', ') || ''}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                      {exercise.muscleGroups?.join(', ') || 'No muscle groups'}
+                    </div>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={(e) => { e.stopPropagation(); openEditExercise(exercise); }}
+                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
+                      title="Edit"
+                    >
+                      <FontAwesomeIcon icon={faPen} className="text-sm" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise.id); }}
+                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400"
+                      title="Delete"
+                    >
+                      <FontAwesomeIcon icon={faTrash} className="text-sm" />
+                    </button>
+                    <FontAwesomeIcon
+                      icon={selectedExercise?.id === exercise.id ? faChevronDown : faChevronRight}
+                      className="text-gray-400 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Expanded details on mobile */}
+                {selectedExercise?.id === exercise.id && (
+                  <div className="px-4 pb-4 border-t border-gray-100 dark:border-gray-700">
+                    <div className="pt-3 space-y-3">
+                      <div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Equipment</div>
+                        <div className="text-gray-900 dark:text-gray-100">{exercise.equipment || 'None'}</div>
+                      </div>
+                      {exercise.instructions && exercise.instructions.length > 0 && (
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Instructions</div>
+                          <ol className="list-decimal list-inside text-sm space-y-2 text-gray-700 dark:text-gray-300">
+                            {exercise.instructions.map((inst, i) => (
+                              <li key={i}>{inst}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: Two-column layout */}
+          <div className="hidden md:grid md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Exercises</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowExerciseAIModal(true)}
+                    className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 flex items-center gap-1"
+                  >
+                    <FontAwesomeIcon icon={faPlay} className="text-xs" />
+                    Add with AI
+                  </button>
+                  <button
+                    onClick={openAddExercise}
+                    className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center gap-1"
+                  >
+                    <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                    Add Exercise
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2 max-h-[600px] overflow-y-auto">
+                {exercises.map(exercise => (
+                  <div
+                    key={exercise.id}
+                    onClick={() => setSelectedExercise(exercise)}
+                    className={`p-3 rounded-lg border transition-colors flex items-center justify-between cursor-pointer ${
+                      selectedExercise?.id === exercise.id
+                        ? 'bg-blue-500/10 border-blue-500 dark:bg-blue-500/20'
+                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{exercise.name}</span>
+                        {exercise.bodyweight && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">BW</span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 capitalize">{exercise.category || 'Exercise'}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-500">{exercise.muscleGroups?.join(', ') || ''}</div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openEditExercise(exercise); }}
+                        className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
+                        title="Edit"
+                      >
+                        <FontAwesomeIcon icon={faPen} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise.id); }}
+                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
+                        title="Delete"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 max-h-[600px] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  {selectedExercise ? selectedExercise.name : 'Select an exercise'}
+                </h3>
+                {selectedExercise && (
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => openEditExercise(selectedExercise)}
                       className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
                       title="Edit"
                     >
                       <FontAwesomeIcon icon={faPen} />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise.id); }}
+                      onClick={() => handleDeleteExercise(selectedExercise.id)}
                       className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                       title="Delete"
                     >
                       <FontAwesomeIcon icon={faTrash} />
                     </button>
                   </div>
+                )}
+              </div>
+              {selectedExercise ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Category</div>
+                      <div className="capitalize text-gray-900 dark:text-gray-100">{selectedExercise.category}</div>
+                    </div>
+                    {selectedExercise.bodyweight && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 text-xs">
+                        Bodyweight
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Muscle Groups</div>
+                    <div className="capitalize text-gray-900 dark:text-gray-100">{selectedExercise.muscleGroups?.join(', ') || 'None'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Equipment</div>
+                    <div className="text-gray-900 dark:text-gray-100">{selectedExercise.equipment || 'None'}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Instructions</div>
+                    <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 dark:text-gray-300">
+                      {selectedExercise.instructions?.map((inst, i) => (
+                        <li key={i}>{inst}</li>
+                      ))}
+                    </ol>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {selectedExercise ? selectedExercise.name : 'Select an exercise'}
-              </h3>
-              {selectedExercise && (
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => openEditExercise(selectedExercise)}
-                    className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
-                    title="Edit"
-                  >
-                    <FontAwesomeIcon icon={faPen} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteExercise(selectedExercise.id)}
-                    className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
-                    title="Delete"
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                </div>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">Click on an exercise to see details</p>
               )}
             </div>
-            {selectedExercise ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">Category</div>
-                    <div className="capitalize text-gray-900 dark:text-gray-100">{selectedExercise.category}</div>
-                  </div>
-                  {selectedExercise.bodyweight && (
-                    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 text-xs">
-                      Bodyweight
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Muscle Groups</div>
-                  <div className="capitalize text-gray-900 dark:text-gray-100">{selectedExercise.muscleGroups?.join(', ') || 'None'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Equipment</div>
-                  <div className="text-gray-900 dark:text-gray-100">{selectedExercise.equipment || 'None'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Instructions</div>
-                  <ol className="list-decimal list-inside text-sm space-y-1 text-gray-700 dark:text-gray-300">
-                    {selectedExercise.instructions?.map((inst, i) => (
-                      <li key={i}>{inst}</li>
-                    ))}
-                  </ol>
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">Click on an exercise to see details</p>
-            )}
           </div>
-        </div>
+        </>
       )}
 
       {/* Preset Form Modal */}
