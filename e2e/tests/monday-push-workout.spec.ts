@@ -753,12 +753,8 @@ test.describe('Monday Push Day Workout', () => {
     // Clear any existing active workout from previous tests
     await clearAllWorkoutState(page);
 
-    // Use the "Test Last Used Weights" preset which has:
-    // - Overhead Press (normal, 3 sets)
-    // - Dips (bodyweight, 3 sets)
-    // - Bench Press (dropdown, 4 sets with 2 dropdowns each)
-    const testPreset = page.getByRole('button', { name: /Test Last Used Weights.*Monday/ });
-    await testPreset.click();
+    // Use the "Push Day" preset which has Overhead Press
+    await findAndClickPreset(page, /Push Day/i);
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
@@ -807,8 +803,15 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForLoadState('networkidle');
 
     // Start the same workout
-    await testPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Click "Show more" to reveal all exercises (Overhead Press may be hidden)
+    const showMoreButton2 = activeWorkout.getByText(/Show \d+ more/);
+    const showMoreCount2 = await showMoreButton2.count();
+    if (showMoreCount2 > 0) {
+      await showMoreButton2.click();
+    }
 
     // Verify the system remembers the previous week's weight
     const exerciseRow2 = activeWorkout.locator('.border.rounded-lg').filter({ hasText: /Overhead Press.*Set 1/ });
@@ -854,8 +857,15 @@ test.describe('Monday Push Day Workout', () => {
     await page.waitForLoadState('networkidle');
 
     // Start the same workout
-    await testPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
     await expect(activeWorkout).toBeVisible({ timeout: 5000 });
+
+    // Click "Show more" to reveal all exercises (Overhead Press may be hidden)
+    const showMoreButton3 = activeWorkout.getByText(/Show \d+ more/);
+    const showMoreCount3 = await showMoreButton3.count();
+    if (showMoreCount3 > 0) {
+      await showMoreButton3.click();
+    }
 
     // Verify the system remembers the INCREASED weight from week 2
     const exerciseRow3 = activeWorkout.locator('.border.rounded-lg').filter({ hasText: /Overhead Press.*Set 1/ });

@@ -70,12 +70,12 @@ export const authApi = {
     const response = await fetch(`${API_BASE}/api/auth/register/`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify({ email, username, password }),
+      body: JSON.stringify({ email, username, password, password_confirm: password }),
     });
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ detail: 'Registration failed' }));
-      throw new Error(error.detail || 'Registration failed');
+      throw new Error(error.detail || error.error || 'Registration failed');
     }
 
     return response.json();

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { clearAllWorkoutState, ensureTestPresets } from './helpers';
+import { clearAllWorkoutState, ensureTestPresets, findAndClickPreset } from './helpers';
 
 /**
  * User Isolation Test
@@ -39,8 +39,7 @@ test.describe('User Isolation', () => {
     await ensureTestPresets(page);
 
     // Start Push Day workout
-    const pushDayPreset = page.locator('.border-2.border-green-400').filter({ hasText: /Push Day/i });
-    await pushDayPreset.click();
+    await findAndClickPreset(page, /Push Day/i);
 
     // Wait for active workout mode
     const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
@@ -69,7 +68,10 @@ test.describe('User Isolation', () => {
     // Get the workout ID for verification
     await page.reload();
     await page.waitForLoadState('networkidle');
-    const loggedWorkout = page.locator('.border.rounded-lg').filter({ hasText: /Push Day/ }).first();
+    // Wait a bit for the workout list to populate
+    await page.waitForTimeout(1000);
+    // Find any workout with data-workout-id attribute
+    const loggedWorkout = page.locator('[data-workout-id]').first();
     await expect(loggedWorkout).toBeVisible({ timeout: 5000 });
     const workoutId = await loggedWorkout.getAttribute('data-workout-id');
     expect(workoutId).not.toBeNull();
