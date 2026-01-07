@@ -77,7 +77,7 @@ describe('authApi', () => {
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
           }),
-          body: JSON.stringify({ email: 'test@test.com', username: 'testuser', password: 'pass123' }),
+          body: JSON.stringify({ email: 'test@test.com', username: 'testuser', password: 'pass123', password_confirm: 'pass123' }),
         })
       );
     });
