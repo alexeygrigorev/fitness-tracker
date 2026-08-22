@@ -110,7 +110,7 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=60),
 }
 
-CORS_ALLOWED_ORIGINS = [
+default_cors_origins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:3000',
@@ -118,6 +118,13 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
     'http://127.0.0.1:8080',
 ]
+
+# Local E2E runs may bind Vite to an arbitrary free port.
+frontend_url = os.environ.get('FRONTEND_URL')
+if frontend_url:
+    default_cors_origins.append(frontend_url.rstrip('/'))
+
+CORS_ALLOWED_ORIGINS = default_cors_origins
 
 CORS_ALLOW_CREDENTIALS = True
 

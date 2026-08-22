@@ -59,7 +59,7 @@ fi
 # Start backend server
 echo "Starting backend server..."
 cd backend-django
-uv run python manage.py runserver "127.0.0.1:${BACKEND_PORT}" &
+FRONTEND_URL="${FRONTEND_URL}" uv run python manage.py runserver "127.0.0.1:${BACKEND_PORT}" &
 BACKEND_PID=$!
 cd ..
 
