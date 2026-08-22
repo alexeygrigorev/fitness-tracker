@@ -1,5 +1,7 @@
 import { type Page } from '@playwright/test';
 
+const API_BASE = process.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 /**
  * Login helper - authenticates the test user
  */
@@ -38,7 +40,7 @@ export async function clearAllBackendSessions(page: Page) {
 
     try {
       // Get all sessions
-      const resp = await fetch('/api/workouts/sessions/', {
+      const resp = await fetch(`${API_BASE}/api/workouts/sessions/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -52,7 +54,7 @@ export async function clearAllBackendSessions(page: Page) {
       let clearedCount = 0;
       for (const session of sessions) {
         if (!session.endedAt) {
-          await fetch(`/api/workouts/sessions/${session.id}/finish/`, {
+        await fetch(`${API_BASE}/api/workouts/sessions/${session.id}/finish/`, {
             method: 'POST',  // Backend expects POST, not PATCH
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -95,7 +97,7 @@ export async function ensureTestPresets(page: Page): Promise<void> {
 
     try {
       // Get existing user presets
-      const presetsResp = await fetch('/api/workouts/presets/', {
+      const presetsResp = await fetch(`${API_BASE}/api/workouts/presets/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -116,7 +118,7 @@ export async function ensureTestPresets(page: Page): Promise<void> {
         if (benchPress && benchPress.type === 'dropdown') {
           // If dropdowns is not 2, update it
           if (benchPress.dropdowns !== 2) {
-            await fetch(`/api/workouts/presets/${pushDayPreset.id}/`, {
+            await fetch(`${API_BASE}/api/workouts/presets/${pushDayPreset.id}/`, {
               method: 'PATCH',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -139,7 +141,7 @@ export async function ensureTestPresets(page: Page): Promise<void> {
       }
 
       // Get templates
-      const templatesResp = await fetch('/api/workouts/presets/templates/', {
+      const templatesResp = await fetch(`${API_BASE}/api/workouts/presets/templates/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -159,7 +161,7 @@ export async function ensureTestPresets(page: Page): Promise<void> {
       }
 
       // Create preset from template
-      const createResp = await fetch('/api/workouts/presets/create_from_template/', {
+      const createResp = await fetch(`${API_BASE}/api/workouts/presets/create_from_template/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
