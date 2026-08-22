@@ -32,7 +32,7 @@ async function clearUIActiveWorkout(page: Page) {
  * This is important for test isolation - old sessions can interfere with new tests
  */
 export async function clearAllBackendSessions(page: Page) {
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(async (apiBase: string) => {
     const token = localStorage.getItem('token');
     if (!token) {
       return { cleared: 0, error: 'No token found' };
@@ -40,7 +40,7 @@ export async function clearAllBackendSessions(page: Page) {
 
     try {
       // Get all sessions
-      const resp = await fetch(`${API_BASE}/api/workouts/sessions/`, {
+      const resp = await fetch(`${apiBase}/api/workouts/sessions/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -54,7 +54,7 @@ export async function clearAllBackendSessions(page: Page) {
       let clearedCount = 0;
       for (const session of sessions) {
         if (!session.endedAt) {
-        await fetch(`${API_BASE}/api/workouts/sessions/${session.id}/finish/`, {
+        await fetch(`${apiBase}/api/workouts/sessions/${session.id}/finish/`, {
             method: 'POST',  // Backend expects POST, not PATCH
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -66,7 +66,7 @@ export async function clearAllBackendSessions(page: Page) {
     } catch (e) {
       return { cleared: 0, error: String(e) };
     }
-  });
+  }, API_BASE);
 
   console.log('[Session Cleanup] Backend sessions cleared:', result);
   return result;
@@ -89,7 +89,7 @@ export async function clearAllWorkoutState(page: Page) {
  * This is important for tests that expect to find presets like "Push Day"
  */
 export async function ensureTestPresets(page: Page): Promise<void> {
-  const result = await page.evaluate(async () => {
+  const result = await page.evaluate(async (apiBase: string) => {
     const token = localStorage.getItem('token');
     if (!token) {
       return { error: 'No token found' };
@@ -97,7 +97,7 @@ export async function ensureTestPresets(page: Page): Promise<void> {
 
     try {
       // Get existing user presets
-      const presetsResp = await fetch(`${API_BASE}/api/workouts/presets/`, {
+      const presetsResp = await fetch(`${apiBase}/api/workouts/presets/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -118,7 +118,7 @@ export async function ensureTestPresets(page: Page): Promise<void> {
         if (benchPress && benchPress.type === 'dropdown') {
           // If dropdowns is not 2, update it
           if (benchPress.dropdowns !== 2) {
-            await fetch(`${API_BASE}/api/workouts/presets/${pushDayPreset.id}/`, {
+            await fetch(`${apiBase}/api/workouts/presets/${pushDayPreset.id}/`, {
               method: 'PATCH',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -141,7 +141,7 @@ export async function ensureTestPresets(page: Page): Promise<void> {
       }
 
       // Get templates
-      const templatesResp = await fetch(`${API_BASE}/api/workouts/presets/templates/`, {
+      const templatesResp = await fetch(`${apiBase}/api/workouts/presets/templates/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -161,7 +161,7 @@ export async function ensureTestPresets(page: Page): Promise<void> {
       }
 
       // Create preset from template
-      const createResp = await fetch(`${API_BASE}/api/workouts/presets/create_from_template/`, {
+      const createResp = await fetch(`${apiBase}/api/workouts/presets/create_from_template/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -184,7 +184,7 @@ export async function ensureTestPresets(page: Page): Promise<void> {
     } catch (e) {
       return { error: String(e) };
     }
-  });
+  }, API_BASE);
 
   console.log('[Test Presets] Result:', result);
 
