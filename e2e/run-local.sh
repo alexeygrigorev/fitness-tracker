@@ -81,7 +81,7 @@ done
 # Start vite server
 echo "Starting vite server..."
 cd web
-VITE_API_URL="${BACKEND_URL}" npm run dev -- --host 127.0.0.1 --port "${FRONTEND_PORT}" --strictPort &
+BACKEND_URL="${BACKEND_URL}" npm run dev -- --host 127.0.0.1 --port "${FRONTEND_PORT}" --strictPort &
 VITE_PID=$!
 cd ..
 
