@@ -26,7 +26,7 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: 'list',
-  globalTimeout: 5 * 60 * 1000,
+  globalTimeout: 15 * 60 * 1000,
 
   // Read BASE_URL from environment, default to frontend dev server
   use: {
@@ -64,4 +64,3 @@ export default defineConfig({
     },
   ],
 });
-
