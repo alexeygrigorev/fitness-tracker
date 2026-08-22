@@ -55,6 +55,12 @@ class ExerciseMuscleGroup(models.Model):
 
 
 class Exercise(models.Model):
+    CATEGORY_CHOICES = [
+        ('compound', 'Compound'),
+        ('isolation', 'Isolation'),
+        ('cardio', 'Cardio'),
+    ]
+
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, null=True, blank=True, related_name='exercises')
     name = models.CharField(max_length=255)
@@ -68,6 +74,8 @@ class Exercise(models.Model):
     equipment = models.ForeignKey(Equipment, on_delete=models.SET_NULL, null=True, blank=True, related_name='exercises')
     tags = models.ManyToManyField(ExerciseTag, related_name='exercises', blank=True)
     description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='isolation')
+    instructions = models.JSONField(default=list, blank=True)
     is_compound = models.BooleanField(default=False)
     is_bodyweight = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

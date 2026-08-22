@@ -30,27 +30,110 @@ class ExerciseTagSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class BodyweightField(serializers.BooleanField):
+    def get_attribute(self, instance):
+        return instance.is_bodyweight
+
+
+class MuscleGroupNamesField(serializers.ListField):
+    def __init__(self, **kwargs):
+        kwargs.setdefault('child', serializers.CharField())
+        super().__init__(**kwargs)
+
+    def get_attribute(self, instance):
+        return list(instance.muscle_groups.values_list('name', flat=True))
+
+
+class EquipmentNameField(serializers.CharField):
+    def get_attribute(self, instance):
+        return instance.equipment.name if instance.equipment else None
+
+
+UNSET = object()
+
+
 class ExerciseSerializer(serializers.ModelSerializer):
-    bodyweight = serializers.BooleanField(source='is_bodyweight', read_only=True)
-    muscleGroups = serializers.SerializerMethodField()
-    equipment = serializers.SerializerMethodField()
-    category = serializers.SerializerMethodField()
+    bodyweight = BodyweightField(required=False)
+    muscleGroups = MuscleGroupNamesField(required=False)
+    equipment = EquipmentNameField(allow_null=True, allow_blank=True, required=False)
+    category = serializers.ChoiceField(choices=Exercise.CATEGORY_CHOICES, required=False)
 
     class Meta:
         model = Exercise
-        fields = ['id', 'name', 'muscleGroups', 'equipment', 'bodyweight', 'category']
+        fields = [
+            'id', 'name', 'muscleGroups', 'equipment', 'bodyweight',
+            'category', 'instructions',
+        ]
 
-    def get_muscleGroups(self, obj):
-        """Return muscle group names as an array."""
-        return [mg.name for mg in obj.muscle_groups.all()]
+    def to_internal_value(self, data):
+        data = dict(data)
 
-    def get_equipment(self, obj):
-        """Return equipment name or empty string if none."""
-        return obj.equipment.name if obj.equipment else None
+        # Older clients predated category/bodyweight as first-class fields.
+        if 'is_bodyweight' in data and 'bodyweight' not in data:
+            data['bodyweight'] = data.pop('is_bodyweight')
+        if 'is_compound' in data and 'category' not in data:
+            data['category'] = 'compound' if data.pop('is_compound') else 'isolation'
 
-    def get_category(self, obj):
-        """Derive category from is_compound field."""
-        return 'compound' if obj.is_compound else 'isolation'
+        return super().to_internal_value(data)
+
+    def _apply_related_fields(self, exercise, validated_data):
+        muscle_group_names = validated_data.pop('muscleGroups', None)
+        equipment_name = validated_data.pop('equipment', UNSET)
+        category = validated_data.pop('category', exercise.category)
+        bodyweight = validated_data.pop('bodyweight', exercise.is_bodyweight)
+
+        exercise.category = category
+        exercise.is_compound = category == 'compound'
+        exercise.is_bodyweight = bodyweight
+        for field, value in validated_data.items():
+            setattr(exercise, field, value)
+        exercise.save()
+
+        if equipment_name is UNSET:
+            pass
+        elif equipment_name is None:
+            exercise.equipment = None
+        else:
+            equipment_name = equipment_name.strip()
+            if equipment_name:
+                equipment, _ = Equipment.objects.get_or_create(
+                    name__iexact=equipment_name,
+                    defaults={'name': equipment_name},
+                )
+                exercise.equipment = equipment
+            else:
+                exercise.equipment = None
+
+        if muscle_group_names is not None:
+            muscle_groups = []
+            for name in muscle_group_names:
+                normalized_name = name.strip()
+                if not normalized_name:
+                    continue
+                muscle_group, _ = MuscleGroup.objects.get_or_create(
+                    name__iexact=normalized_name,
+                    defaults={'name': normalized_name},
+                )
+                muscle_groups.append(muscle_group)
+            exercise.muscle_groups.set(muscle_groups)
+
+        exercise.save()
+        return exercise
+
+    def create(self, validated_data):
+        validated_data.setdefault('muscleGroups', [])
+        validated_data.setdefault('equipment', None)
+        if validated_data.get('instructions') is None:
+            validated_data['instructions'] = []
+
+        exercise = Exercise.objects.create(**{
+            key: value for key, value in validated_data.items()
+            if key not in {'muscleGroups', 'equipment', 'category', 'bodyweight'}
+        })
+        return self._apply_related_fields(exercise, validated_data)
+
+    def update(self, instance, validated_data):
+        return self._apply_related_fields(instance, validated_data)
 
 
 class WorkoutSetSerializer(serializers.ModelSerializer):
