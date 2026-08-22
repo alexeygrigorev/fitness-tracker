@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPen, faTrash, faChevronLeft, faChevronRight, faPlus, faPlay } from '@fortawesome/free-solid-svg-icons';
+import { faPen, faTrash, faChevronDown, faChevronLeft, faChevronRight, faPlus, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { exercisesApi, workoutsApi, workoutPresetsApi } from '../api';
 import Modal from '../components/Modal';
 import WorkoutPresetForm from './WorkoutPresetForm';

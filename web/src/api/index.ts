@@ -1,7 +1,6 @@
 import type {
   FoodItem,
   WorkoutSession,
-  WorkoutProgram,
   WorkoutPreset,
   Meal,
   MealFoodItem,
@@ -356,7 +355,7 @@ export const foodApi = {
     });
     return handleResponse(response);
   },
-  getById: async (id: number) => {
+  getById: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/foods/${id}/`, {
       headers: await getHeaders(),
     });
@@ -377,7 +376,7 @@ export const foodApi = {
     });
     return handleResponse(response);
   },
-  update: async (id: number, updates: Partial<FoodItem>) => {
+  update: async (id: string, updates: Partial<FoodItem>) => {
     const response = await fetch(`${API_BASE}/api/food/foods/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
@@ -385,7 +384,7 @@ export const foodApi = {
     });
     return handleResponse(response);
   },
-  delete: async (id: number) => {
+  delete: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/foods/${id}/`, {
       method: 'DELETE',
       headers: await getHeaders(),
@@ -410,7 +409,7 @@ export const mealTemplatesApi = {
     });
     return handleResponse(response);
   },
-  getById: async (id: number) => {
+  getById: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/templates/${id}/`, {
       headers: await getHeaders(),
     });
@@ -424,7 +423,7 @@ export const mealTemplatesApi = {
     });
     return handleResponse(response);
   },
-  update: async (id: number, updates: Partial<MealTemplate>) => {
+  update: async (id: string, updates: Partial<MealTemplate>) => {
     const response = await fetch(`${API_BASE}/api/food/templates/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
@@ -432,7 +431,7 @@ export const mealTemplatesApi = {
     });
     return handleResponse(response);
   },
-  delete: async (id: number) => {
+  delete: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/templates/${id}/`, {
       method: 'DELETE',
       headers: await getHeaders(),
@@ -457,7 +456,7 @@ export const mealsApi = {
     });
     return handleResponse(response);
   },
-  getById: async (id: number) => {
+  getById: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/meals/${id}/`, {
       headers: await getHeaders(),
     });
@@ -485,7 +484,7 @@ export const mealsApi = {
     });
     return handleResponse(response);
   },
-  update: async (id: number, updates: Partial<Meal>) => {
+  update: async (id: string, updates: Partial<Meal>) => {
     const response = await fetch(`${API_BASE}/api/food/meals/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
@@ -493,7 +492,7 @@ export const mealsApi = {
     });
     return handleResponse(response);
   },
-  delete: async (id: number) => {
+  delete: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/meals/${id}/`, {
       method: 'DELETE',
       headers: await getHeaders(),
