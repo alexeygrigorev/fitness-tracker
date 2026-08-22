@@ -65,7 +65,12 @@ def model_to_dict(instance):
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):
-    queryset = Exercise.objects.all().prefetch_related('muscle_groups', 'equipment')
+    def get_queryset(self):
+        return (
+            Exercise.objects.filter(user=self.request.user)
+            | Exercise.objects.filter(user__isnull=True)
+        ).prefetch_related('muscle_groups', 'equipment')
+
     serializer_class = ExerciseSerializer
 
     def get_permissions(self):
@@ -155,8 +160,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def retrieve(self, request, *args, **kwargs):
-        # Use get_queryset to ensure sets are prefetched, then filter to get single object
-        obj = self.get_queryset().get(pk=self.kwargs.get('pk'))
+        obj = self.get_object()
         serializer = self.serializer_class(obj)
         return Response(serializer.data)
 
@@ -220,8 +224,7 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
     def finish(self, request, pk=None):
         """Mark the workout session as finished."""
         from django.utils import timezone
-        # Use get_queryset to ensure sets are prefetched
-        obj = self.get_queryset().get(pk=self.kwargs.get('pk'))
+        obj = self.get_object()
         obj.finished_at = timezone.now()
         obj.save()
         # Use serializer to ensure all fields are included
