@@ -7,7 +7,7 @@ import { authApi } from '@/api';
 
 // Mock fetch
 const mockFetch = vi.fn();
-global.fetch = mockFetch as any;
+global.fetch = mockFetch as unknown as typeof fetch;
 
 // Mock localStorage
 const localStorageMock = {
