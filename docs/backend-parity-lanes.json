@@ -2,17 +2,89 @@
   "schemaVersion": 1,
   "execution": {
     "mode": "parallel-isolated-worktrees",
-    "baselineCommit": "39a9818",
+    "baselineCommit": "0951b22",
     "djangoFrozen": true,
     "worktreeRoot": "/tmp/fitness-tracker-lanes",
     "lanes": [
-      {"id": "ai-integration", "agent": "parity_ai_integration_v1", "branch": "parity/ai-integration", "status": "in-progress"},
-      {"id": "cross-domain-security", "agent": "parity_cross_domain_security_v1", "branch": "parity/cross-domain-security", "status": "in-progress"},
-      {"id": "exercises-library", "agent": "parity_exercises_library_v1", "branch": "parity/exercises-library", "status": "in-progress"},
-      {"id": "nutrition", "agent": "parity_nutrition_backend_v1", "branch": "parity/nutrition-backend", "status": "in-progress"},
-      {"id": "platform-users-contracts", "agent": "parity_platform_users_contracts_v1", "branch": "parity/platform-users-contracts", "status": "in-progress"},
-      {"id": "presets-templates-plans", "agent": "parity_presets_templates_plans_v1", "branch": "parity/presets-templates-plans", "status": "in-progress"},
-      {"id": "sessions-sets-flow", "agent": "parity_sessions_sets_flow_v1", "branch": "parity/sessions-sets-flow", "status": "in-progress"}
+      {
+        "id": "ai-integration",
+        "agent": "parity_ai_integration_v1",
+        "branch": "parity/ai-integration",
+        "status": "in-progress"
+      },
+      {
+        "id": "cross-domain-security",
+        "agent": "parity_cross_domain_security_v1",
+        "branch": "parity/cross-domain-security",
+        "status": "in-progress"
+      },
+      {
+        "id": "exercises-library",
+        "agent": "parity_exercises_library_v1",
+        "branch": "parity/exercises-library",
+        "status": "in-progress"
+      },
+      {
+        "id": "nutrition",
+        "agent": "parity_nutrition_backend_v1",
+        "branch": "parity/nutrition-backend",
+        "status": "in-progress"
+      },
+      {
+        "id": "platform-users-contracts",
+        "agent": "parity_platform_users_contracts_v1",
+        "branch": "parity/platform-users-contracts",
+        "status": "in-progress"
+      },
+      {
+        "id": "presets-templates-plans",
+        "agent": "parity_presets_templates_plans_v1",
+        "branch": "parity/presets-templates-plans",
+        "status": "in-progress"
+      },
+      {
+        "id": "sessions-sets-flow",
+        "agent": "parity_sessions_sets_flow_v1",
+        "branch": "parity/sessions-sets-flow",
+        "status": "in-progress"
+      }
+    ],
+    "verifiedBaseline": {
+      "integrationResult": "96 passed; 0 failed",
+      "typecheck": "passed",
+      "productionBuild": "passed",
+      "verifiedAt": "2026-08-23"
+    },
+    "cutoverRule": "Keep backend-django serving until TypeScript reaches 141/141 manifest parity and every gate in backend-parity-lock.json passes.",
+    "activeWave": [
+      {
+        "id": "nutrition",
+        "agent": "nutrition_backend_v5",
+        "branch": "parity/nutrition-backend",
+        "status": "in-progress"
+      },
+      {
+        "id": "workout-api",
+        "agent": "workout_api_parity_v5",
+        "branch": "parity/templates-plans",
+        "status": "in-progress"
+      },
+      {
+        "id": "preset-generation",
+        "agent": "preset_generation_parity_v5",
+        "branch": "parity/preset-generation",
+        "status": "in-progress"
+      },
+      {
+        "id": "backcompat-audit",
+        "agent": "backcompat_cleanup_v5",
+        "status": "read-only-review"
+      },
+      {
+        "id": "serverless-audit",
+        "agent": "serverless_hardening_v5",
+        "status": "read-only-review"
+      }
     ]
   },
   "totalTargets": 141,
