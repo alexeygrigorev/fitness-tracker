@@ -2,7 +2,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 test.use({ timezoneId: 'UTC' });
 
-const API_BASE = process.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const API_BASE = process.env.VITE_API_URL || 'http://127.0.0.1:18000';
 const PASSWORD = 'ai-assisted-meal-pass';
 
 type TestUser = {
@@ -54,7 +54,12 @@ async function createSession(request: APIRequestContext): Promise<Session> {
   });
   expect(login.status()).toBe(200);
 
-  return (await login.json()) as Session;
+  const loggedIn = (await login.json()) as {
+    access: string;
+    user: TestUser;
+  };
+
+  return { token: loggedIn.access, user: loggedIn.user };
 }
 
 async function authenticatePage(page: Page, session: Session): Promise<void> {
@@ -79,7 +84,7 @@ test('AI quick add creates a persistent ai-assisted meal', async ({ page, reques
 
   const session = await createSession(request);
   const headers = { Authorization: `Bearer ${session.token}` };
-  const description = `grilled chicken salad ${uniqueSuffix()} for lunch`;
+  const description = 'grilled chicken salad for lunch';
 
   await authenticatePage(page, session);
   await page.goto('/nutrition');
@@ -97,8 +102,8 @@ test('AI quick add creates a persistent ai-assisted meal', async ({ page, reques
     description.replace(/\b\w/g, (letter) => letter.toUpperCase()),
   );
   await expect(page.getByText('Selected Food Items')).toBeVisible();
-  await expect(page.getByLabel('Portions for Protein Source')).toHaveValue('1.50');
-  await expect(page.getByLabel('Portions for Vegetable')).toHaveValue('1.00');
+  await expect(page.getByRole('textbox', { name: 'Portions for Protein Source' })).toHaveValue('1.50');
+  await expect(page.getByRole('textbox', { name: 'Portions for Vegetable' })).toHaveValue('1.00');
 
   const mealName = `AI Salad ${uniqueSuffix()}`;
   await page.getByLabel('Meal Name *').fill(mealName);

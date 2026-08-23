@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPen, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
@@ -54,9 +54,8 @@ export default function NutritionPage() {
   const [templates, setTemplates] = useState<MealTemplate[]>([]);
   const [loadingMeals, setLoadingMeals] = useState(getTabFromPath() === 'meals');
   const [loadingFoodItems, setLoadingFoodItems] = useState(true);
-  const [templatesLoaded, setTemplatesLoaded] = useState(getTabFromPath() === 'templates');
+  const [templatesLoaded, setTemplatesLoaded] = useState(false);
   const [loadingTemplates, setLoadingTemplates] = useState(getTabFromPath() === 'templates');
-  const templatesRequestedRef = useRef(false);
 
   // Sync tab with URL changes
   useEffect(() => {
@@ -126,10 +125,11 @@ export default function NutritionPage() {
   useEffect(() => {
     const shouldLoadTemplates = activeTab === 'templates' ||
       (showLogMeal && !editingMeal);
-    if (!shouldLoadTemplates || templatesRequestedRef.current) return;
+    // Do not claim work across Strict Mode's mount/unmount/mount cycle: the
+    // first attempt is cancelled, so a claimed guard would deadlock deep links.
+    if (!shouldLoadTemplates || templatesLoaded) return;
 
     let cancelled = false;
-    templatesRequestedRef.current = true;
     setLoadingTemplates(true);
 
     mealTemplatesApi.getAll()
@@ -141,7 +141,6 @@ export default function NutritionPage() {
       })
       .catch(error => {
         console.error('Failed to load meal templates', error);
-        templatesRequestedRef.current = false;
       })
       .finally(() => {
         if (!cancelled) setLoadingTemplates(false);
@@ -150,7 +149,7 @@ export default function NutritionPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, editingMeal, showLogMeal]);
+  }, [activeTab, editingMeal, showLogMeal, templatesLoaded]);
 
   // The API returns exactly the selected local calendar date.
   const mealsForDate = meals;

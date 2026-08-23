@@ -14,9 +14,24 @@ interface AggregateMetabolism {
   satietyScore: number | null;
 }
 
+type LegacyMealFoodItem = MealFoodItem & { servings?: number };
+
+// Older records used portions instead of the gram-based API format.
+const resolveGrams = (selected: MealFoodItem, food: FoodItem): number => {
+  if (typeof selected.grams === 'number' && Number.isFinite(selected.grams)) {
+    return Math.max(0, selected.grams);
+  }
+
+  const servings = (selected as LegacyMealFoodItem).servings;
+  if (typeof servings === 'number' && Number.isFinite(servings)) {
+    return Math.max(0, servings * food.servingSize);
+  }
+
+  return food.servingSize;
+};
+
 // Calculate aggregate metabolism for a list of foods
 const calculateAggregateMetabolism = (foodItems: FoodItem[], selected: MealFoodItem[]): AggregateMetabolism => {
-  let totalCarbs = 0;
   let totalGlycemicIndex = 0;
   let giWeight = 0;
 
@@ -34,24 +49,12 @@ const calculateAggregateMetabolism = (foodItems: FoodItem[], selected: MealFoodI
     const food = foodItems.find(f => f.id === sf.foodId);
     if (!food) continue;
 
-    // Handle migration from old 'servings' format to new 'grams' format
-    // Ensure we always have a valid number
-    let grams = sf.grams;
-    if (grams === undefined || grams === null || isNaN(grams)) {
-      if ('servings' in sf && typeof (sf as any).servings === 'number') {
-        grams = (sf as any).servings * food.servingSize;
-      } else {
-        grams = food.servingSize;
-      }
-    }
-    const safeGrams = Math.max(0, grams);
+    const safeGrams = resolveGrams(sf, food);
 
     // Calculate values based on grams (per 100g * grams / 100)
     const multiplier = safeGrams / 100;
     const carbs = food.carbs * multiplier;
     const calories = food.calories * multiplier;
-
-    totalCarbs += carbs;
 
     // For GI: weight by carb content (only foods with meaningful carbs)
     if (food.glycemicIndex !== undefined && carbs > 0) {
@@ -91,6 +94,7 @@ const calculateAggregateMetabolism = (foodItems: FoodItem[], selected: MealFoodI
 
 export default function FoodSelector({ selectedFoods, onChange, foods = [] }: FoodSelectorProps) {
   const [search, setSearch] = useState('');
+  const [portionDraft, setPortionDraft] = useState<{ foodId: string; value: string } | null>(null);
 
   // Filter foods based on search
   const filteredFoods = useMemo(
@@ -113,7 +117,11 @@ export default function FoodSelector({ selectedFoods, onChange, foods = [] }: Fo
     const existing = selectedFoods.find(f => f.foodId === foodId);
     if (existing) {
       // Add one serving size worth of grams
-      onChange(selectedFoods.map(f => f.foodId === foodId ? { ...f, grams: f.grams + food.servingSize } : f));
+      onChange(selectedFoods.map(f => (
+        f.foodId === foodId
+          ? { foodId: f.foodId, grams: resolveGrams(f, food) + food.servingSize }
+          : f
+      )));
     } else {
       // Add with one serving size as initial grams
       setSearch('');
@@ -133,9 +141,19 @@ export default function FoodSelector({ selectedFoods, onChange, foods = [] }: Fo
       onChange(selectedFoods.filter(f => f.foodId !== foodId));
     } else {
       // Convert portions to grams for storage
-      const grams = portions * food.servingSize;
-      onChange(selectedFoods.map(f => f.foodId === foodId ? { ...f, grams } : f));
+      const grams = Math.round(portions * food.servingSize * 100) / 100;
+      onChange(selectedFoods.map(f => (
+        f.foodId === foodId ? { foodId: f.foodId, grams } : f
+      )));
     }
+  };
+
+  const commitPortionDraft = () => {
+    if (!portionDraft) return;
+
+    const portions = Number.parseFloat(portionDraft.value.replace(',', '.'));
+    updatePortions(portionDraft.foodId, Number.isFinite(portions) ? portions : 0);
+    setPortionDraft(null);
   };
 
   return (
@@ -148,18 +166,11 @@ export default function FoodSelector({ selectedFoods, onChange, foods = [] }: Fo
               const food = foods.find(f => f.id === sf.foodId);
               if (!food) return null;
 
-              // Handle migration from old 'servings' format to new 'grams' format
-              // Ensure we always have a valid number
-              let grams = sf.grams;
-              if (grams === undefined || grams === null || isNaN(grams)) {
-                if ('servings' in sf && typeof (sf as any).servings === 'number') {
-                  grams = (sf as any).servings * food.servingSize;
-                } else {
-                  grams = food.servingSize;
-                }
-              }
-              const safeGrams = Math.max(0, grams);
+              const safeGrams = resolveGrams(sf, food);
               const portions = safeGrams / food.servingSize;
+              const draftValue = portionDraft?.foodId === sf.foodId
+                ? portionDraft.value
+                : portions.toFixed(2);
               const multiplier = safeGrams / 100;
               const calories = Math.round(food.calories * multiplier);
               const protein = Math.round(food.protein * multiplier);
@@ -179,6 +190,7 @@ export default function FoodSelector({ selectedFoods, onChange, foods = [] }: Fo
                       type="button"
                       onClick={() => removeFood(sf.foodId)}
                       className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+                      aria-label={`Remove ${food.name}`}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -191,6 +203,7 @@ export default function FoodSelector({ selectedFoods, onChange, foods = [] }: Fo
                       type="button"
                       onClick={() => updatePortions(sf.foodId, portions - 0.25)}
                       className="w-7 h-7 flex items-center justify-center rounded bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-sm"
+                      aria-label={`Decrease portions for ${food.name}`}
                     >
                       -
                     </button>
@@ -198,14 +211,17 @@ export default function FoodSelector({ selectedFoods, onChange, foods = [] }: Fo
                       type="text"
                       inputMode="decimal"
                       aria-label={`Portions for ${food.name}`}
-                      value={portions.toFixed(2)}
-                      onChange={e => updatePortions(sf.foodId, parseFloat(e.target.value) || 0)}
+                      value={draftValue}
+                      onFocus={() => setPortionDraft({ foodId: sf.foodId, value: portions.toFixed(2) })}
+                      onChange={e => setPortionDraft({ foodId: sf.foodId, value: e.target.value })}
+                      onBlur={commitPortionDraft}
                       className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-center dark:bg-gray-800 dark:text-gray-100"
                     />
                     <button
                       type="button"
                       onClick={() => updatePortions(sf.foodId, portions + 0.25)}
                       className="w-7 h-7 flex items-center justify-center rounded bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-sm"
+                      aria-label={`Increase portions for ${food.name}`}
                     >
                       +
                     </button>
@@ -262,6 +278,7 @@ export default function FoodSelector({ selectedFoods, onChange, foods = [] }: Fo
                 <button
                   key={food.id}
                   type="button"
+                  aria-label={`Add ${food.name}`}
                   onClick={() => addFood(food.id)}
                   className="w-full text-left p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-colors"
                 >

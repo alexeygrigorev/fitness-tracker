@@ -178,7 +178,7 @@ test('nutrition meals and templates persist nested foods through edit and reload
     await page.getByLabel('Add Food').fill(initialFoodName);
     await page.getByRole('button', { name: new RegExp(initialFoodName) }).click();
     await expect(page.getByText('Selected Food Items')).toBeVisible();
-    await expect(page.getByLabel(`Portions for ${initialFoodName}`)).toHaveValue('1.00');
+    await expect(page.getByRole('textbox', { name: `Portions for ${initialFoodName}` })).toHaveValue('1.00');
     await page.getByRole('button', { name: 'Create Template', exact: true }).click();
 
     const templateCard = page.locator('div.rounded-lg.shadow').filter({
@@ -198,7 +198,7 @@ test('nutrition meals and templates persist nested foods through edit and reload
     await expect(page.getByLabel('Template Name *')).toHaveValue(initialTemplateName);
     await page.getByLabel('Template Name *').fill(editedTemplateName);
     await page.getByLabel('Category').selectOption('lunch');
-    await page.getByLabel(`Portions for ${initialFoodName}`).fill('2');
+    await page.getByRole('textbox', { name: `Portions for ${initialFoodName}` }).fill('2');
     await page.getByRole('button', { name: 'Update Template', exact: true }).click();
 
     const editedTemplateCard = page.locator('div.rounded-lg.shadow').filter({
@@ -218,7 +218,7 @@ test('nutrition meals and templates persist nested foods through edit and reload
     await page.getByRole('button', { name: new RegExp(editedTemplateName) }).click();
     await expect(page.getByLabel('Meal Name *')).toHaveValue(editedTemplateName);
     await expect(page.getByLabel('Meal Type')).toHaveValue('lunch');
-    await expect(page.getByLabel(`Portions for ${initialFoodName}`)).toHaveValue('2.00');
+    await expect(page.getByRole('textbox', { name: `Portions for ${initialFoodName}` })).toHaveValue('2.00');
 
     await page.getByLabel('Meal Name *').fill(editedMealName);
     await page.getByLabel('Notes (optional)').fill('Created from the persisted template');
@@ -242,7 +242,7 @@ test('nutrition meals and templates persist nested foods through edit and reload
     await persistedMealCard.getByTitle('Edit meal').click();
     await expect(page.getByLabel('Meal Name *')).toHaveValue(editedMealName);
     await page.getByLabel('Meal Name *').fill(`${editedMealName} larger`);
-    await page.getByLabel(`Portions for ${initialFoodName}`).fill('3');
+    await page.getByRole('textbox', { name: `Portions for ${initialFoodName}` }).fill('3');
     await page.getByRole('button', { name: 'Update Meal', exact: true }).click();
 
     const updatedMealCard = page.locator('div.rounded-lg.shadow').filter({
