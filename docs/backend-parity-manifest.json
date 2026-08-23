@@ -32,12 +32,12 @@
       "typecheckCommand": "cd backend-ts && npm run typecheck",
       "integrationCommand": "cd backend-ts && npm run test:integration",
       "buildCommand": "cd backend-ts && npm run build",
-      "integrationResult": "96 passed; 0 failed",
+      "integrationResult": "120 passed; 0 failed",
       "passing": true,
       "verifiedAt": "2026-08-23"
     },
-    "translatedTargetsPending": 51,
-    "translatedTargetsApprovedOrPassing": 90
+    "translatedTargetsPending": 37,
+    "translatedTargetsApprovedOrPassing": 104
   },
   "contractRequirements": {
     "preserveTrailingSlashes": true,
@@ -56,9 +56,9 @@
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 51,
-    "translatedTargetsApprovedOrPassing": 90,
-    "nextAction": "Implement the pending backend-ts targets and replace their statuses with verified results or recorded approved equivalents."
+    "translatedTargetsPending": 37,
+    "translatedTargetsApprovedOrPassing": 104,
+    "nextAction": "Implement the remaining nutrition and workout preset/warmup targets."
   },
   "entries": [
     {
@@ -859,7 +859,7 @@
       "intent": "Template Preset Has No User",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPresetTemplates#test_template_preset_has_no_user",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-101",
@@ -867,7 +867,7 @@
       "intent": "User Can Copy Template Preset",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPresetTemplates#test_user_can_copy_template_preset",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-102",
@@ -875,7 +875,7 @@
       "intent": "Can Copy Public Preset From Another User",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPublicAndPrivatePresets#test_can_copy_public_preset_from_another_user",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-103",
@@ -883,7 +883,7 @@
       "intent": "Cannot Copy Private Preset From Another User",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPublicAndPrivatePresets#test_cannot_copy_private_preset_from_another_user",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-104",
@@ -891,7 +891,7 @@
       "intent": "Templates Endpoint Excludes Private Presets",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPublicAndPrivatePresets#test_templates_endpoint_excludes_private_presets",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-105",
@@ -899,7 +899,7 @@
       "intent": "Templates Endpoint Includes Public Presets",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPublicAndPrivatePresets#test_templates_endpoint_includes_public_presets",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-106",
@@ -907,7 +907,7 @@
       "intent": "User Can Copy Own Private Preset",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPublicAndPrivatePresets#test_user_can_copy_own_private_preset",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-107",
@@ -915,7 +915,7 @@
       "intent": "Cannot Use Another Users Plan",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestWorkoutPlans#test_cannot_use_another_users_plan",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-108",
@@ -923,7 +923,7 @@
       "intent": "Copy Superset With Dropdown And Warmup",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestWorkoutPlans#test_copy_superset_with_dropdown_and_warmup",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-109",
@@ -931,7 +931,7 @@
       "intent": "Create Workout Plan",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestWorkoutPlans#test_create_workout_plan",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-110",
@@ -939,7 +939,7 @@
       "intent": "List Plans Returns Only User Plans",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestWorkoutPlans#test_list_plans_returns_only_user_plans",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-111",
@@ -947,7 +947,7 @@
       "intent": "Use Plan Copies Exercises And Supersets",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestWorkoutPlans#test_use_plan_copies_exercises_and_supersets",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-112",
@@ -955,7 +955,7 @@
       "intent": "Use Plan Copies Presets To User",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestWorkoutPlans#test_use_plan_copies_presets_to_user",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-113",
@@ -963,7 +963,7 @@
       "intent": "User Can Delete Own Plan",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestWorkoutPlans#test_user_can_delete_own_plan",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-114",
