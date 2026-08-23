@@ -7,7 +7,9 @@ let api: TestApi;
 let accessToken: string;
 let userId: number;
 
-async function storedSetting(ownerId: number): Promise<Record<string, unknown> | undefined> {
+async function storedSetting(
+  ownerId: number,
+): Promise<Record<string, unknown> | undefined> {
   const result = await api.documentClient.send(new GetCommand({
     TableName: api.tableName,
     Key: {
@@ -81,6 +83,14 @@ describe('ExerciseSettingsTests', () => {
       { weight: 57.5, reps: 10 },
       { weight: 55, reps: 10 },
     ];
+    const invalid = await api.call(
+      'POST',
+      '/api/auth/exercise-settings/1/',
+      { body: { weight: 60, reps: 10, subSets: [{ reps: 1 }] }, token: accessToken },
+    );
+    assert.equal(invalid.status, 400);
+    assert.deepEqual(invalid.body.subSets[0].weight, ['This field is required.']);
+
     const response = await api.call(
       'POST',
       '/api/auth/exercise-settings/1/',

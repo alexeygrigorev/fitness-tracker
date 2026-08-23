@@ -56,12 +56,12 @@ async function saveExerciseSetting(
   exerciseId: number,
 ) {
   const user = await context.requireUser();
+  const input = validateExerciseSettings(context.request.body);
   const exercise = await context.repository.getExercise(exerciseId);
   if (!exercise || (exercise.user_id !== null && exercise.user_id !== user.id)) {
     throw new HttpError(404, { error: 'Exercise not found' });
   }
 
-  const input = validateExerciseSettings(context.request.body);
   const existing = await context.repository.getExerciseSetting(user.id, exerciseId);
   const item = mergeExerciseSetting(existing, user.id, exerciseId, input);
   await context.repository.saveExerciseSetting(item satisfies ExerciseSettingsItem);

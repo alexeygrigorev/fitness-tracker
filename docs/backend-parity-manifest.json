@@ -32,10 +32,12 @@
       "typecheckCommand": "cd backend-ts && npm run typecheck",
       "integrationCommand": "cd backend-ts && npm run test:integration",
       "buildCommand": "cd backend-ts && npm run build",
-      "integrationResult": "44 passed; 0 failed",
+      "integrationResult": "55 passed; 0 failed",
       "passing": true,
       "verifiedAt": "2026-08-23"
-    }
+    },
+    "translatedTargetsPending": 125,
+    "translatedTargetsApprovedOrPassing": 16
   },
   "contractRequirements": {
     "preserveTrailingSlashes": true,
@@ -54,9 +56,9 @@
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 103,
-    "translatedTargetsApprovedOrPassing": 38,
-    "nextAction": "Implement the remaining pending backend-ts targets and replace their statuses with verified results."
+    "translatedTargetsPending": 92,
+    "translatedTargetsApprovedOrPassing": 49,
+    "nextAction": "Implement the pending backend-ts targets and replace their statuses with verified results or recorded approved equivalents."
   },
   "entries": [
     {
@@ -129,7 +131,7 @@
       "intent": "Committed Typescript Contract Matches Python Export",
       "domain": "contracts",
       "targetTestId": "backend-ts/tests/openapi-contracts.test.ts#OpenApiContractTests#test_committed_typescript_contract_matches_python_export",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-010",
@@ -137,7 +139,7 @@
       "intent": "Documented Nutrition Day Contracts Match Responses",
       "domain": "contracts",
       "targetTestId": "backend-ts/tests/openapi-contracts.test.ts#OpenApiContractTests#test_documented_nutrition_day_contracts_match_responses",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-011",
@@ -145,7 +147,7 @@
       "intent": "Documented Plan Use Contract Matches Response",
       "domain": "contracts",
       "targetTestId": "backend-ts/tests/openapi-contracts.test.ts#OpenApiContractTests#test_documented_plan_use_contract_matches_response",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-012",
@@ -153,7 +155,7 @@
       "intent": "Documented Preset Template Contracts Match Responses",
       "domain": "contracts",
       "targetTestId": "backend-ts/tests/openapi-contracts.test.ts#OpenApiContractTests#test_documented_preset_template_contracts_match_responses",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-013",
@@ -169,7 +171,7 @@
       "intent": "Documented Workout Lifecycle Contracts Match Responses",
       "domain": "contracts",
       "targetTestId": "backend-ts/tests/openapi-contracts.test.ts#OpenApiContractTests#test_documented_workout_lifecycle_contracts_match_responses",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-015",
@@ -177,7 +179,7 @@
       "intent": "Debug Keeps Local Browser Origins",
       "domain": "platform",
       "targetTestId": "backend-ts/tests/runtime-hardening.test.ts#ProductionSettingsTests#test_debug_keeps_local_browser_origins",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-016",
@@ -185,7 +187,7 @@
       "intent": "Fly Proxy Enables Transport Hardening",
       "domain": "platform",
       "targetTestId": "backend-ts/tests/runtime-hardening.test.ts#ProductionSettingsTests#test_fly_proxy_enables_transport_hardening",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-017",
@@ -193,7 +195,7 @@
       "intent": "Portable Direct Http Mode Does Not Redirect Health Checks",
       "domain": "platform",
       "targetTestId": "backend-ts/tests/runtime-hardening.test.ts#ProductionSettingsTests#test_portable_direct_http_mode_does_not_redirect_health_checks",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-018",
@@ -201,7 +203,7 @@
       "intent": "Short Production Secret Is Rejected",
       "domain": "platform",
       "targetTestId": "backend-ts/tests/runtime-hardening.test.ts#ProductionSettingsTests#test_short_production_secret_is_rejected",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-019",
@@ -209,7 +211,7 @@
       "intent": "Database Failure Is Unready",
       "domain": "platform",
       "targetTestId": "backend-ts/tests/runtime-hardening.test.ts#HealthEndpointTests#test_database_failure_is_unready",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-020",
@@ -217,7 +219,7 @@
       "intent": "Hashed Assets Are Immutable And Entrypoint Is Not Stored",
       "domain": "platform",
       "targetTestId": "backend-ts/tests/runtime-hardening.test.ts#SpaCacheTests#test_hashed_assets_are_immutable_and_entrypoint_is_not_stored",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-021",

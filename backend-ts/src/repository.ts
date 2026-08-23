@@ -60,12 +60,8 @@ export class FitnessRepository {
     try {
       await this.client.send(new DescribeTableCommand({ TableName: this.tableName }));
       return true;
-    } catch (error) {
-      const name = (error as { name?: string }).name;
-      if (name === 'ResourceNotFoundException') {
-        return false;
-      }
-      throw error;
+    } catch {
+      return false;
     }
   }
 
