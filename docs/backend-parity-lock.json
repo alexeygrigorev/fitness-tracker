@@ -5,6 +5,13 @@
   "pythonCommittedTestClasses": 22,
   "pythonCommittedTestMethods": 140,
   "minimumCurrentTestMethods": 140,
+  "currentInventory": {
+    "pythonSourceCommit": "cd51a0e",
+    "testClasses": 32,
+    "testMethods": 141,
+    "manifestPath": "docs/backend-parity-manifest.json",
+    "manifestSnapshotPath": "docs/backend-parity-manifest-source.txt"
+  },
   "target": {
     "language": "typescript",
     "runtime": "nodejs24.x-arm64",
@@ -36,5 +43,12 @@
     "keepBackendDjangoUntilAllGatesPass": true,
     "deletePythonOnlyAfterAllGatesPass": true,
     "requireFinalManifestAtDeletionTime": true
+  },
+  "activeBackendDecision": {
+    "status": "locked",
+    "servingBackend": "backend-django",
+    "replacementBackend": "backend-ts-lambda",
+    "keepOldBackendUntilTypeScriptParity": true,
+    "deleteDjangoAndDeploymentJungleOnlyAfterDeletionGatePassed": true
   }
 }
