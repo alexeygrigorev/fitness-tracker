@@ -56,8 +56,8 @@
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 65,
-    "translatedTargetsApprovedOrPassing": 76,
+    "translatedTargetsPending": 51,
+    "translatedTargetsApprovedOrPassing": 90,
     "nextAction": "Implement the pending backend-ts targets and replace their statuses with verified results or recorded approved equivalents."
   },
   "entries": [
