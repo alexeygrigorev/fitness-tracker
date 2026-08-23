@@ -16,7 +16,6 @@ from .serializers import (
 
 class FoodItemViewSet(viewsets.ModelViewSet):
     serializer_class = FoodItemSerializer
-    permission_classes = []  # AllowAny for list/retrieve, will override in get_permissions
     
     def get_queryset(self):
         # User can see their own foods and canonical foods

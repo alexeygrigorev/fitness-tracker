@@ -50,8 +50,8 @@ class FoodItemSerializer(serializers.ModelSerializer):
             'glycemicIndex', 'absorptionSpeed', 'satietyScore', 'proteinQuality',
             'insulinResponse', 'category'
         ]
-        # Mark user as read-only for canonical foods
-        read_only_fields = ['user']
+        # Ownership and visibility are assigned and enforced by the view.
+        read_only_fields = ['user', 'source']
 
     def validate_servingSize(self, value):
         if value <= 0:
