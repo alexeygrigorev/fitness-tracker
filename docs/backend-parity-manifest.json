@@ -32,12 +32,12 @@
       "typecheckCommand": "cd backend-ts && npm run typecheck",
       "integrationCommand": "cd backend-ts && npm run test:integration",
       "buildCommand": "cd backend-ts && npm run build",
-      "integrationResult": "55 passed; 0 failed",
+      "integrationResult": "69 passed; 0 failed",
       "passing": true,
       "verifiedAt": "2026-08-23"
     },
-    "translatedTargetsPending": 125,
-    "translatedTargetsApprovedOrPassing": 16
+    "translatedTargetsPending": 78,
+    "translatedTargetsApprovedOrPassing": 63
   },
   "contractRequirements": {
     "preserveTrailingSlashes": true,
@@ -371,7 +371,7 @@
       "intent": "Cannot Create Preset With Private Foreign Exercise",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_cannot_create_preset_with_private_foreign_exercise",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-040",
@@ -379,7 +379,7 @@
       "intent": "Cannot Directly Create Session From Unsafe Public Preset",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_cannot_directly_create_session_from_unsafe_public_preset",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-041",
@@ -387,7 +387,7 @@
       "intent": "Cannot Move Set Into Foreign Session",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_cannot_move_set_into_foreign_session",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-042",
@@ -395,7 +395,7 @@
       "intent": "Cannot Start Private Foreign Preset",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_cannot_start_private_foreign_preset",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-043",
@@ -403,7 +403,7 @@
       "intent": "Cannot Start Public Preset With Hidden Foreign Exercise",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_cannot_start_public_preset_with_hidden_foreign_exercise",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-044",
@@ -411,7 +411,7 @@
       "intent": "Cannot Update Preset With Private Foreign Exercise",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_cannot_update_preset_with_private_foreign_exercise",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-045",
@@ -419,7 +419,7 @@
       "intent": "Converting Superset Row Removes Stale Items",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_converting_superset_row_removes_stale_items",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-046",
@@ -427,7 +427,7 @@
       "intent": "First Added Set Order Starts At Zero",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_first_added_set_order_starts_at_zero",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-047",
@@ -435,7 +435,7 @@
       "intent": "Invalid Nested Set Does Not Leave Orphan Session",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_invalid_nested_set_does_not_leave_orphan_session",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-048",
@@ -443,7 +443,7 @@
       "intent": "Malformed Sets Payload Returns 400 Without Session",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_malformed_sets_payload_returns_400_without_session",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-049",
@@ -451,7 +451,7 @@
       "intent": "Plan Creation Rejects Duplicate Preset Ids",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_plan_creation_rejects_duplicate_preset_ids",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-050",
@@ -459,7 +459,7 @@
       "intent": "Plan Creation Rejects Unavailable Presets Atomically",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_plan_creation_rejects_unavailable_presets_atomically",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-051",
@@ -467,7 +467,7 @@
       "intent": "Template Copy Rolls Back On Nested Copy Failure",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_template_copy_rolls_back_on_nested_copy_failure",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-052",
@@ -475,7 +475,7 @@
       "intent": "Use Plan Prevalidates Every Preset Before Copying",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/authorization-boundaries.test.ts#AuthorizationBoundaryTests#test_use_plan_prevalidates_every_preset_before_copying",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-053",
