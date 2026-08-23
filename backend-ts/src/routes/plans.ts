@@ -5,6 +5,7 @@ import { jsonResponse } from '../http.js';
 import type { RouteContext, RouteDefinition } from '../router.js';
 import {
   copyPresetItems,
+  lastUsedWeightsFor,
   loadPresetPartition,
   serializePreset,
   type MaterializedPreset,
@@ -198,11 +199,16 @@ export async function useOwnedPlan(
 
   return {
     message: `Copied ${copies.length} presets from plan '${String(plan.plan.name)}'`,
-    presets: copies.map((copy) => serializePreset({
+    presets: await Promise.all(copies.map(async (copy) => serializePreset({
       preset: copy.metadata,
       rows: copy.rows,
       children: copy.children,
-    })),
+    }, {
+      lastUsedWeights: lastUsedWeightsFor(
+        copy,
+        await context.repository.listExerciseSettings(user.id),
+      ),
+    }))),
   };
 }
 
@@ -226,9 +232,16 @@ export function registerPlanRoutes(addRoute: (route: RouteDefinition) => void): 
     handle: async (context) => {
       const user = await context.requireUser();
       if (context.request.method === 'GET') {
-        const plans = await context.repository.queryPartition<DocumentItem>({
-          partitionKey: `USER#${user.id}`,
-          sortPrefix: 'PLAN#',
+        const plans = await context.repository.scan<DocumentItem>({
+          FilterExpression: '#entity = :entity AND #owner = :owner',
+          ExpressionAttributeNames: {
+            '#entity': 'entity_type',
+            '#owner': 'user_id',
+          },
+          ExpressionAttributeValues: {
+            ':entity': 'workout_plan',
+            ':owner': user.id,
+          },
         });
         return jsonResponse(
           200,

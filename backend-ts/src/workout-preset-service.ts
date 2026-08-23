@@ -35,6 +35,8 @@ interface PreparedSupersetChild {
 interface PreparedPresetRow {
   id?: number;
   exercise?: ExerciseItem;
+  exerciseId?: number | null;
+  exerciseName?: string | null;
   type: 'normal' | 'dropdown' | 'superset';
   sets: number;
   dropdowns: number | null;
@@ -358,7 +360,8 @@ export async function appendPresetRows(
       entity_type: 'preset_exercise',
       id: rowId,
       parent_preset_id: metadata.id,
-      exercise_id: row.exercise?.id ?? null,
+      exercise_id: row.exercise?.id ?? row.exerciseId ?? null,
+      exercise_name: row.exercise?.name ?? row.exerciseName ?? null,
       type: row.type,
       sets: row.sets,
       dropdowns: row.dropdowns,
@@ -392,6 +395,9 @@ export function serializePreset(
     items?: readonly PresetSupersetItem[];
     children?: readonly PresetSupersetItem[];
   },
+  options: {
+    lastUsedWeights?: Record<string, unknown>;
+  } = {},
 ): Record<string, unknown> {
   const supersetItems = [...(loaded.items ?? []), ...(loaded.children ?? [])];
   return {
@@ -426,12 +432,38 @@ export function serializePreset(
           order: item.order,
         })),
     })),
-    lastUsedWeights: {},
+    lastUsedWeights: options.lastUsedWeights ?? {},
   };
 }
 
+export function lastUsedWeightsFor(
+  loaded: {
+    rows: readonly PresetExerciseRow[];
+    items?: readonly PresetSupersetItem[];
+    children?: readonly PresetSupersetItem[];
+  },
+  settings: Record<string, object>,
+): Record<string, object> {
+  const exerciseIds = new Set<number>();
+  for (const row of loaded.rows) {
+    if (row.exercise_id !== null && row.exercise_id !== undefined) {
+      exerciseIds.add(row.exercise_id);
+    }
+  }
+  for (const item of [...(loaded.items ?? []), ...(loaded.children ?? [])]) {
+    exerciseIds.add(item.exercise_id);
+  }
+  return Object.fromEntries(
+    Object.entries(settings).filter(([exerciseId]) =>
+      exerciseIds.has(Number(exerciseId))),
+  );
+}
+
 export async function copyPresetItems(
-  repository: { nextId(entity: string): Promise<number> },
+  repository: {
+    nextId(entity: string): Promise<number>;
+    getExercise(id: number): Promise<ExerciseItem | undefined>;
+  },
   source: LoadedPreset,
   userId: number,
 ): Promise<MaterializedPreset> {
@@ -452,21 +484,28 @@ export async function copyPresetItems(
     created_at: timestamp,
     updated_at: timestamp,
   };
-  const prepared: PreparedPresetRow[] = source.rows.map((row) => ({
-    type: row.type,
-    sets: row.sets,
-    dropdowns: row.dropdowns ?? null,
-    includeWarmup: row.include_warmup === true,
-    order: row.order,
-    children: source.items
-      .filter((item) => item.parent_row_id === row.id)
-      .map((item) => ({
-        exercise: { id: item.exercise_id } as ExerciseItem,
-        type: item.type,
-        dropdowns: item.dropdowns ?? null,
-        includeWarmup: item.include_warmup === true,
-        order: item.order,
-      })),
-  }));
+  const prepared: PreparedPresetRow[] = [];
+  for (const row of source.rows) {
+    const exercise = row.exercise_id === null || row.exercise_id === undefined
+      ? undefined
+      : await repository.getExercise(row.exercise_id);
+    prepared.push({
+      ...(exercise === undefined ? {} : { exercise }),
+      type: row.type,
+      sets: row.sets,
+      dropdowns: row.dropdowns ?? null,
+      includeWarmup: row.include_warmup === true,
+      order: row.order,
+      children: source.items
+        .filter((item) => item.parent_row_id === row.id)
+        .map((item) => ({
+          exercise: { id: item.exercise_id } as ExerciseItem,
+          type: item.type,
+          dropdowns: item.dropdowns ?? null,
+          includeWarmup: item.include_warmup === true,
+          order: item.order,
+        })),
+    });
+  }
   return appendPresetRows(repository, metadata, prepared);
 }

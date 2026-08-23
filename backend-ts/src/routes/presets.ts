@@ -2,14 +2,21 @@ import type { JsonObject } from '../types.js';
 import { HttpError } from '../types.js';
 import { jsonResponse } from '../http.js';
 import type { RouteContext, RouteDefinition } from '../router.js';
-import { isPresetExercise, isSupersetItem } from '../workout-store.js';
+import {
+  isPresetExercise,
+  isSupersetItem,
+  isWorkoutPreset,
+  type WorkoutPresetItem,
+} from '../workout-store.js';
 import {
   appendPresetRows,
   copyPresetItems,
-  loadPresetPartition,
+  lastUsedWeightsFor,
   materializePreset,
   presetMetadataInput,
   serializePreset,
+  visibleExercise,
+  type LoadedPreset,
   validatePresetExercises,
 } from '../workout-preset-service.js';
 
@@ -43,29 +50,115 @@ export async function createOwnedPreset(
     ...created.rows,
     ...created.children,
   ]);
-  return serializePreset({
+  return serializedPreset(context, user.id, {
     preset: created.metadata,
     rows: created.rows,
-    children: created.children,
+    items: created.children,
   });
 }
 
-async function ownedPreset(
+async function loadRawPreset(
   context: RouteContext,
   presetId: number,
+): Promise<LoadedPreset> {
+  const preset = await context.repository.get<WorkoutPresetItem>({
+    pk: `PRESET#${presetId}`,
+    sk: 'METADATA',
+  });
+  if (!preset || !isWorkoutPreset(preset)) {
+    throw new HttpError(404, { detail: 'Not found.' });
+  }
+  const partition = await context.repository.queryPartition({
+    partitionKey: String(preset.pk),
+  });
+  return {
+    preset,
+    partition,
+    rows: partition.filter(isPresetExercise)
+      .sort((left, right) => left.order - right.order || left.id - right.id),
+    items: partition.filter(isSupersetItem)
+      .sort((left, right) => left.order - right.order || left.id - right.id),
+  };
+}
+
+function presetIsAccessible(preset: WorkoutPresetItem, userId: number): boolean {
+  return preset.user_id === null ||
+    preset.user_id === undefined ||
+    preset.user_id === userId ||
+    preset.is_public === true;
+}
+
+async function presetHasHiddenExercises(
+  repository: RouteContext['repository'],
+  loaded: LoadedPreset,
+  userId: number,
+): Promise<boolean> {
+  for (const row of loaded.rows) {
+    if (row.type === 'superset') {
+      const children = loaded.items.filter((item) =>
+        item.parent_row_id === row.id);
+      for (const child of children) {
+        if (!visibleExercise(await repository.getExercise(child.exercise_id), userId)) {
+          return true;
+        }
+      }
+    } else {
+      const exercise = row.exercise_id === null || row.exercise_id === undefined
+        ? undefined
+        : await repository.getExercise(row.exercise_id);
+      if (!visibleExercise(exercise, userId)) return true;
+    }
+  }
+  return false;
+}
+
+async function serializedPreset(
+  context: RouteContext,
+  userId: number,
+  loaded: Pick<LoadedPreset, 'preset' | 'rows' | 'items'>,
+): Promise<Record<string, unknown>> {
+  const settings = await context.repository.listExerciseSettings(userId);
+  return serializePreset(loaded, {
+    lastUsedWeights: lastUsedWeightsFor(loaded, settings),
+  });
+}
+
+async function readablePreset(
+  context: RouteContext,
+  presetId: number,
+): Promise<{ userId: number; loaded: LoadedPreset }> {
+  const user = await context.requireUser();
+  const loaded = await loadRawPreset(context, presetId);
+  const hidden = await presetHasHiddenExercises(
+    context.repository,
+    loaded,
+    user.id,
+  );
+  if (!presetIsAccessible(loaded.preset, user.id) || hidden) {
+    throw new HttpError(404, { error: 'Not found' });
+  }
+  return { userId: user.id, loaded };
+}
+
+async function requireOwnedPreset(
+  context: RouteContext,
+  presetId: number,
+  action: 'modify' | 'delete',
 ) {
   const user = await context.requireUser();
-  const loaded = await loadPresetPartition(
-    context.repository,
-    user.id,
-    presetId,
-  );
+  const loaded = await loadRawPreset(context, presetId);
   if (loaded.preset.user_id === null || loaded.preset.user_id === undefined) {
-    throw new HttpError(403, { error: 'Cannot modify template presets' });
+    throw new HttpError(403, {
+      error: action === 'delete'
+        ? 'Cannot delete template presets'
+        : 'Cannot modify template presets',
+    });
   }
   if (loaded.preset.user_id !== user.id) {
     throw new HttpError(403, {
-      error: 'Cannot modify presets created by another user',
+      error: action === 'delete'
+        ? 'Cannot delete presets created by another user'
+        : 'Cannot modify presets created by another user',
     });
   }
   return { user, loaded };
@@ -75,7 +168,7 @@ export async function updateOwnedPreset(
   context: RouteContext,
   presetId: number,
 ): Promise<Record<string, unknown>> {
-  const { loaded } = await ownedPreset(context, presetId);
+  const { loaded } = await requireOwnedPreset(context, presetId, 'modify');
   const input = requestBody(context);
   const scalarInput = presetMetadataInput({
     name: input.name ?? loaded.preset.name,
@@ -99,7 +192,7 @@ export async function updateOwnedPreset(
     await context.repository.put(updatedMetadata, {
       ConditionExpression: 'attribute_exists(pk)',
     });
-    return serializePreset({
+    return serializedPreset(context, loaded.preset.user_id as number, {
       ...loaded,
       preset: updatedMetadata,
     });
@@ -145,7 +238,7 @@ export async function updateOwnedPreset(
   const partition = await context.repository.queryPartition({
     partitionKey: String(loaded.preset.pk),
   });
-  return serializePreset({
+  return serializedPreset(context, loaded.preset.user_id as number, {
     preset: desired.metadata,
     rows: partition.filter(isPresetExercise),
     items: partition.filter(isSupersetItem),
@@ -166,18 +259,15 @@ export async function copyAccessiblePreset(
   if (typeof normalizedId !== 'number' || !Number.isSafeInteger(normalizedId)) {
     throw new HttpError(404, { error: 'Template not found' });
   }
-  const source = await loadPresetPartition(
-    context.repository,
-    user.id,
-    normalizedId,
-  );
-  const accessible = source.preset.user_id === null ||
-    source.preset.user_id === undefined ||
-    source.preset.user_id === user.id ||
-    source.preset.is_public === true;
-  if (!accessible) {
+  const source = await loadRawPreset(context, normalizedId);
+  if (!presetIsAccessible(source.preset, user.id)) {
     throw new HttpError(403, {
       error: 'Cannot copy private preset from another user',
+    });
+  }
+  if (await presetHasHiddenExercises(context.repository, source, user.id)) {
+    throw new HttpError(403, {
+      error: 'Template contains an unavailable exercise',
     });
   }
 
@@ -191,22 +281,106 @@ export async function copyAccessiblePreset(
     ...copied.rows,
     ...copied.children,
   ]);
-  return serializePreset({
+  return serializedPreset(context, user.id, {
     preset: copied.metadata,
     rows: copied.rows,
-    children: copied.children,
+    items: copied.children,
   });
+}
+
+export async function listOwnedPresets(
+  context: RouteContext,
+): Promise<Array<Record<string, unknown>>> {
+  const user = await context.requireUser();
+  const [metadata, settings] = await Promise.all([
+    context.repository.scan<WorkoutPresetItem>({
+      FilterExpression: '#entity = :entity AND #owner = :owner',
+      ExpressionAttributeNames: {
+        '#entity': 'entity_type',
+        '#owner': 'user_id',
+      },
+      ExpressionAttributeValues: {
+        ':entity': 'workout_preset',
+        ':owner': user.id,
+      },
+    }),
+    context.repository.listExerciseSettings(user.id),
+  ]);
+  return Promise.all(metadata
+    .sort((left, right) => left.id - right.id)
+    .map(async (preset) => {
+      const loaded = await loadRawPreset(context, preset.id);
+      return serializePreset(loaded, {
+        lastUsedWeights: lastUsedWeightsFor(loaded, settings),
+      });
+    }));
+}
+
+export async function listTemplatePresets(
+  context: RouteContext,
+): Promise<Array<Record<string, unknown>>> {
+  const metadata = await context.repository.scan<WorkoutPresetItem>({
+    FilterExpression:
+      '#entity = :entity AND (#owner = :null OR #public = :public)',
+    ExpressionAttributeNames: {
+      '#entity': 'entity_type',
+      '#owner': 'user_id',
+      '#public': 'is_public',
+    },
+    ExpressionAttributeValues: {
+      ':entity': 'workout_preset',
+      ':null': null,
+      ':public': true,
+    },
+  });
+  const templates: Array<Record<string, unknown>> = [];
+  for (const preset of metadata.sort((left, right) => left.id - right.id)) {
+    const loaded = await loadRawPreset(context, preset.id);
+    if (await presetHasHiddenExercises(context.repository, loaded, -1)) continue;
+    templates.push(serializePreset(loaded));
+  }
+  return templates;
+}
+
+export async function readAccessiblePreset(
+  context: RouteContext,
+  presetId: number,
+): Promise<Record<string, unknown>> {
+  const { userId, loaded } = await readablePreset(context, presetId);
+  return serializedPreset(context, userId, loaded);
+}
+
+export async function deleteOwnedPreset(
+  context: RouteContext,
+  presetId: number,
+): Promise<void> {
+  const { loaded } = await requireOwnedPreset(context, presetId, 'delete');
+  await context.repository.deleteAllTransactionally(
+    loaded.partition.map((item) => ({ pk: item.pk, sk: item.sk })),
+  );
 }
 
 export function registerPresetRoutes(addRoute: (route: RouteDefinition) => void): void {
   addRoute({
-    method: 'POST',
+    method: ['GET', 'POST'],
     pattern: '/api/workouts/presets',
     authRequired: true,
     authBeforeMethod: true,
     handle: async (context) => jsonResponse(
-      201,
-      await createOwnedPreset(context),
+      context.request.method === 'GET' ? 200 : 201,
+      context.request.method === 'GET'
+        ? await listOwnedPresets(context)
+        : await createOwnedPreset(context),
+      context.cors,
+    ),
+  });
+
+  addRoute({
+    method: 'GET',
+    pattern: '/api/workouts/presets/templates',
+    handle: async (context) => jsonResponse(
+      200,
+      await listTemplatePresets(context),
       context.cors,
     ),
   });
@@ -227,14 +401,28 @@ export function registerPresetRoutes(addRoute: (route: RouteDefinition) => void)
   });
 
   addRoute({
-    method: ['PUT', 'PATCH'],
+    method: ['GET', 'PUT', 'PATCH', 'DELETE'],
     pattern: '/api/workouts/presets/:presetId',
     authRequired: true,
     authBeforeMethod: true,
-    handle: async (context, params) => jsonResponse(
-      200,
-      await updateOwnedPreset(context, params.presetId as number),
-      context.cors,
-    ),
+    handle: async (context, params) => {
+      const presetId = params.presetId as number;
+      if (context.request.method === 'GET') {
+        return jsonResponse(
+          200,
+          await readAccessiblePreset(context, presetId),
+          context.cors,
+        );
+      }
+      if (context.request.method === 'DELETE') {
+        await deleteOwnedPreset(context, presetId);
+        return jsonResponse(204, {}, context.cors);
+      }
+      return jsonResponse(
+        200,
+        await updateOwnedPreset(context, presetId),
+        context.cors,
+      );
+    },
   });
 }
