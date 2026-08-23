@@ -25,6 +25,12 @@ const isSameDay = (date1: Date, date2: Date) => {
     date1.getDate() === date2.getDate();
 };
 
+const toDateKey = (date: Date) => {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
 // Format date for display
 const formatDate = (date: Date) => {
   const today = new Date();
@@ -88,7 +94,7 @@ export default function NutritionPage() {
 
   // Filter meals by selected date
   const mealsForDate = meals.filter(meal =>
-    isSameDay(new Date(meal.loggedAt), selectedDate)
+    meal.date === toDateKey(selectedDate)
   );
 
   // Calculate totals for selected date

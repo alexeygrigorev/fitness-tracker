@@ -40,6 +40,7 @@ export interface Meal {
   id: string;
   name: string;
   mealType: MealCategory;
+  date: string;
   foods: MealFoodItem[];
   loggedAt: Date;
   eventTime?: Date;

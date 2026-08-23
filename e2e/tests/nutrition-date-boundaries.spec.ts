@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
 
 const API_BASE = process.env.VITE_API_URL || 'http://127.0.0.1:18000';
 const PASSWORD = 'nutrition-boundary-pass';
@@ -27,10 +27,6 @@ type MacroTotals = {
   totalFat: number;
 };
 
-type MealReadModel = {
-  foods: SelectedFood[];
-} & MacroTotals;
-
 type SeededFood = {
   id: number;
   name: string;
@@ -43,11 +39,6 @@ type SeededMeal = {
   food: SeededFood;
   grams: number;
   readModel: MealReadModel;
-};
-
-type BackendMeal = Record<string, unknown> & {
-  id: number | string;
-  date: string;
 };
 
 function uniqueSuffix(): string {
@@ -99,46 +90,6 @@ async function createSession(
   return { token: loggedIn.access, user: loggedIn.user };
 }
 
-/*
- * The deployed nutrition screen still consumes the older `foods`/totals shape and
- * filters client-side by `loggedAt`. There is also no writable nested meal-item
- * endpoint. Keep this compatibility surface limited to meals seeded by this test;
- * every persisted mutation below remains a real owner-API call.
- */
-async function installLegacyNutritionReadModel(
-  page: Page,
-  mealsByDate: Map<string, SeededMeal>,
-): Promise<void> {
-  await page.route(/\/api\/food\/meals\/$/, async (route) => {
-    const response = await route.fetch();
-    if (!response.ok()) {
-      await route.fulfill({ response });
-      return;
-    }
-
-    const backendMeals = (await response.json()) as BackendMeal[];
-    const frontendMeals = backendMeals.map((backendMeal) => {
-      const seededMeal = mealsByDate.get(backendMeal.date);
-      if (!seededMeal || seededMeal.id !== Number(backendMeal.id)) {
-        return backendMeal;
-      }
-
-      return {
-        ...backendMeal,
-        loggedAt: `${backendMeal.date}T12:00:00`,
-        foods: [{ foodId: seededMeal.food.id, grams: seededMeal.grams }],
-        ...seededMeal.readModel,
-      };
-    });
-
-    await route.fulfill({
-      status: response.status(),
-      contentType: 'application/json',
-      body: JSON.stringify(frontendMeals),
-    });
-  });
-}
-
 async function createFood(
   request: APIRequestContext,
   headers: Record<string, string>,
@@ -162,12 +113,14 @@ async function createFood(
 
 async function calculateMacros(
   request: APIRequestContext,
+  headers: Record<string, string>,
   foodId: number,
   grams: number,
 ) {
   const response = await request.post(
     `${API_BASE}/api/food/calculations/calculate-nutrition/`,
     {
+      headers,
       data: { food_items: [{ food_id: foodId, grams }] },
     },
   );
@@ -204,10 +157,9 @@ async function createMeal(
       name: input.name,
       mealType: 'lunch',
       date: input.dateKey,
-      // Required by the serializer even though auto_now_add owns the stored value.
-      loggedAt: new Date().toISOString(),
       eventTime: '12:00',
       source: 'manual',
+      food_items: [{ foodId: input.food.id, grams: input.grams }],
     },
   });
   expect(response.status()).toBe(201);
@@ -316,6 +268,7 @@ test('nutrition date boundaries isolate meals and reset to today after reload', 
       const mealName = `${seed.food.name} meal`;
       const readModel = await calculateMacros(
         request,
+        ownerHeaders,
         seed.food.id,
         seed.grams,
       );
@@ -337,7 +290,6 @@ test('nutrition date boundaries isolate meals and reset to today after reload', 
       );
     }
 
-    await installLegacyNutritionReadModel(page, mealsByDate);
     await page.addInitScript(
       ({ token, user }) => {
         window.localStorage.setItem('token', token);
