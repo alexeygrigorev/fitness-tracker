@@ -9,6 +9,7 @@ dependencies = [
     "djangorestframework>=3.16.1",
     "djangorestframework-simplejwt>=5.5.1",
     "drf-spectacular>=0.28.0",
+    "gunicorn>=23.0.0",
     "pydantic>=2.12.5",
     "whitenoise>=6.11.0",
 ]

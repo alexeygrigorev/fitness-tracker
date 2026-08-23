@@ -33,6 +33,9 @@ COPY backend-django /app/backend
 RUN mkdir -p /app/web/dist
 COPY --from=frontend-builder /app/web/dist /app/web/dist
 
+# Collect admin and API documentation assets for WhiteNoise.
+RUN uv run python manage.py collectstatic --noinput
+
 # Create directory for database with proper permissions
 RUN mkdir -p /app/backend/db && chmod 777 /app/backend/db
 
@@ -51,4 +54,4 @@ EXPOSE 80
 # Persist database via volume
 VOLUME ["/app/backend/db"]
 
-CMD ["sh", "-c", "uv run python manage.py migrate && uv run python manage.py runserver 0.0.0.0:80"]
+CMD ["sh", "-c", "uv run --no-sync python manage.py migrate --noinput && exec .venv/bin/gunicorn --bind 0.0.0.0:80 --workers=1 --threads=4 --timeout=120 --access-logfile - config.wsgi:application"]

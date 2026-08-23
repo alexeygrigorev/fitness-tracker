@@ -118,6 +118,31 @@ jobs:
       - name: Setup Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Verify required Fly secret
+        run: |
+          if ! flyctl secrets list --json | python3 -c '
+            import json
+            import sys
+
+            def secret_names(value):
+                if isinstance(value, dict):
+                    for key, child in value.items():
+                        if key.lower() == "name" and isinstance(child, str):
+                            yield child
+                    for child in value.values():
+                        yield from secret_names(child)
+                elif isinstance(value, list):
+                    for child in value:
+                        yield from secret_names(child)
+
+            names = set(secret_names(json.load(sys.stdin)))
+            sys.exit(0 if "SECRET_KEY" in names else 1)
+          '; then
+            echo "SECRET_KEY is not configured for the Fly app." >&2
+            echo "Set it once with: flyctl secrets set SECRET_KEY=<generated-secret>" >&2
+            exit 1
+          fi
+
       - name: Deploy to Fly.io
         run: flyctl deploy --remote-only
         env:

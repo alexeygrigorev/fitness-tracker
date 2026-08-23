@@ -26,7 +26,7 @@ A full-stack fitness tracking application with workout logging, nutrition tracki
 ```bash
 # Build and run
 docker build -t fitness-tracker .
-docker run -p 8000:8000 -v $(pwd)/db:/app/backend/db fitness-tracker
+docker run -p 8000:80 -v $(pwd)/db:/app/backend/db fitness-tracker
 ```
 
 Access at http://localhost:8000
@@ -212,12 +212,14 @@ The `data.generate` module creates:
 
 ## Deployment
 
-The Dockerfile builds a production-ready single container serving both the React frontend (static files) and Django backend. The `SERVE_FRONTEND=true` environment variable is set in the Dockerfile to enable this mode.
+The Dockerfile builds a single container serving both the React frontend (static files) and Django backend. The `SERVE_FRONTEND=true` environment variable is set in the Dockerfile to enable this mode; Gunicorn serves the WSGI application and Django static files are collected during the image build.
 
 ```bash
 docker build -t fitness-tracker .
-docker run -d -p 8000:8000 -v fitness-db:/app/backend/db fitness-tracker
+docker run -d -p 8000:80 -v fitness-db:/app/backend/db fitness-tracker
 ```
+
+For a secure local container run, also set `DEBUG=false`, `SECRET_KEY`, and `DJANGO_ALLOWED_HOSTS`. The Fly deployment sets debug off explicitly and verifies that its `SECRET_KEY` secret exists before deploying.
 
 ## CI/CD
 
