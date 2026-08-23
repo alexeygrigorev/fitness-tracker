@@ -85,6 +85,7 @@ export function createRouter(): Router {
       });
     },
     async handle(context) {
+      let methodMismatch: HttpError | undefined;
       routeLoop: for (const route of routes) {
         const match = route.matcher.exec(context.request.path);
         if (!match) continue;
@@ -93,9 +94,10 @@ export function createRouter(): Router {
           await context.requireUser();
         }
         if (route.methods && !route.methods.includes(context.request.method)) {
-          throw new HttpError(405, {
+          methodMismatch ??= new HttpError(405, {
             detail: `Method "${context.request.method}" not allowed.`,
           });
+          continue routeLoop;
         }
 
         const params: RouteParams = {};
@@ -111,7 +113,7 @@ export function createRouter(): Router {
         return await route.handle(context, params);
       }
 
-      throw new HttpError(404, { detail: 'Not found.' });
+      throw methodMismatch ?? new HttpError(404, { detail: 'Not found.' });
     },
   };
 }

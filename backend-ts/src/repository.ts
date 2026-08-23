@@ -8,6 +8,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand as DocQueryCommand,
+  ScanCommand as DocScanCommand,
   TransactWriteCommand as DocTransactWriteCommand,
   UpdateCommand as DocUpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -15,6 +16,7 @@ import type {
   DeleteCommandInput,
   PutCommandInput,
   QueryCommandInput,
+  ScanCommandInput,
   TransactWriteCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import type {
@@ -60,12 +62,9 @@ export class FitnessRepository {
     try {
       await this.client.send(new DescribeTableCommand({ TableName: this.tableName }));
       return true;
-    } catch (error) {
-      const name = (error as { name?: string }).name;
-      if (name === 'ResourceNotFoundException') {
-        return false;
-      }
-      throw error;
+    } catch {
+      // Any startup/connectivity failure means the API is not ready yet.
+      return false;
     }
   }
 
@@ -175,6 +174,44 @@ export class FitnessRepository {
     await this.client.send(new PutCommand({ TableName: this.tableName, Item: exercise }));
   }
 
+  async putAllTransactionally(items: readonly object[]): Promise<void> {
+    await this.transact(items.map((item) => ({
+      Put: { TableName: this.tableName, Item: item as DocumentItem },
+    })));
+  }
+
+  /** Copy/create helpers rely on DynamoDB transactions to reject partial writes. */
+  async putNewItemsTransactionally(items: readonly object[]): Promise<void> {
+    await this.transact(items.map((item) => ({
+      Put: {
+        TableName: this.tableName,
+        Item: item as DocumentItem,
+        ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+      },
+    })));
+  }
+
+  async deleteAllTransactionally(
+    keys: ReadonlyArray<Record<string, unknown>>,
+  ): Promise<void> {
+    await this.transact(keys.map((key) => ({
+      Delete: { TableName: this.tableName, Key: key },
+    })));
+  }
+
+  async listExercises(userId?: number): Promise<ExerciseItem[]> {
+    const items = await this.scan<ExerciseItem>({
+      FilterExpression: '#sk = :sk AND (#owner = :null OR #owner = :user)',
+      ExpressionAttributeNames: { '#sk': 'sk', '#owner': 'user_id' },
+      ExpressionAttributeValues: {
+        ':sk': 'METADATA',
+        ':null': null,
+        ':user': userId ?? -1,
+      },
+    });
+    return items.sort((left, right) => left.id - right.id);
+  }
+
   async listExerciseSettings(userId: number): Promise<Record<string, object>> {
     const result = await this.client.send(
       new DocQueryCommand({
@@ -215,13 +252,13 @@ export class FitnessRepository {
     return this.getItem<T>(key);
   }
 
-  async put<T extends DocumentItem>(
+  async put<T extends object>(
     item: T,
     options: Omit<PutCommandInput, 'Item' | 'TableName'> = {},
   ): Promise<void> {
     await this.client.send(new PutCommand({
       TableName: this.tableName,
-      Item: item,
+      Item: item as DocumentItem,
       ...options,
     }));
   }
@@ -273,6 +310,25 @@ export class FitnessRepository {
       ExpressionAttributeValues: values,
       ScanIndexForward: input.scanIndexForward ?? true,
     });
+  }
+
+  async scan<T = DocumentItem>(
+    options: Omit<ScanCommandInput, 'TableName'>,
+  ): Promise<T[]> {
+    const items: T[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+
+    do {
+      const result = await this.client.send(new DocScanCommand({
+        TableName: this.tableName,
+        ...options,
+        ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+      }));
+      items.push(...((result.Items ?? []) as T[]));
+      exclusiveStartKey = result.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+
+    return items;
   }
 
   async update<T = DocumentItem>(input: {

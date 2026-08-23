@@ -146,7 +146,7 @@ export function corsHeaders(
   }
   return {
     'access-control-allow-origin': origin,
-    'access-control-allow-methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'access-control-allow-headers': 'Authorization, Content-Type',
     vary: 'Origin',
   };
@@ -157,7 +157,14 @@ export function jsonResponse(
   payload: object,
   cors: Record<string, string> = {},
 ): ApiResponse {
-  const headers: Record<string, string> = { ...cors, 'content-type': 'application/json' };
+  const headers: Record<string, string> = {
+    ...cors,
+    'content-type': 'application/json',
+    'cross-origin-opener-policy': 'same-origin',
+    'referrer-policy': 'same-origin',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains',
+    'x-frame-options': 'DENY',
+  };
   return {
     statusCode: status,
     headers,

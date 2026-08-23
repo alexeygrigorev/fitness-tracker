@@ -17,11 +17,22 @@ export interface UserItem {
   date_joined?: string;
 }
 
+export type ExerciseCategory = 'compound' | 'isolation' | 'cardio';
+
 export interface ExerciseItem {
   pk: string;
   sk: string;
   id: number;
   user_id?: number | null;
+  name?: string;
+  muscle_groups?: string[];
+  equipment_name?: string | null;
+  category?: ExerciseCategory;
+  instructions: unknown;
+  is_compound?: boolean;
+  is_bodyweight?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ExerciseSettingsItem {
@@ -34,6 +45,40 @@ export interface ExerciseSettingsItem {
     weight?: number | null;
     reps: number;
   }>;
+}
+
+export type WorkoutSetType = 'normal' | 'bodyweight' | 'dropdown' | 'warmup';
+
+export interface WorkoutSessionItem {
+  pk: string;
+  sk: string;
+  entity_type: 'workout_session';
+  id: number;
+  user_id: number;
+  preset_id?: number;
+  name: string;
+  notes?: string | null;
+  bodyweight?: number | null;
+  created_at: string;
+  finished_at?: string | null;
+}
+
+export interface WorkoutSetItem {
+  pk: string;
+  sk: string;
+  entity_type: 'workout_set';
+  id: number;
+  session_id: number;
+  user_id: number;
+  set_order: number;
+  exercise_id: number;
+  exercise_name: string;
+  set_type: WorkoutSetType;
+  weight?: number | null;
+  reps?: number | null;
+  bodyweight?: number | null;
+  dropdown_weights?: Array<{ weight?: number | null; reps: number }> | null;
+  completed_at?: string | null;
 }
 
 export type JsonObject = Record<string, unknown>;
@@ -51,7 +96,7 @@ export interface ApiResponse {
   statusCode: number;
   headers: Record<string, string>;
   body: string;
-  isBase64Encoded: false;
+  isBase64Encoded: boolean;
 }
 
 export class HttpError extends Error {

@@ -7,6 +7,7 @@ import {
   DynamoDBClient,
 } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import type { ExerciseItem } from '../src/types.js';
 import { handler } from '../src/lambda.js';
 import type { ApiResponse } from '../src/types.js';
 
@@ -93,22 +94,44 @@ async function waitForTableActive(
   throw new Error(`${tableName} did not become active`);
 }
 
+export type ExerciseSeed = Partial<Omit<ExerciseItem, 'pk' | 'sk'>> & {
+  id: number;
+};
+
 export async function seedExercises(
   selectedDocumentClient: DynamoDBDocumentClient,
   tableName: string,
-  exerciseIds: number[],
+  exercises: Array<number | ExerciseSeed>,
 ): Promise<void> {
-  await Promise.all(exerciseIds.map((exerciseId) =>
-    selectedDocumentClient.send(new PutCommand({
+  await Promise.all(exercises.map((exercise) => {
+    const seed: ExerciseSeed = typeof exercise === 'number'
+      ? { id: exercise }
+      : exercise;
+    const id = seed.id;
+    const category = seed.category ??
+      (seed.is_compound ? 'compound' : 'isolation');
+    const now = new Date().toISOString();
+    const item: ExerciseItem = {
+      pk: `EXERCISE#${id}`,
+      sk: 'METADATA',
+      id,
+      user_id: seed.user_id ?? null,
+      name: seed.name ?? `Exercise ${id}`,
+      muscle_groups: structuredClone(seed.muscle_groups ?? []),
+      equipment_name: seed.equipment_name ?? null,
+      category,
+      instructions: structuredClone(seed.instructions ?? []),
+      is_compound: category === 'compound',
+      is_bodyweight: seed.is_bodyweight ?? false,
+      created_at: now,
+      updated_at: now,
+    };
+
+    return selectedDocumentClient.send(new PutCommand({
       TableName: tableName,
-      Item: {
-        pk: `EXERCISE#${exerciseId}`,
-        sk: 'METADATA',
-        id: exerciseId,
-        user_id: null,
-      },
-    })),
-  ));
+      Item: item,
+    }));
+  }));
 }
 
 export async function registerAndLogin(
