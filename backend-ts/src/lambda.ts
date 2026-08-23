@@ -8,6 +8,7 @@ import { FitnessRepository } from './repository.js';
 import { loadConfig } from './config.js';
 import { verifyAccessToken } from './jwt.js';
 import { createRouter } from './router.js';
+import { serveSpa } from './static.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerHealthRoutes } from './routes/health.js';
 import { registerExerciseRoutes } from './routes/exercises.js';
@@ -52,6 +53,10 @@ async function handleApi(
 
   if (request.method === 'OPTIONS') {
     return emptyResponse(204, cors);
+  }
+
+  if (!request.path.startsWith('/api/')) {
+    return serveSpa(request, config.frontendBuild, cors);
   }
 
   const router = createRouter();

@@ -51,7 +51,7 @@ export interface ApiResponse {
   statusCode: number;
   headers: Record<string, string>;
   body: string;
-  isBase64Encoded: false;
+  isBase64Encoded: boolean;
 }
 
 export class HttpError extends Error {
