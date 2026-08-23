@@ -55,6 +55,7 @@ Resources:
             - GET
             - POST
             - PATCH
+            - DELETE
             - OPTIONS
           AllowHeaders:
             - Authorization
