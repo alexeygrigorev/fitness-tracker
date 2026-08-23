@@ -1,5 +1,20 @@
 {
   "schemaVersion": 1,
+  "execution": {
+    "mode": "parallel-isolated-worktrees",
+    "baselineCommit": "39a9818",
+    "djangoFrozen": true,
+    "worktreeRoot": "/tmp/fitness-tracker-lanes",
+    "lanes": [
+      {"id": "ai-integration", "agent": "parity_ai_integration_v1", "branch": "parity/ai-integration", "status": "in-progress"},
+      {"id": "cross-domain-security", "agent": "parity_cross_domain_security_v1", "branch": "parity/cross-domain-security", "status": "in-progress"},
+      {"id": "exercises-library", "agent": "parity_exercises_library_v1", "branch": "parity/exercises-library", "status": "in-progress"},
+      {"id": "nutrition", "agent": "parity_nutrition_backend_v1", "branch": "parity/nutrition-backend", "status": "in-progress"},
+      {"id": "platform-users-contracts", "agent": "parity_platform_users_contracts_v1", "branch": "parity/platform-users-contracts", "status": "in-progress"},
+      {"id": "presets-templates-plans", "agent": "parity_presets_templates_plans_v1", "branch": "parity/presets-templates-plans", "status": "in-progress"},
+      {"id": "sessions-sets-flow", "agent": "parity_sessions_sets_flow_v1", "branch": "parity/sessions-sets-flow", "status": "in-progress"}
+    ]
+  },
   "totalTargets": 141,
   "lanes": [
     {
