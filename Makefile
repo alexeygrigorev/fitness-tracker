@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend build test test-backend test-frontend test-docker clean deploy export-backend-contract
+.PHONY: dev dev-backend dev-frontend build test test-backend test-frontend test-docker clean deploy export-backend-contract migration-rehearsal
 
 dev:
 	@echo "Starting frontend and backend..."
@@ -26,6 +26,10 @@ test-frontend:
 
 export-backend-contract:
 	cd backend-django && uv run python manage.py export_openapi --output ../backend-ts/openapi.json
+
+migration-rehearsal:
+	cd backend-django && uv run python manage.py export_migration_snapshot --output ../backend-ts/.tmp/migration-snapshot.json
+	cd backend-ts && npm run rehearsal:migration
 
 test-docker:
 	cd e2e && ./run-docker.sh

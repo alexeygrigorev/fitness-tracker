@@ -12,7 +12,8 @@
     "build": "npm run clean && tsc --noEmit && esbuild src/lambda.ts --bundle --platform=node --target=node24 --format=cjs --sourcemap --outfile=dist/lambda.js",
     "build:test": "tsc -p tsconfig.test.json",
     "test": "npm run test:integration",
-    "test:integration": "npm run build:test && find .tmp/ts-build/tests -type f -name '*.test.js' -print0 | xargs -0 node --test --test-concurrency=1"
+    "test:integration": "npm run build:test && find .tmp/ts-build/tests -type f -name '*.test.js' -print0 | xargs -0 node --test --test-concurrency=1",
+    "rehearsal:migration": "npm run build:test && node scripts/run-migration-rehearsal.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.927.0",

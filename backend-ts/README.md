@@ -38,3 +38,20 @@ API. A same-origin SPA needs no value; a local Vite frontend uses
 The table retains data on stack updates/deletion. User IDs come from atomic
 counters so migrated SQLite IDs remain stable. Exercise settings are scoped to
 the authenticated user and require a canonical or owner-owned exercise item.
+
+## SQLite migration rehearsal
+
+Export a migrated SQLite database, then load it into a disposable empty
+DynamoDB Local table. The loader refuses a nonempty target, preserves source
+numeric IDs, seeds every runtime counter, retries throttled batch writes, and
+deep-compares a consistent read of every loaded item.
+
+```sh
+cd backend-django
+DB_PATH=/absolute/path/to/source.sqlite uv run python manage.py migrate
+DB_PATH=/absolute/path/to/source.sqlite uv run python manage.py \
+  export_migration_snapshot --output ../backend-ts/.tmp/migration-snapshot.json
+
+cd ../backend-ts
+npm run rehearsal:migration
+```
