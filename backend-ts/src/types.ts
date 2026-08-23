@@ -22,6 +22,8 @@ export interface ExerciseItem {
   sk: string;
   id: number;
   user_id?: number | null;
+  name?: string;
+  is_bodyweight?: boolean;
 }
 
 export interface ExerciseSettingsItem {
@@ -34,6 +36,40 @@ export interface ExerciseSettingsItem {
     weight?: number | null;
     reps: number;
   }>;
+}
+
+export type WorkoutSetType = 'normal' | 'bodyweight' | 'dropdown' | 'warmup';
+
+export interface WorkoutSessionItem {
+  pk: string;
+  sk: string;
+  entity_type: 'workout_session';
+  id: number;
+  user_id: number;
+  preset_id?: number;
+  name: string;
+  notes?: string | null;
+  bodyweight?: number | null;
+  created_at: string;
+  finished_at?: string | null;
+}
+
+export interface WorkoutSetItem {
+  pk: string;
+  sk: string;
+  entity_type: 'workout_set';
+  id: number;
+  session_id: number;
+  user_id: number;
+  set_order: number;
+  exercise_id: number;
+  exercise_name: string;
+  set_type: WorkoutSetType;
+  weight?: number | null;
+  reps?: number | null;
+  bodyweight?: number | null;
+  dropdown_weights?: Array<{ weight?: number | null; reps: number }> | null;
+  completed_at?: string | null;
 }
 
 export type JsonObject = Record<string, unknown>;

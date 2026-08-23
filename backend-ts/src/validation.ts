@@ -245,7 +245,11 @@ export function validateExerciseSettings(data: unknown): ExerciseSettingsInput {
           return;
         }
         const subset = entry as JsonObject;
-        validateWeight(target, 'weight', subset.weight, false);
+        if (!('weight' in subset)) {
+          addError(target, 'weight', 'This field is required.');
+        } else {
+          validateWeight(target, 'weight', subset.weight, false);
+        }
         if ('reps' in subset) {
           const subsetReps = validateReps(target, 'reps', subset.reps);
           if (Object.keys(target).length === 0 && subsetReps !== undefined) {

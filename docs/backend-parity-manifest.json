@@ -32,7 +32,7 @@
       "typecheckCommand": "cd backend-ts && npm run typecheck",
       "integrationCommand": "cd backend-ts && npm run test:integration",
       "buildCommand": "cd backend-ts && npm run build",
-      "integrationResult": "6 passed",
+      "integrationResult": "44 passed; 0 failed",
       "passing": true,
       "verifiedAt": "2026-08-23"
     }
@@ -54,9 +54,9 @@
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 141,
-    "translatedTargetsApprovedOrPassing": 0,
-    "nextAction": "Implement the pending backend-ts targets and replace their statuses with verified results or recorded approved equivalents."
+    "translatedTargetsPending": 103,
+    "translatedTargetsApprovedOrPassing": 38,
+    "nextAction": "Implement the remaining pending backend-ts targets and replace their statuses with verified results."
   },
   "entries": [
     {
@@ -161,7 +161,7 @@
       "intent": "Documented User And Settings Contracts Match Responses",
       "domain": "contracts",
       "targetTestId": "backend-ts/tests/openapi-contracts.test.ts#OpenApiContractTests#test_documented_user_and_settings_contracts_match_responses",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-014",
@@ -337,7 +337,7 @@
       "intent": "Create Exercise Settings",
       "domain": "users",
       "targetTestId": "backend-ts/tests/exercise-settings.test.ts#ExerciseSettingsTests#test_create_exercise_settings",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-036",
@@ -345,7 +345,7 @@
       "intent": "Exercise Settings Unique Per User",
       "domain": "users",
       "targetTestId": "backend-ts/tests/exercise-settings.test.ts#ExerciseSettingsTests#test_exercise_settings_unique_per_user",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-037",
@@ -353,7 +353,7 @@
       "intent": "Exercise Settings With Dropdowns",
       "domain": "users",
       "targetTestId": "backend-ts/tests/exercise-settings.test.ts#ExerciseSettingsTests#test_exercise_settings_with_dropdowns",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-038",
@@ -361,7 +361,7 @@
       "intent": "Update Exercise Settings",
       "domain": "users",
       "targetTestId": "backend-ts/tests/exercise-settings.test.ts#ExerciseSettingsTests#test_update_exercise_settings",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-039",
@@ -480,88 +480,88 @@
       "pythonTestId": "workouts/tests/test_dropdown_uncomplete_resume.py::TestDropdownUncompleteResumeComplete::test_dropdown_uncomplete_reload_complete",
       "intent": "Dropdown Uncomplete Reload Complete",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-uncomplete-resume.test.ts#TestDropdownUncompleteResumeComplete#test_dropdown_uncomplete_reload_complete",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestDropdownUncompleteResumeComplete#test_dropdown_uncomplete_reload_complete",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-054",
       "pythonTestId": "workouts/tests/test_dropdown_uncomplete_resume.py::TestDropdownUncompleteResumeComplete::test_dropdown_uncomplete_via_new_api",
       "intent": "Dropdown Uncomplete Via New Api",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-uncomplete-resume.test.ts#TestDropdownUncompleteResumeComplete#test_dropdown_uncomplete_via_new_api",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestDropdownUncompleteResumeComplete#test_dropdown_uncomplete_via_new_api",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-055",
       "pythonTestId": "workouts/tests/test_dropdown_weights.py::TestDropdownWeights::test_active_session_returns_dropdown_weights",
       "intent": "Active Session Returns Dropdown Weights",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-sessions.test.ts#TestDropdownWeights#test_active_session_returns_dropdown_weights",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestDropdownWeights#test_active_session_returns_dropdown_weights",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-056",
       "pythonTestId": "workouts/tests/test_dropdown_weights.py::TestDropdownWeights::test_complete_dropdown_set_with_weights",
       "intent": "Complete Dropdown Set With Weights",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-sessions.test.ts#TestDropdownWeights#test_complete_dropdown_set_with_weights",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestDropdownWeights#test_complete_dropdown_set_with_weights",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-057",
       "pythonTestId": "workouts/tests/test_dropdown_weights.py::TestDropdownWeights::test_multiple_dropdown_sets_completion",
       "intent": "Multiple Dropdown Sets Completion",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-sessions.test.ts#TestDropdownWeights#test_multiple_dropdown_sets_completion",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestDropdownWeights#test_multiple_dropdown_sets_completion",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-058",
       "pythonTestId": "workouts/tests/test_dropdown_weights.py::TestDropdownWeights::test_persist_dropdown_completion_across_pages",
       "intent": "Persist Dropdown Completion Across Pages",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-sessions.test.ts#TestDropdownWeights#test_persist_dropdown_completion_across_pages",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestDropdownWeights#test_persist_dropdown_completion_across_pages",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-059",
       "pythonTestId": "workouts/tests/test_dropdown_weights.py::TestDropdownWeights::test_start_workout_creates_dropdown_weights",
       "intent": "Start Workout Creates Dropdown Weights",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-sessions.test.ts#TestDropdownWeights#test_start_workout_creates_dropdown_weights",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestDropdownWeights#test_start_workout_creates_dropdown_weights",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-060",
       "pythonTestId": "workouts/tests/test_dropdown_weights.py::TestMultipleActiveSessions::test_all_sessions_included_in_list_endpoint",
       "intent": "All Sessions Included In List Endpoint",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-sessions.test.ts#TestMultipleActiveSessions#test_all_sessions_included_in_list_endpoint",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestMultipleActiveSessions#test_all_sessions_included_in_list_endpoint",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-061",
       "pythonTestId": "workouts/tests/test_dropdown_weights.py::TestMultipleActiveSessions::test_finishing_all_workouts_returns_empty_list",
       "intent": "Finishing All Workouts Returns Empty List",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-sessions.test.ts#TestMultipleActiveSessions#test_finishing_all_workouts_returns_empty_list",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestMultipleActiveSessions#test_finishing_all_workouts_returns_empty_list",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-062",
       "pythonTestId": "workouts/tests/test_dropdown_weights.py::TestMultipleActiveSessions::test_finishing_one_workout_leaves_other_active",
       "intent": "Finishing One Workout Leaves Other Active",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-sessions.test.ts#TestMultipleActiveSessions#test_finishing_one_workout_leaves_other_active",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestMultipleActiveSessions#test_finishing_one_workout_leaves_other_active",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-063",
       "pythonTestId": "workouts/tests/test_dropdown_weights.py::TestMultipleActiveSessions::test_multiple_active_sessions",
       "intent": "Multiple Active Sessions",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/dropdown-sessions.test.ts#TestMultipleActiveSessions#test_multiple_active_sessions",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestMultipleActiveSessions#test_multiple_active_sessions",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-064",
@@ -1016,176 +1016,176 @@
       "pythonTestId": "workouts/tests/test_weight_serialization.py::TestWeightSerialization::test_bodyweight_session_serializes_as_number",
       "intent": "Bodyweight Session Serializes As Number",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/weight-serialization.test.ts#TestWeightSerialization#test_bodyweight_session_serializes_as_number",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWeightSerialization#test_bodyweight_session_serializes_as_number",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-121",
       "pythonTestId": "workouts/tests/test_weight_serialization.py::TestWeightSerialization::test_decimal_weight_serializes_as_number",
       "intent": "Decimal Weight Serializes As Number",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/weight-serialization.test.ts#TestWeightSerialization#test_decimal_weight_serializes_as_number",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWeightSerialization#test_decimal_weight_serializes_as_number",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-122",
       "pythonTestId": "workouts/tests/test_weight_serialization.py::TestWeightSerialization::test_dropdown_weights_serialize_as_numbers",
       "intent": "Dropdown Weights Serialize As Numbers",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/weight-serialization.test.ts#TestWeightSerialization#test_dropdown_weights_serialize_as_numbers",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWeightSerialization#test_dropdown_weights_serialize_as_numbers",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-123",
       "pythonTestId": "workouts/tests/test_weight_serialization.py::TestWeightSerialization::test_integer_weight_serializes_as_number",
       "intent": "Integer Weight Serializes As Number",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/weight-serialization.test.ts#TestWeightSerialization#test_integer_weight_serializes_as_number",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWeightSerialization#test_integer_weight_serializes_as_number",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-124",
       "pythonTestId": "workouts/tests/test_weight_serialization.py::TestWeightSerialization::test_null_weight_serializes_as_null",
       "intent": "Null Weight Serializes As Null",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/weight-serialization.test.ts#TestWeightSerialization#test_null_weight_serializes_as_null",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWeightSerialization#test_null_weight_serializes_as_null",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-125",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestWorkoutFlow::test_workout_flow_bodyweight_tracking",
       "intent": "Workout Flow Bodyweight Tracking",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestWorkoutFlow#test_workout_flow_bodyweight_tracking",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWorkoutFlow#test_workout_flow_bodyweight_tracking",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-126",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestWorkoutFlow::test_workout_flow_complete_sets_one_by_one",
       "intent": "Workout Flow Complete Sets One By One",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestWorkoutFlow#test_workout_flow_complete_sets_one_by_one",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWorkoutFlow#test_workout_flow_complete_sets_one_by_one",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-127",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestWorkoutFlow::test_workout_flow_partial_completion",
       "intent": "Workout Flow Partial Completion",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestWorkoutFlow#test_workout_flow_partial_completion",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWorkoutFlow#test_workout_flow_partial_completion",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-128",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestWorkoutFlow::test_workout_flow_realistic_timing",
       "intent": "Workout Flow Realistic Timing",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestWorkoutFlow#test_workout_flow_realistic_timing",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWorkoutFlow#test_workout_flow_realistic_timing",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-129",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestWorkoutFlow::test_workout_flow_update_set_values_before_completing",
       "intent": "Workout Flow Update Set Values Before Completing",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestWorkoutFlow#test_workout_flow_update_set_values_before_completing",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWorkoutFlow#test_workout_flow_update_set_values_before_completing",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-130",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestWorkoutFlow::test_workout_flow_user_can_only_see_own_sets",
       "intent": "Workout Flow User Can Only See Own Sets",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestWorkoutFlow#test_workout_flow_user_can_only_see_own_sets",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWorkoutFlow#test_workout_flow_user_can_only_see_own_sets",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-131",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestWorkoutFlow::test_workout_session_create_with_bodyweight",
       "intent": "Workout Session Create With Bodyweight",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestWorkoutFlow#test_workout_session_create_with_bodyweight",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWorkoutFlow#test_workout_session_create_with_bodyweight",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-132",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestWorkoutFlow::test_workout_set_uncomplete",
       "intent": "Workout Set Uncomplete",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestWorkoutFlow#test_workout_set_uncomplete",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestWorkoutFlow#test_workout_set_uncomplete",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-133",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_bodyweight_set_completion",
       "intent": "Bodyweight Set Completion",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestSimplifiedSetAPI#test_bodyweight_set_completion",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestSimplifiedSetAPI#test_bodyweight_set_completion",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-134",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_cannot_complete_set_from_different_session",
       "intent": "Cannot Complete Set From Different Session",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestSimplifiedSetAPI#test_cannot_complete_set_from_different_session",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestSimplifiedSetAPI#test_cannot_complete_set_from_different_session",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-135",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_complete_and_uncomplete_cycle",
       "intent": "Complete And Uncomplete Cycle",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestSimplifiedSetAPI#test_complete_and_uncomplete_cycle",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestSimplifiedSetAPI#test_complete_and_uncomplete_cycle",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-136",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_complete_set_via_new_api",
       "intent": "Complete Set Via New Api",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestSimplifiedSetAPI#test_complete_set_via_new_api",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestSimplifiedSetAPI#test_complete_set_via_new_api",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-137",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_complete_set_without_data",
       "intent": "Complete Set Without Data",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestSimplifiedSetAPI#test_complete_set_without_data",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestSimplifiedSetAPI#test_complete_set_without_data",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-138",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_resume_and_complete_more_sets",
       "intent": "Resume And Complete More Sets",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestSimplifiedSetAPI#test_resume_and_complete_more_sets",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestSimplifiedSetAPI#test_resume_and_complete_more_sets",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-139",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_uncomplete_set_via_new_api",
       "intent": "Uncomplete Set Via New Api",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestSimplifiedSetAPI#test_uncomplete_set_via_new_api",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestSimplifiedSetAPI#test_uncomplete_set_via_new_api",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-140",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_workout_flow_new_api",
       "intent": "Workout Flow New Api",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestSimplifiedSetAPI#test_workout_flow_new_api",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestSimplifiedSetAPI#test_workout_flow_new_api",
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-141",
       "pythonTestId": "workouts/tests/test_workout_flow.py::TestE2ECompleteScenario::test_complete_e2e_scenario",
       "intent": "Complete E2e Scenario",
       "domain": "workouts",
-      "targetTestId": "backend-ts/tests/workout-flow.test.ts#TestE2ECompleteScenario#test_complete_e2e_scenario",
-      "translationStatus": "pending"
+      "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestE2ECompleteScenario#test_complete_e2e_scenario",
+      "translationStatus": "passing"
     }
   ],
   "implementationLanes": [
