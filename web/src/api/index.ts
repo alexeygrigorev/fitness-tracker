@@ -291,11 +291,11 @@ export const workoutsApi = {
       headers: await getHeaders(),
       body: JSON.stringify({
         session: sessionId,
-        exercise_id: setData.exerciseId,
-        set_type: setData.setType,
+        exerciseId: setData.exerciseId,
+        setType: setData.setType,
         weight: setData.weight,
         reps: setData.reps,
-        dropdown_weights: setData.dropdownWeights,
+        dropdownWeights: setData.dropdownWeights,
       }),
     });
     return handleResponse(response);
