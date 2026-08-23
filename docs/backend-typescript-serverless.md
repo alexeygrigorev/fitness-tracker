@@ -45,6 +45,8 @@ this historical minimum.
 2. All translated TypeScript tests pass against DynamoDB Local.
 3. A generated OpenAPI/contract diff proves route, schema, status, and payload
    compatibility, including documented examples.
+   The canonical export is `backend-ts/openapi.json`; refresh it with `make
+   export-backend-contract`.
 4. Full frontend unit tests and the complete Playwright suite pass twice against
    the TypeScript backend: once locally and once from the SAM-built artifact.
 5. Ownership/security boundaries receive a focused review covering users,

@@ -1,5 +1,7 @@
 import json
 from io import StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -126,3 +128,18 @@ class OpenApiContractTests(TestCase):
         meal_properties = self.schema["components"]["schemas"]["Meal"]["properties"]
         for field in ("totalCalories", "totalProtein", "totalCarbs", "totalFat"):
             self.assertEqual(meal_properties[field]["type"], "number")
+
+    def test_committed_typescript_contract_matches_python_export(self):
+        with TemporaryDirectory() as temp_dir:
+            exported = Path(temp_dir) / "openapi.json"
+            call_command("export_openapi", f"--output={exported}")
+            generated = exported.read_text(encoding="utf-8")
+
+        committed_path = (
+            Path(__file__).resolve().parents[2]
+            / ".."
+            / "backend-ts"
+            / "openapi.json"
+        )
+        committed = committed_path.resolve().read_text(encoding="utf-8")
+        self.assertEqual(generated, committed)

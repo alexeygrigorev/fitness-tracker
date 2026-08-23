@@ -1,4 +1,4 @@
-.PHONY: dev dev-backend dev-frontend build test test-backend test-frontend test-docker clean deploy
+.PHONY: dev dev-backend dev-frontend build test test-backend test-frontend test-docker clean deploy export-backend-contract
 
 dev:
 	@echo "Starting frontend and backend..."
@@ -23,6 +23,9 @@ test-backend:
 
 test-frontend:
 	cd web && npm test
+
+export-backend-contract:
+	cd backend-django && uv run python manage.py export_openapi --output ../backend-ts/openapi.json
 
 test-docker:
 	cd e2e && ./run-docker.sh

@@ -1,0 +1,5925 @@
+{
+  "components": {
+    "schemas": {
+      "AbsorptionSpeedEnum": {
+        "description": "* `slow` - slow\n* `moderate` - moderate\n* `fast` - fast",
+        "enum": [
+          "slow",
+          "moderate",
+          "fast"
+        ],
+        "type": "string"
+      },
+      "AiAnalysisRequestRequest": {
+        "properties": {
+          "description": {
+            "maxLength": 2000,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AiExerciseAnalysis": {
+        "properties": {
+          "bodyweight": {
+            "type": "boolean"
+          },
+          "category": {
+            "$ref": "#/components/schemas/AiExerciseAnalysisCategoryEnum"
+          },
+          "equipment": {
+            "nullable": true,
+            "type": "string"
+          },
+          "instructions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "muscleGroups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bodyweight",
+          "category",
+          "equipment",
+          "instructions",
+          "muscleGroups",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AiExerciseAnalysisCategoryEnum": {
+        "description": "* `compound` - compound\n* `isolation` - isolation\n* `cardio` - cardio",
+        "enum": [
+          "compound",
+          "isolation",
+          "cardio"
+        ],
+        "type": "string"
+      },
+      "AiFoodAnalysis": {
+        "properties": {
+          "absorptionSpeed": {
+            "$ref": "#/components/schemas/AbsorptionSpeedEnum"
+          },
+          "brand": {
+            "nullable": true,
+            "type": "string"
+          },
+          "calories": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "carbs": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryAbaEnum"
+          },
+          "fat": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "fiber": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "glycemicIndex": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "insulinResponse": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "protein": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "proteinQuality": {
+            "maximum": 3,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "satietyScore": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "saturatedFat": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "servingSize": {
+            "format": "double",
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "servingType": {
+            "type": "string"
+          },
+          "sodium": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "sugar": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "absorptionSpeed",
+          "calories",
+          "carbs",
+          "category",
+          "fat",
+          "fiber",
+          "glycemicIndex",
+          "insulinResponse",
+          "name",
+          "protein",
+          "proteinQuality",
+          "satietyScore",
+          "servingSize",
+          "servingType",
+          "sugar"
+        ],
+        "type": "object"
+      },
+      "AiMealAnalysis": {
+        "properties": {
+          "foods": {
+            "items": {
+              "$ref": "#/components/schemas/AiMealFood"
+            },
+            "type": "array"
+          },
+          "mealType": {
+            "$ref": "#/components/schemas/MealTypeEnum"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "foods",
+          "mealType",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AiMealFood": {
+        "properties": {
+          "absorptionSpeed": {
+            "$ref": "#/components/schemas/AbsorptionSpeedEnum"
+          },
+          "brand": {
+            "nullable": true,
+            "type": "string"
+          },
+          "calories": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "carbs": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryAbaEnum"
+          },
+          "fat": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "fiber": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "glycemicIndex": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "grams": {
+            "format": "double",
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "insulinResponse": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "protein": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "proteinQuality": {
+            "maximum": 3,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "satietyScore": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "saturatedFat": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "servingSize": {
+            "format": "double",
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "servingType": {
+            "type": "string"
+          },
+          "sodium": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "sugar": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "absorptionSpeed",
+          "calories",
+          "carbs",
+          "category",
+          "fat",
+          "fiber",
+          "glycemicIndex",
+          "grams",
+          "insulinResponse",
+          "name",
+          "protein",
+          "proteinQuality",
+          "satietyScore",
+          "servingSize",
+          "servingType",
+          "sugar"
+        ],
+        "type": "object"
+      },
+      "AiMealIngredientRequest": {
+        "description": "A complete analyzed ingredient constrained to FoodItem storage limits.",
+        "properties": {
+          "absorptionSpeed": {
+            "$ref": "#/components/schemas/AbsorptionSpeedEnum"
+          },
+          "brand": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "calories": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "carbs": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryAbaEnum"
+          },
+          "fat": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "fiber": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "glycemicIndex": {
+            "maximum": 100,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "grams": {
+            "format": "double",
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "insulinResponse": {
+            "format": "double",
+            "maximum": 100,
+            "minimum": 0,
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "protein": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          },
+          "proteinQuality": {
+            "maximum": 3,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "satietyScore": {
+            "maximum": 10,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "saturatedFat": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "servingSize": {
+            "format": "double",
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "servingType": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sodium": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "sugar": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "absorptionSpeed",
+          "calories",
+          "carbs",
+          "category",
+          "fat",
+          "fiber",
+          "glycemicIndex",
+          "grams",
+          "insulinResponse",
+          "name",
+          "protein",
+          "proteinQuality",
+          "satietyScore",
+          "servingSize",
+          "servingType",
+          "sugar"
+        ],
+        "type": "object"
+      },
+      "AiMealIngredientResolutionRequestRequest": {
+        "properties": {
+          "foods": {
+            "items": {
+              "$ref": "#/components/schemas/AiMealIngredientRequest"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "foods"
+        ],
+        "type": "object"
+      },
+      "BlankEnum": {
+        "enum": [
+          ""
+        ]
+      },
+      "CalorieCalculationRequestRequest": {
+        "description": "Request serializer for calorie calculation endpoint",
+        "properties": {
+          "carbs_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "fat_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "protein_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "CalorieCalculationResponse": {
+        "description": "Response serializer for calorie calculation endpoint",
+        "properties": {
+          "calories": {
+            "format": "double",
+            "type": "number"
+          },
+          "carbs_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "fat_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "protein_g": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "calories",
+          "carbs_g",
+          "fat_g",
+          "protein_g"
+        ],
+        "type": "object"
+      },
+      "CategoryAbaEnum": {
+        "description": "* `carb` - carb\n* `protein` - protein\n* `fat` - fat\n* `mixed` - mixed\n* `beverage` - beverage",
+        "enum": [
+          "carb",
+          "protein",
+          "fat",
+          "mixed",
+          "beverage"
+        ],
+        "type": "string"
+      },
+      "CategoryDetectionRequestRequest": {
+        "description": "Request serializer for category detection endpoint",
+        "properties": {
+          "carbs_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "fat_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "protein_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "CategoryDetectionResponse": {
+        "description": "Response serializer for category detection endpoint",
+        "properties": {
+          "carb_ratio": {
+            "format": "double",
+            "type": "number"
+          },
+          "category": {
+            "type": "string"
+          },
+          "fat_ratio": {
+            "format": "double",
+            "type": "number"
+          },
+          "protein_ratio": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "carb_ratio",
+          "category",
+          "fat_ratio",
+          "protein_ratio"
+        ],
+        "type": "object"
+      },
+      "Exercise": {
+        "properties": {
+          "bodyweight": {
+            "type": "boolean"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ExerciseCategoryEnum"
+          },
+          "equipment": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "instructions": {},
+          "muscleGroups": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ExerciseCategoryEnum": {
+        "description": "* `compound` - Compound\n* `isolation` - Isolation\n* `cardio` - Cardio",
+        "enum": [
+          "compound",
+          "isolation",
+          "cardio"
+        ],
+        "type": "string"
+      },
+      "ExerciseRequest": {
+        "properties": {
+          "bodyweight": {
+            "type": "boolean"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ExerciseCategoryEnum"
+          },
+          "equipment": {
+            "nullable": true,
+            "type": "string"
+          },
+          "instructions": {},
+          "muscleGroups": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ExerciseSettingsRequestRequest": {
+        "properties": {
+          "reps": {
+            "default": 10,
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "subSets": {
+            "items": {
+              "$ref": "#/components/schemas/ExerciseSubSetRequest"
+            },
+            "type": "array"
+          },
+          "weight": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "ExerciseSettingsResponse": {
+        "properties": {
+          "reps": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "subSets": {
+            "items": {
+              "$ref": "#/components/schemas/ExerciseSubSet"
+            },
+            "type": "array"
+          },
+          "weight": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "reps"
+        ],
+        "type": "object"
+      },
+      "ExerciseSubSet": {
+        "properties": {
+          "reps": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "weight": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "reps",
+          "weight"
+        ],
+        "type": "object"
+      },
+      "ExerciseSubSetRequest": {
+        "properties": {
+          "reps": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "weight": {
+            "format": "double",
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "required": [
+          "reps",
+          "weight"
+        ],
+        "type": "object"
+      },
+      "FoodItem": {
+        "properties": {
+          "absorptionSpeed": {
+            "nullable": true,
+            "type": "string"
+          },
+          "barcode": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "brand": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "calories": {
+            "format": "double",
+            "type": "number"
+          },
+          "carbs": {
+            "format": "double",
+            "type": "number"
+          },
+          "category": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FoodItemCategoryEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          },
+          "fat": {
+            "format": "double",
+            "type": "number"
+          },
+          "fiber": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "glycemicIndex": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "insulinResponse": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "protein": {
+            "format": "double",
+            "type": "number"
+          },
+          "proteinQuality": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "satietyScore": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "saturatedFat": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "servingSize": {
+            "format": "double",
+            "type": "number"
+          },
+          "servingType": {
+            "type": "string"
+          },
+          "sodium": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FoodItemSourceEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "sugar": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "user": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "calories",
+          "carbs",
+          "fat",
+          "id",
+          "name",
+          "protein",
+          "servingSize",
+          "servingType",
+          "source",
+          "user"
+        ],
+        "type": "object"
+      },
+      "FoodItemCategoryEnum": {
+        "description": "* `carb` - Carb\n* `protein` - Protein\n* `fat` - Fat\n* `mixed` - Mixed\n* `beverage` - Beverage",
+        "enum": [
+          "carb",
+          "protein",
+          "fat",
+          "mixed",
+          "beverage"
+        ],
+        "type": "string"
+      },
+      "FoodItemRequest": {
+        "properties": {
+          "absorptionSpeed": {
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "barcode": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "brand": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "calories": {
+            "format": "double",
+            "type": "number"
+          },
+          "carbs": {
+            "format": "double",
+            "type": "number"
+          },
+          "category": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FoodItemCategoryEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          },
+          "fat": {
+            "format": "double",
+            "type": "number"
+          },
+          "fiber": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "glycemicIndex": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "insulinResponse": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "protein": {
+            "format": "double",
+            "type": "number"
+          },
+          "proteinQuality": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "satietyScore": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "saturatedFat": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "servingSize": {
+            "format": "double",
+            "type": "number"
+          },
+          "servingType": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sodium": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "sugar": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "calories",
+          "carbs",
+          "fat",
+          "name",
+          "protein",
+          "servingSize",
+          "servingType"
+        ],
+        "type": "object"
+      },
+      "FoodItemSourceEnum": {
+        "description": "* `canonical` - Canonical\n* `user` - User\n* `ai_generated` - AI Generated",
+        "enum": [
+          "canonical",
+          "user",
+          "ai_generated"
+        ],
+        "type": "string"
+      },
+      "HealthCheckResponse": {
+        "description": "Response serializer for health check endpoint",
+        "properties": {
+          "framework": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "framework",
+          "status",
+          "version"
+        ],
+        "type": "object"
+      },
+      "LoginResponse": {
+        "properties": {
+          "access": {
+            "type": "string"
+          },
+          "refresh": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "access",
+          "refresh",
+          "user"
+        ],
+        "type": "object"
+      },
+      "Meal": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "eventTime": {
+            "format": "time",
+            "nullable": true,
+            "type": "string"
+          },
+          "food_items": {
+            "items": {
+              "$ref": "#/components/schemas/MealFoodItem"
+            },
+            "type": "array"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "loggedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mealType": {
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MealSourceEnum"
+          },
+          "totalCalories": {
+            "format": "double",
+            "readOnly": true,
+            "type": "number"
+          },
+          "totalCarbs": {
+            "format": "double",
+            "readOnly": true,
+            "type": "number"
+          },
+          "totalFat": {
+            "format": "double",
+            "readOnly": true,
+            "type": "number"
+          },
+          "totalProtein": {
+            "format": "double",
+            "readOnly": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "mealType",
+          "name",
+          "totalCalories",
+          "totalCarbs",
+          "totalFat",
+          "totalProtein"
+        ],
+        "type": "object"
+      },
+      "MealDailyTotals": {
+        "properties": {
+          "calories": {
+            "format": "double",
+            "type": "number"
+          },
+          "carbs_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "fat_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "fiber_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "protein_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "sodium_mg": {
+            "format": "double",
+            "type": "number"
+          },
+          "sugar_g": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "calories",
+          "carbs_g",
+          "date",
+          "fat_g",
+          "fiber_g",
+          "protein_g",
+          "sodium_mg",
+          "sugar_g"
+        ],
+        "type": "object"
+      },
+      "MealFoodItem": {
+        "properties": {
+          "foodId": {
+            "type": "integer"
+          },
+          "grams": {
+            "format": "double",
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "order": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "foodId",
+          "grams",
+          "id"
+        ],
+        "type": "object"
+      },
+      "MealFoodItemRequest": {
+        "properties": {
+          "foodId": {
+            "type": "integer"
+          },
+          "grams": {
+            "format": "double",
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "order": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "foodId",
+          "grams"
+        ],
+        "type": "object"
+      },
+      "MealRequest": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "eventTime": {
+            "format": "time",
+            "nullable": true,
+            "type": "string"
+          },
+          "food_items": {
+            "items": {
+              "$ref": "#/components/schemas/MealFoodItemRequest"
+            },
+            "type": "array"
+          },
+          "loggedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mealType": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MealSourceEnum"
+          }
+        },
+        "required": [
+          "mealType",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MealSourceEnum": {
+        "description": "* `manual` - Manual\n* `ai_assisted` - AI Assisted",
+        "enum": [
+          "manual",
+          "ai_assisted"
+        ],
+        "type": "string"
+      },
+      "MealTemplate": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/MealTemplateCategoryEnum"
+          },
+          "food_items": {
+            "items": {
+              "$ref": "#/components/schemas/MealTemplateFoodItem"
+            },
+            "type": "array"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "id",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MealTemplateCategoryEnum": {
+        "description": "* `breakfast` - Breakfast\n* `lunch` - Lunch\n* `dinner` - Dinner\n* `snack` - Snack\n* `post_workout` - Post Workout\n* `beverage` - Beverage",
+        "enum": [
+          "breakfast",
+          "lunch",
+          "dinner",
+          "snack",
+          "post_workout",
+          "beverage"
+        ],
+        "type": "string"
+      },
+      "MealTemplateFoodItem": {
+        "properties": {
+          "foodId": {
+            "type": "integer"
+          },
+          "grams": {
+            "format": "double",
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "order": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "foodId",
+          "grams",
+          "id"
+        ],
+        "type": "object"
+      },
+      "MealTemplateFoodItemRequest": {
+        "properties": {
+          "foodId": {
+            "type": "integer"
+          },
+          "grams": {
+            "format": "double",
+            "minimum": 0.01,
+            "type": "number"
+          },
+          "order": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "foodId",
+          "grams"
+        ],
+        "type": "object"
+      },
+      "MealTemplateRequest": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/MealTemplateCategoryEnum"
+          },
+          "food_items": {
+            "items": {
+              "$ref": "#/components/schemas/MealTemplateFoodItemRequest"
+            },
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "name"
+        ],
+        "type": "object"
+      },
+      "MealTypeEnum": {
+        "description": "* `breakfast` - breakfast\n* `lunch` - lunch\n* `dinner` - dinner\n* `snack` - snack\n* `post_workout` - post_workout\n* `beverage` - beverage",
+        "enum": [
+          "breakfast",
+          "lunch",
+          "dinner",
+          "snack",
+          "post_workout",
+          "beverage"
+        ],
+        "type": "string"
+      },
+      "MetabolismInferenceRequestRequest": {
+        "description": "Request serializer for metabolism inference endpoint",
+        "properties": {
+          "carbs_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "fat_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "fiber_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "food_type": {
+            "default": "",
+            "maxLength": 255,
+            "type": "string"
+          },
+          "protein_g": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "MetabolismInferenceResponse": {
+        "description": "Response serializer for metabolism inference endpoint",
+        "properties": {
+          "absorption_speed": {
+            "type": "string"
+          },
+          "glycemic_index": {
+            "type": "string"
+          },
+          "satiety_level": {
+            "type": "string"
+          },
+          "thermic_effect": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "absorption_speed",
+          "glycemic_index",
+          "satiety_level",
+          "thermic_effect"
+        ],
+        "type": "object"
+      },
+      "NullEnum": {
+        "enum": [
+          null
+        ]
+      },
+      "NutritionCalculationItemRequest": {
+        "properties": {
+          "food_id": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "grams": {
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 100000000,
+            "minimum": 0.01,
+            "type": "number"
+          }
+        },
+        "required": [
+          "food_id",
+          "grams"
+        ],
+        "type": "object"
+      },
+      "NutritionCalculationRequestRequest": {
+        "description": "Request serializer for nutrition calculation endpoint",
+        "properties": {
+          "food_items": {
+            "description": "List of food items with food_id and grams",
+            "items": {
+              "$ref": "#/components/schemas/NutritionCalculationItemRequest"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "required": [
+          "food_items"
+        ],
+        "type": "object"
+      },
+      "NutritionCalculationResponse": {
+        "description": "Response serializer for nutrition calculation endpoint",
+        "properties": {
+          "total_calories": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_carbs_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_fat_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_fiber_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_protein_g": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_sodium_mg": {
+            "format": "double",
+            "type": "number"
+          },
+          "total_sugar_g": {
+            "format": "double",
+            "type": "number"
+          }
+        },
+        "required": [
+          "total_calories",
+          "total_carbs_g",
+          "total_fat_g",
+          "total_fiber_g",
+          "total_protein_g",
+          "total_sodium_mg",
+          "total_sugar_g"
+        ],
+        "type": "object"
+      },
+      "PatchedExerciseRequest": {
+        "properties": {
+          "bodyweight": {
+            "type": "boolean"
+          },
+          "category": {
+            "$ref": "#/components/schemas/ExerciseCategoryEnum"
+          },
+          "equipment": {
+            "nullable": true,
+            "type": "string"
+          },
+          "instructions": {},
+          "muscleGroups": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedExerciseSettingsRequestRequest": {
+        "properties": {
+          "reps": {
+            "default": 10,
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "subSets": {
+            "items": {
+              "$ref": "#/components/schemas/ExerciseSubSetRequest"
+            },
+            "type": "array"
+          },
+          "weight": {
+            "format": "double",
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedFoodItemRequest": {
+        "properties": {
+          "absorptionSpeed": {
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "barcode": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "brand": {
+            "maxLength": 255,
+            "nullable": true,
+            "type": "string"
+          },
+          "calories": {
+            "format": "double",
+            "type": "number"
+          },
+          "carbs": {
+            "format": "double",
+            "type": "number"
+          },
+          "category": {
+            "nullable": true,
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FoodItemCategoryEnum"
+              },
+              {
+                "$ref": "#/components/schemas/BlankEnum"
+              },
+              {
+                "$ref": "#/components/schemas/NullEnum"
+              }
+            ]
+          },
+          "fat": {
+            "format": "double",
+            "type": "number"
+          },
+          "fiber": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "glycemicIndex": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "insulinResponse": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "protein": {
+            "format": "double",
+            "type": "number"
+          },
+          "proteinQuality": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "satietyScore": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "saturatedFat": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "servingSize": {
+            "format": "double",
+            "type": "number"
+          },
+          "servingType": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sodium": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          },
+          "sugar": {
+            "format": "double",
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedMealRequest": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "eventTime": {
+            "format": "time",
+            "nullable": true,
+            "type": "string"
+          },
+          "food_items": {
+            "items": {
+              "$ref": "#/components/schemas/MealFoodItemRequest"
+            },
+            "type": "array"
+          },
+          "loggedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mealType": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/MealSourceEnum"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedMealTemplateRequest": {
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/MealTemplateCategoryEnum"
+          },
+          "food_items": {
+            "items": {
+              "$ref": "#/components/schemas/MealTemplateFoodItemRequest"
+            },
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedUserProfileUpdateRequestRequest": {
+        "properties": {
+          "dark_mode": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedWorkoutPlanRequest": {
+        "properties": {
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "user": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedWorkoutPresetRequest": {
+        "properties": {
+          "dayLabel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tags": {
+            "description": "List of tags like ['strength', 'cardio']"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedWorkoutSessionRequest": {
+        "properties": {
+          "bodyweight": {
+            "exclusiveMaximum": true,
+            "exclusiveMinimum": true,
+            "format": "double",
+            "maximum": 10000,
+            "minimum": -10000,
+            "nullable": true,
+            "type": "number"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedWorkoutSetRequest": {
+        "properties": {
+          "dropdownWeights": {
+            "nullable": true
+          },
+          "exerciseId": {
+            "type": "integer"
+          },
+          "reps": {
+            "maximum": 10000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "session": {
+            "type": "integer"
+          },
+          "setType": {
+            "$ref": "#/components/schemas/SetTypeEnum"
+          },
+          "set_order": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "weight": {
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 10000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "PatchedWorkoutSetUpdateRequest": {
+        "properties": {
+          "dropdownWeights": {
+            "nullable": true
+          },
+          "reps": {
+            "maximum": 10000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "weight": {
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 10000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "PlanUseResponse": {
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "presets": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutPreset"
+            },
+            "readOnly": true,
+            "type": "array"
+          }
+        },
+        "required": [
+          "message",
+          "presets"
+        ],
+        "type": "object"
+      },
+      "SetTypeEnum": {
+        "description": "* `normal` - Normal\n* `bodyweight` - Bodyweight\n* `dropdown` - Dropdown\n* `warmup` - Warmup",
+        "enum": [
+          "normal",
+          "bodyweight",
+          "dropdown",
+          "warmup"
+        ],
+        "type": "string"
+      },
+      "StartedWorkoutRequestRequest": {
+        "properties": {
+          "bodyweight": {
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 10000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "StartedWorkoutResponse": {
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/StartedWorkoutSession"
+          },
+          "sets": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSet"
+            },
+            "readOnly": true,
+            "type": "array"
+          }
+        },
+        "required": [
+          "session",
+          "sets"
+        ],
+        "type": "object"
+      },
+      "StartedWorkoutSession": {
+        "properties": {
+          "bodyweight": {
+            "exclusiveMaximum": true,
+            "exclusiveMinimum": true,
+            "format": "double",
+            "maximum": 10000,
+            "minimum": -10000,
+            "nullable": true,
+            "type": "number"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "preset_id": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user_id": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bodyweight",
+          "endedAt",
+          "id",
+          "name",
+          "notes",
+          "preset_id",
+          "startedAt",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "SupersetExerciseItem": {
+        "properties": {
+          "dropdowns": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "nullable": true,
+            "type": "integer"
+          },
+          "exerciseId": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "includeWarmup": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "order": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/SupersetExerciseItemTypeEnum"
+          }
+        },
+        "required": [
+          "exerciseId",
+          "id",
+          "includeWarmup",
+          "order"
+        ],
+        "type": "object"
+      },
+      "SupersetExerciseItemRequest": {
+        "properties": {
+          "dropdowns": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "nullable": true,
+            "type": "integer"
+          },
+          "order": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/SupersetExerciseItemTypeEnum"
+          }
+        },
+        "required": [
+          "order"
+        ],
+        "type": "object"
+      },
+      "SupersetExerciseItemTypeEnum": {
+        "description": "* `normal` - Normal\n* `dropdown` - Dropdown",
+        "enum": [
+          "normal",
+          "dropdown"
+        ],
+        "type": "string"
+      },
+      "TemplateCopyRequestRequest": {
+        "properties": {
+          "template_id": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "template_id"
+        ],
+        "type": "object"
+      },
+      "TokenObtainPairRequest": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          },
+          "username": {
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "password",
+          "username"
+        ],
+        "type": "object"
+      },
+      "User": {
+        "properties": {
+          "dark_mode": {
+            "type": "boolean"
+          },
+          "email": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "username": {
+            "maxLength": 255,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "id",
+          "username"
+        ],
+        "type": "object"
+      },
+      "UserProfileResponse": {
+        "description": "Response serializer for user profile (me) endpoint",
+        "properties": {
+          "dark_mode": {
+            "type": "boolean"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dark_mode",
+          "email",
+          "id",
+          "username"
+        ],
+        "type": "object"
+      },
+      "UserRegistrationRequestRequest": {
+        "description": "Request serializer for user registration endpoint",
+        "properties": {
+          "email": {
+            "format": "email",
+            "minLength": 1,
+            "type": "string"
+          },
+          "password": {
+            "minLength": 8,
+            "type": "string",
+            "writeOnly": true
+          },
+          "password_confirm": {
+            "minLength": 8,
+            "type": "string",
+            "writeOnly": true
+          },
+          "username": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "password_confirm",
+          "username"
+        ],
+        "type": "object"
+      },
+      "UserRegistrationResponse": {
+        "description": "Response serializer for user registration endpoint",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "message",
+          "user"
+        ],
+        "type": "object"
+      },
+      "VolumeCalculationRequestRequest": {
+        "description": "Request serializer for volume calculation endpoint",
+        "properties": {
+          "sets": {
+            "description": "List of sets with weight_lbs, reps, and exercise_id",
+            "items": {
+              "$ref": "#/components/schemas/VolumeSetRequest"
+            },
+            "maxItems": 10000,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "VolumeCalculationResponse": {
+        "description": "Response serializer for volume calculation endpoint",
+        "properties": {
+          "total_volume": {
+            "format": "double",
+            "type": "number"
+          },
+          "volume_by_exercise": {
+            "additionalProperties": {},
+            "type": "object"
+          }
+        },
+        "required": [
+          "total_volume",
+          "volume_by_exercise"
+        ],
+        "type": "object"
+      },
+      "VolumeSetRequest": {
+        "properties": {
+          "exercise_id": {
+            "default": "unknown",
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reps": {
+            "default": 0,
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "weight_lbs": {
+            "default": 0.0,
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 1000000,
+            "minimum": 0,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "WorkoutPlan": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "presets": {
+            "items": {
+              "type": "integer"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "user": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created_at",
+          "id",
+          "name",
+          "presets",
+          "updated_at",
+          "user"
+        ],
+        "type": "object"
+      },
+      "WorkoutPlanRequest": {
+        "properties": {
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "user": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "user"
+        ],
+        "type": "object"
+      },
+      "WorkoutPreset": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "dayLabel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "exercises": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutPresetExercise"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "lastUsedWeights": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "status": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "tags": {
+            "description": "List of tags like ['strength', 'cardio']"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "user": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "user_id": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created_at",
+          "exercises",
+          "id",
+          "lastUsedWeights",
+          "name",
+          "status",
+          "updated_at",
+          "user",
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "WorkoutPresetExercise": {
+        "properties": {
+          "dropdowns": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "nullable": true,
+            "type": "integer"
+          },
+          "exerciseId": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "exerciseName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "includeWarmup": {
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "order": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "type": "integer"
+          },
+          "sets": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "type": "integer"
+          },
+          "supersetExercises": {
+            "items": {
+              "$ref": "#/components/schemas/SupersetExerciseItem"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "type": {
+            "$ref": "#/components/schemas/WorkoutPresetExerciseTypeEnum"
+          }
+        },
+        "required": [
+          "exerciseId",
+          "exerciseName",
+          "id",
+          "includeWarmup",
+          "order",
+          "supersetExercises"
+        ],
+        "type": "object"
+      },
+      "WorkoutPresetExerciseRequest": {
+        "properties": {
+          "dropdowns": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "nullable": true,
+            "type": "integer"
+          },
+          "order": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "type": "integer"
+          },
+          "sets": {
+            "format": "int64",
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "type": "integer"
+          },
+          "type": {
+            "$ref": "#/components/schemas/WorkoutPresetExerciseTypeEnum"
+          }
+        },
+        "required": [
+          "order"
+        ],
+        "type": "object"
+      },
+      "WorkoutPresetExerciseTypeEnum": {
+        "description": "* `normal` - Normal\n* `dropdown` - Dropdown\n* `superset` - Superset",
+        "enum": [
+          "normal",
+          "dropdown",
+          "superset"
+        ],
+        "type": "string"
+      },
+      "WorkoutPresetRequest": {
+        "properties": {
+          "dayLabel": {
+            "nullable": true,
+            "type": "string"
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "tags": {
+            "description": "List of tags like ['strength', 'cardio']"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "WorkoutSession": {
+        "properties": {
+          "bodyweight": {
+            "exclusiveMaximum": true,
+            "exclusiveMinimum": true,
+            "format": "double",
+            "maximum": 10000,
+            "minimum": -10000,
+            "nullable": true,
+            "type": "number"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 255,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "preset": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "sets": {
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSet"
+            },
+            "readOnly": true,
+            "type": "array"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "user": {
+            "readOnly": true,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "endedAt",
+          "id",
+          "name",
+          "preset",
+          "sets",
+          "startedAt",
+          "user"
+        ],
+        "type": "object"
+      },
+      "WorkoutSessionRequest": {
+        "properties": {
+          "bodyweight": {
+            "exclusiveMaximum": true,
+            "exclusiveMinimum": true,
+            "format": "double",
+            "maximum": 10000,
+            "minimum": -10000,
+            "nullable": true,
+            "type": "number"
+          },
+          "endedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "notes": {
+            "nullable": true,
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endedAt",
+          "name",
+          "startedAt"
+        ],
+        "type": "object"
+      },
+      "WorkoutSet": {
+        "properties": {
+          "dropdownWeights": {
+            "nullable": true
+          },
+          "exerciseId": {
+            "type": "integer"
+          },
+          "exerciseName": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "id": {
+            "readOnly": true,
+            "type": "integer"
+          },
+          "loggedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
+          "reps": {
+            "maximum": 10000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "session": {
+            "type": "integer"
+          },
+          "setType": {
+            "$ref": "#/components/schemas/SetTypeEnum"
+          },
+          "set_order": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "weight": {
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 10000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "exerciseId",
+          "exerciseName",
+          "id",
+          "loggedAt",
+          "session",
+          "setType"
+        ],
+        "type": "object"
+      },
+      "WorkoutSetRequest": {
+        "properties": {
+          "dropdownWeights": {
+            "nullable": true
+          },
+          "exerciseId": {
+            "type": "integer"
+          },
+          "reps": {
+            "maximum": 10000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "session": {
+            "type": "integer"
+          },
+          "setType": {
+            "$ref": "#/components/schemas/SetTypeEnum"
+          },
+          "set_order": {
+            "maximum": 10000,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "weight": {
+            "exclusiveMaximum": true,
+            "format": "double",
+            "maximum": 10000,
+            "minimum": 0,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "exerciseId",
+          "session",
+          "setType"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "jwtAuth": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "API for tracking workouts, exercises, and nutrition",
+    "title": "Fitness Tracker API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.0.3",
+  "paths": {
+    "/api/ai/analyze-exercise/": {
+      "post": {
+        "description": "AI-powered exercise analysis that returns exercise details",
+        "operationId": "ai_analyze_exercise",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAnalysisRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAnalysisRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAnalysisRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiExerciseAnalysis"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "summary": "Analyze exercise from description",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/api/ai/analyze-food/": {
+      "post": {
+        "description": "AI-powered food analysis that returns nutritional information",
+        "operationId": "ai_analyze_food",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAnalysisRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAnalysisRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAnalysisRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiFoodAnalysis"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "summary": "Analyze food from description",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/api/ai/analyze-meal/": {
+      "post": {
+        "description": "AI-powered meal analysis that breaks down into food items",
+        "operationId": "ai_analyze_meal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAnalysisRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAnalysisRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AiAnalysisRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiMealAnalysis"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "summary": "Analyze meal from description",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/api/ai/meal-foods/": {
+      "post": {
+        "description": "Resolve accessible food matches for every analyzed ingredient. Missing user-owned ingredients are created in one database transaction.",
+        "operationId": "ai_resolve_meal_foods",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiMealIngredientResolutionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AiMealIngredientResolutionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/AiMealIngredientResolutionRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FoodItem"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "summary": "Resolve analyzed meal ingredients",
+        "tags": [
+          "AI"
+        ]
+      }
+    },
+    "/api/auth/exercise-settings/": {
+      "get": {
+        "description": "Get all exercise settings for the current user",
+        "operationId": "auth_exercise_settings_retrieve",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/ExerciseSettingsResponse"
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/exercise-settings/{exercise_id}/": {
+      "patch": {
+        "description": "Update or create exercise settings for a specific exercise",
+        "operationId": "auth_exercise_settings_partial_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exercise_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedExerciseSettingsRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedExerciseSettingsRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedExerciseSettingsRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseSettingsResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      },
+      "post": {
+        "description": "Update or create exercise settings for a specific exercise",
+        "operationId": "auth_exercise_settings_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exercise_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseSettingsRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseSettingsRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseSettingsRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExerciseSettingsResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/login/": {
+      "post": {
+        "description": "Authenticate with a username and password and receive JWTs plus the user profile.",
+        "operationId": "auth_login_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenObtainPairRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenObtainPairRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenObtainPairRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/me/": {
+      "get": {
+        "description": "Get current user profile information",
+        "operationId": "auth_me_retrieve",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/me/update/": {
+      "patch": {
+        "description": "Update current user profile (supports dark_mode)",
+        "operationId": "auth_me_update_partial_update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUserProfileUpdateRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUserProfileUpdateRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUserProfileUpdateRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/register/": {
+      "post": {
+        "description": "Register a new user account",
+        "operationId": "auth_register_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegistrationRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegistrationRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegistrationRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRegistrationResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/food/calculations/calculate-calories/": {
+      "post": {
+        "description": "Calculate calories from macronutrients (protein, carbs, fat)",
+        "operationId": "food_calculations_calculate_calories_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalorieCalculationRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CalorieCalculationRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CalorieCalculationRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalorieCalculationResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/calculations/calculate-nutrition/": {
+      "post": {
+        "description": "Calculate total nutrition for a list of food items",
+        "operationId": "food_calculations_calculate_nutrition_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NutritionCalculationRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/NutritionCalculationRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/NutritionCalculationRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NutritionCalculationResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/calculations/detect-category/": {
+      "post": {
+        "description": "Detect food category based on macronutrient composition",
+        "operationId": "food_calculations_detect_category_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryDetectionRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryDetectionRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryDetectionRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDetectionResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/calculations/infer-metabolism/": {
+      "post": {
+        "description": "Infer metabolic properties of food (glycemic index, absorption speed, etc.)",
+        "operationId": "food_calculations_infer_metabolism_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetabolismInferenceRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MetabolismInferenceRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MetabolismInferenceRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetabolismInferenceResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/foods/": {
+      "get": {
+        "operationId": "food_foods_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FoodItem"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "post": {
+        "operationId": "food_foods_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FoodItemRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/FoodItemRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/FoodItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FoodItem"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/foods/{id}/": {
+      "delete": {
+        "operationId": "food_foods_destroy",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this food item.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "get": {
+        "operationId": "food_foods_retrieve",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this food item.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FoodItem"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "patch": {
+        "operationId": "food_foods_partial_update",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this food item.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedFoodItemRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedFoodItemRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedFoodItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FoodItem"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "put": {
+        "operationId": "food_foods_update",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this food item.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FoodItemRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/FoodItemRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/FoodItemRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FoodItem"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/meals/": {
+      "get": {
+        "operationId": "food_meals_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Meal"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "post": {
+        "operationId": "food_meals_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MealRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MealRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MealRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meal"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/meals/daily/totals/{date_str}/": {
+      "get": {
+        "operationId": "food_meals_daily_totals_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "date_str",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MealDailyTotals"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/meals/date/{date_str}/": {
+      "get": {
+        "operationId": "food_meals_date_list",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "date_str",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Meal"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/meals/{id}/": {
+      "delete": {
+        "operationId": "food_meals_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "get": {
+        "operationId": "food_meals_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meal"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "patch": {
+        "operationId": "food_meals_partial_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedMealRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedMealRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedMealRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meal"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "put": {
+        "operationId": "food_meals_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MealRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MealRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MealRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meal"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/templates/": {
+      "get": {
+        "operationId": "food_templates_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MealTemplate"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "post": {
+        "operationId": "food_templates_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MealTemplateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MealTemplateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MealTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MealTemplate"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/food/templates/{id}/": {
+      "delete": {
+        "operationId": "food_templates_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "get": {
+        "operationId": "food_templates_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MealTemplate"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "patch": {
+        "operationId": "food_templates_partial_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedMealTemplateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedMealTemplateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedMealTemplateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MealTemplate"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      },
+      "put": {
+        "operationId": "food_templates_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MealTemplateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MealTemplateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MealTemplateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MealTemplate"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "food"
+        ]
+      }
+    },
+    "/api/health/": {
+      "get": {
+        "description": "Check if the API is healthy and operational",
+        "operationId": "health_retrieve",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheckResponse"
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthCheckResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/workouts/calculations/calculate-volume/": {
+      "post": {
+        "description": "Calculate total workout volume from a list of sets",
+        "operationId": "workouts_calculations_calculate_volume_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VolumeCalculationRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/VolumeCalculationRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/VolumeCalculationRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VolumeCalculationResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/exercises/": {
+      "get": {
+        "operationId": "workouts_exercises_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Exercise"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "post": {
+        "operationId": "workouts_exercises_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exercise"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/exercises/{id}/": {
+      "delete": {
+        "operationId": "workouts_exercises_destroy",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this exercise.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "get": {
+        "operationId": "workouts_exercises_retrieve",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this exercise.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exercise"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "patch": {
+        "operationId": "workouts_exercises_partial_update",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this exercise.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedExerciseRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedExerciseRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedExerciseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exercise"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "put": {
+        "operationId": "workouts_exercises_update",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this exercise.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ExerciseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Exercise"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/plans/": {
+      "get": {
+        "description": "ViewSet for workout plans - users can create plans and 'use' them to copy presets.",
+        "operationId": "workouts_plans_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutPlan"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "post": {
+        "description": "ViewSet for workout plans - users can create plans and 'use' them to copy presets.",
+        "operationId": "workouts_plans_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPlanRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPlanRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutPlan"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/plans/{id}/": {
+      "delete": {
+        "description": "ViewSet for workout plans - users can create plans and 'use' them to copy presets.",
+        "operationId": "workouts_plans_destroy",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout plan.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "get": {
+        "description": "ViewSet for workout plans - users can create plans and 'use' them to copy presets.",
+        "operationId": "workouts_plans_retrieve",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout plan.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutPlan"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "patch": {
+        "description": "ViewSet for workout plans - users can create plans and 'use' them to copy presets.",
+        "operationId": "workouts_plans_partial_update",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout plan.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutPlanRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutPlanRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutPlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutPlan"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "put": {
+        "description": "ViewSet for workout plans - users can create plans and 'use' them to copy presets.",
+        "operationId": "workouts_plans_update",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout plan.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPlanRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPlanRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutPlan"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/plans/{id}/use_plan/": {
+      "post": {
+        "description": "Copy all presets from this plan to the user's presets.",
+        "operationId": "workouts_plans_use_plan_create",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout plan.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanUseResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/presets/": {
+      "get": {
+        "operationId": "workouts_presets_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutPreset"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "post": {
+        "description": "Create a new preset with exercises.",
+        "operationId": "workouts_presets_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPresetRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPresetRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPresetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutPreset"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/presets/create_from_template/": {
+      "post": {
+        "description": "Create a new preset from a template or another user's public preset.",
+        "operationId": "workouts_presets_create_from_template_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateCopyRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateCopyRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateCopyRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutPreset"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/presets/templates/": {
+      "get": {
+        "description": "List all template presets (user=None or is_public=True).",
+        "operationId": "workouts_presets_templates_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutPreset"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {}
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/presets/{id}/": {
+      "delete": {
+        "operationId": "workouts_presets_destroy",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout preset.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "get": {
+        "operationId": "workouts_presets_retrieve",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout preset.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutPreset"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "patch": {
+        "operationId": "workouts_presets_partial_update",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout preset.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutPresetRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutPresetRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutPresetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutPreset"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "put": {
+        "operationId": "workouts_presets_update",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout preset.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPresetRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPresetRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutPresetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutPreset"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/presets/{id}/start_workout/": {
+      "post": {
+        "description": "Create a WorkoutSession from this preset with all sets.\nAccepts optional 'startedAt' and 'bodyweight' parameters.\nAllows multiple active workouts (does not auto-finish existing workouts).",
+        "operationId": "workouts_presets_start_workout_create",
+        "parameters": [
+          {
+            "description": "A unique integer value identifying this workout preset.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartedWorkoutRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/StartedWorkoutRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/StartedWorkoutRequestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartedWorkoutResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sessions/": {
+      "get": {
+        "operationId": "workouts_sessions_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutSession"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "post": {
+        "operationId": "workouts_sessions_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSessionRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSessionRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSession"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sessions/active/": {
+      "get": {
+        "description": "Get all active workout sessions (workouts that are not finished yet).",
+        "operationId": "workouts_sessions_active_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutSession"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sessions/{id}/": {
+      "delete": {
+        "operationId": "workouts_sessions_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "get": {
+        "operationId": "workouts_sessions_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSession"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "patch": {
+        "operationId": "workouts_sessions_partial_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutSessionRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutSessionRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSession"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "put": {
+        "operationId": "workouts_sessions_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSessionRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSessionRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSession"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sessions/{id}/finish/": {
+      "post": {
+        "description": "Mark the workout session as finished.",
+        "operationId": "workouts_sessions_finish_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSession"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sessions/{id}/sets/{set_id}/": {
+      "patch": {
+        "description": "Complete a set and optionally update weight/reps.\nURL: PATCH /api/workouts/sessions/{session_id}/sets/{set_id}/\n\nBody: { weight?, reps?, dropdownWeights? }\nSets completed_at to now() and updates any provided fields.",
+        "operationId": "workouts_sessions_sets_partial_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "set_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutSetUpdateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutSetUpdateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutSetUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSet"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sessions/{id}/sets/{set_id}/completion/": {
+      "delete": {
+        "description": "Uncomplete a set (clear completed_at).\nURL: DELETE /api/workouts/sessions/{session_id}/sets/{set_id}/completion/",
+        "operationId": "workouts_sessions_sets_completion_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "set_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSet"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sets/": {
+      "get": {
+        "description": "ViewSet for managing individual workout sets (marking complete, updating weight/reps).",
+        "operationId": "workouts_sets_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WorkoutSet"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "post": {
+        "description": "ViewSet for managing individual workout sets (marking complete, updating weight/reps).",
+        "operationId": "workouts_sets_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSet"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sets/{id}/": {
+      "delete": {
+        "description": "ViewSet for managing individual workout sets (marking complete, updating weight/reps).",
+        "operationId": "workouts_sets_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "get": {
+        "description": "ViewSet for managing individual workout sets (marking complete, updating weight/reps).",
+        "operationId": "workouts_sets_retrieve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSet"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "patch": {
+        "description": "ViewSet for managing individual workout sets (marking complete, updating weight/reps).",
+        "operationId": "workouts_sets_partial_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutSetRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutSetRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedWorkoutSetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSet"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "put": {
+        "description": "ViewSet for managing individual workout sets (marking complete, updating weight/reps).",
+        "operationId": "workouts_sets_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSet"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sets/{id}/complete/": {
+      "post": {
+        "description": "Mark a set as completed with current timestamp. Also updates weight/reps if provided.",
+        "operationId": "workouts_sets_complete_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSet"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/api/workouts/sets/{id}/uncomplete/": {
+      "post": {
+        "description": "Mark a set as not completed by clearing completed_at.",
+        "operationId": "workouts_sets_uncomplete_create",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkoutSetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutSet"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    }
+  }
+}
