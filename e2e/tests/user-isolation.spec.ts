@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
-const API_BASE = process.env.VITE_API_URL || 'http://127.0.0.1:18000';
+const API_BASE_OVERRIDE = process.env.VITE_API_URL;
 const PASSWORD = 'workout-isolation-pass';
 
 type TestUser = {
@@ -25,14 +25,16 @@ type SeededRecords = {
   sessionId?: number;
 };
 
-type Headers = Record<string, string>;
-
 function uniqueSuffix(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function apiUrl(path: string): string {
-  return `${API_BASE}${path}`;
+function apiOrigin(baseURL: string): string {
+  return API_BASE_OVERRIDE || baseURL;
+}
+
+function apiUrl(baseURL: string, path: string): string {
+  return new URL(path, apiOrigin(baseURL)).toString();
 }
 
 async function expectCreated(
@@ -44,10 +46,11 @@ async function expectCreated(
 
 async function createSession(
   request: APIRequestContext,
+  baseURL: string,
   prefix: string,
 ): Promise<Session> {
   const username = `${prefix}-${uniqueSuffix()}`;
-  const registerResponse = await request.post(apiUrl('/api/auth/register/'), {
+  const registerResponse = await request.post(apiUrl(baseURL, '/api/auth/register/'), {
     data: {
       username,
       email: `${username}@example.com`,
@@ -57,7 +60,7 @@ async function createSession(
   });
   expect(registerResponse.status(), await registerResponse.text()).toBe(201);
 
-  const loginResponse = await request.post(apiUrl('/api/auth/login/'), {
+  const loginResponse = await request.post(apiUrl(baseURL, '/api/auth/login/'), {
     form: { username, password: PASSWORD },
   });
   expect(loginResponse.status(), await loginResponse.text()).toBe(200);
@@ -78,12 +81,13 @@ async function authenticatePage(page: Page, session: Session): Promise<void> {
 
 async function seedCompletedWorkout(
   request: APIRequestContext,
+  baseURL: string,
   session: Session,
   marker: string,
 ): Promise<SeededRecords> {
   const headers = { Authorization: `Bearer ${session.token}` };
   const exercise = await expectCreated(
-    await request.post(apiUrl('/api/workouts/exercises/'), {
+    await request.post(apiUrl(baseURL, '/api/workouts/exercises/'), {
       headers,
       data: {
         name: `Private Lift ${marker}`,
@@ -97,7 +101,7 @@ async function seedCompletedWorkout(
   );
 
   const preset = await expectCreated(
-    await request.post(apiUrl('/api/workouts/presets/'), {
+    await request.post(apiUrl(baseURL, '/api/workouts/presets/'), {
       headers,
       data: {
         name: `Owner Preset ${marker}`,
@@ -119,7 +123,7 @@ async function seedCompletedWorkout(
 
   const startedAt = new Date(Date.now() - 60_000).toISOString();
   const workout = await expectCreated(
-    await request.post(apiUrl('/api/workouts/sessions/'), {
+    await request.post(apiUrl(baseURL, '/api/workouts/sessions/'), {
       headers,
       data: {
         name: `Finished Workout ${marker}`,
@@ -149,29 +153,40 @@ async function seedCompletedWorkout(
 
 async function cleanupRecords(
   request: APIRequestContext,
+  baseURL: string,
   session: Session,
   records: SeededRecords,
 ): Promise<void> {
   const headers = { Authorization: `Bearer ${session.token}` };
   if (records.sessionId !== undefined) {
-    await request.delete(apiUrl(`/api/workouts/sessions/${records.sessionId}/`), { headers });
+    await request.delete(
+      apiUrl(baseURL, `/api/workouts/sessions/${records.sessionId}/`),
+      { headers },
+    );
   }
   if (records.presetId !== undefined) {
-    await request.delete(apiUrl(`/api/workouts/presets/${records.presetId}/`), { headers });
+    await request.delete(
+      apiUrl(baseURL, `/api/workouts/presets/${records.presetId}/`),
+      { headers },
+    );
   }
   if (records.exerciseId !== undefined) {
-    await request.delete(apiUrl(`/api/workouts/exercises/${records.exerciseId}/`), { headers });
+    await request.delete(
+      apiUrl(baseURL, `/api/workouts/exercises/${records.exerciseId}/`),
+      { headers },
+    );
   }
 }
 
 test('completed workouts are isolated between browser sessions', async ({
+  baseURL,
   browser,
   request,
 }) => {
   const marker = uniqueSuffix();
-  const owner = await createSession(request, 'isolation-owner');
-  const intruder = await createSession(request, 'isolation-intruder');
-  const records = await seedCompletedWorkout(request, owner, marker);
+  const owner = await createSession(request, baseURL, 'isolation-owner');
+  const intruder = await createSession(request, baseURL, 'isolation-intruder');
+  const records = await seedCompletedWorkout(request, baseURL, owner, marker);
 
   let ownerContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
   let intruderContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
@@ -197,6 +212,6 @@ test('completed workouts are isolated between browser sessions', async ({
   } finally {
     await ownerContext?.close();
     await intruderContext?.close();
-    await cleanupRecords(request, owner, records);
+    await cleanupRecords(request, baseURL, owner, records);
   }
 });

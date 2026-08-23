@@ -5,7 +5,7 @@ import {
   type APIRequestContext,
 } from '@playwright/test';
 
-const API_BASE = process.env.VITE_API_URL || 'http://127.0.0.1:18000';
+const API_BASE_OVERRIDE = process.env.VITE_API_URL;
 
 type AuthContext = {
   userId: number;
@@ -21,10 +21,19 @@ type OwnedRecords = {
 
 type JsonRecord = Record<string, unknown>;
 
+function apiOrigin(baseURL: string): string {
+  return API_BASE_OVERRIDE || baseURL;
+}
+
+function apiUrl(baseURL: string, path: string): string {
+  return new URL(path, apiOrigin(baseURL)).toString();
+}
+
 const TEST_PASSWORD = 'unrelated-contract-password';
 
 async function createUser(
   request: APIRequestContext,
+  baseURL: string,
   suffix: string,
   marker: string,
 ): Promise<AuthContext> {
@@ -32,7 +41,7 @@ async function createUser(
   const password = TEST_PASSWORD;
   const email = `${username}@example.com`;
 
-  const registerResponse = await request.post(`${API_BASE}/api/auth/register/`, {
+  const registerResponse = await request.post(apiUrl(baseURL, '/api/auth/register/'), {
     data: { username, email, password, password_confirm: password },
   });
   const registered = (await registerResponse.json()) as {
@@ -41,7 +50,7 @@ async function createUser(
   expect(registerResponse.status(), await registerResponse.text()).toBe(201);
   expect(registered.user.username).toBe(username);
 
-  const loginResponse = await request.post(`${API_BASE}/api/auth/login/`, {
+  const loginResponse = await request.post(apiUrl(baseURL, '/api/auth/login/'), {
     data: { username, password },
   });
   const loggedIn = (await loginResponse.json()) as {
@@ -54,6 +63,7 @@ async function createUser(
   return {
     userId: registered.user.id,
     request: await playwrightRequest.newContext({
+      baseURL: apiOrigin(baseURL),
       extraHTTPHeaders: { Authorization: `Bearer ${loggedIn.access}` },
     }),
   };
@@ -64,7 +74,7 @@ async function postJson(
   path: string,
   data: unknown,
 ): Promise<JsonRecord> {
-  const response = await request.post(`${API_BASE}${path}`, { data });
+  const response = await request.post(path, { data });
   expect(response.status(), await response.text()).toBe(201);
   return response.json();
 }
@@ -73,7 +83,7 @@ async function getJson(
   request: APIRequestContext,
   path: string,
 ): Promise<JsonRecord> {
-  const response = await request.get(`${API_BASE}${path}`);
+  const response = await request.get(path);
   expect(response.status(), await response.text()).toBe(200);
   return response.json();
 }
@@ -82,17 +92,20 @@ async function getList(
   request: APIRequestContext,
   path: string,
 ): Promise<Array<Record<string, unknown>>> {
-  const response = await request.get(`${API_BASE}${path}`);
+  const response = await request.get(path);
   expect(response.status(), await response.text()).toBe(200);
   return response.json();
 }
 
-test('workout records enforce ownership across direct CRUD requests', async ({ request }) => {
+test('workout records enforce ownership across direct CRUD requests', async ({
+  baseURL,
+  request,
+}) => {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const userA = await createUser(request, suffix, 'owner');
+  const userA = await createUser(request, baseURL, suffix, 'owner');
   const ownerMarker = `Owner A ${suffix}`;
   const intruderMarker = `User B ${suffix}`;
-  const userB = await createUser(request, suffix, 'intruder');
+  const userB = await createUser(request, baseURL, suffix, 'intruder');
 
   const records = {} as OwnedRecords;
 
@@ -177,7 +190,7 @@ test('workout records enforce ownership across direct CRUD requests', async ({ r
 
     const accessViolations: string[] = [];
     for (const resource of resources) {
-      const getResponse = await userB.request.get(`${API_BASE}${resource.path}`);
+      const getResponse = await userB.request.get(resource.path);
       const getBody = await getResponse.text();
       if (![401, 403, 404].includes(getResponse.status())) {
         accessViolations.push(`GET ${resource.kind}: ${getResponse.status()}`);
@@ -186,7 +199,7 @@ test('workout records enforce ownership across direct CRUD requests', async ({ r
         accessViolations.push(`GET ${resource.kind} exposed the owner marker`);
       }
 
-      const patchResponse = await userB.request.patch(`${API_BASE}${resource.path}`, {
+      const patchResponse = await userB.request.patch(resource.path, {
         data: resource.mutation,
       });
       const patchBody = await patchResponse.text();
@@ -197,7 +210,7 @@ test('workout records enforce ownership across direct CRUD requests', async ({ r
         accessViolations.push(`PATCH ${resource.kind} exposed an owner payload`);
       }
 
-      const deleteResponse = await userB.request.delete(`${API_BASE}${resource.path}`);
+      const deleteResponse = await userB.request.delete(resource.path);
       const deleteBody = await deleteResponse.text();
       if (![401, 403, 404].includes(deleteResponse.status())) {
         accessViolations.push(`DELETE ${resource.kind}: ${deleteResponse.status()}`);
@@ -237,13 +250,13 @@ test('workout records enforce ownership across direct CRUD requests', async ({ r
     }
   } finally {
     if (records.sessionId !== undefined) {
-      await userA.request.delete(`${API_BASE}/api/workouts/sessions/${records.sessionId}/`);
+      await userA.request.delete(`/api/workouts/sessions/${records.sessionId}/`);
     }
     if (records.presetId !== undefined) {
-      await userA.request.delete(`${API_BASE}/api/workouts/presets/${records.presetId}/`);
+      await userA.request.delete(`/api/workouts/presets/${records.presetId}/`);
     }
     if (records.exerciseId !== undefined) {
-      await userA.request.delete(`${API_BASE}/api/workouts/exercises/${records.exerciseId}/`);
+      await userA.request.delete(`/api/workouts/exercises/${records.exerciseId}/`);
     }
     await userA.request.dispose();
     await userB.request.dispose();
