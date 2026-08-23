@@ -42,8 +42,30 @@ export interface WorkoutPresetItem extends DocumentItem {
   user_id?: number | null;
   name: string;
   notes?: string | null;
+  status?: 'active' | 'archived';
   day_label?: string | null;
+  tags?: unknown;
   is_public?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface WorkoutPlanItem extends DocumentItem {
+  entity_type: 'workout_plan';
+  id: number;
+  user_id: number;
+  name: string;
+  description?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface WorkoutPlanPresetItem extends DocumentItem {
+  entity_type: 'workout_plan_preset';
+  id: number;
+  plan_id: number;
+  preset_id: number;
+  order: number;
 }
 
 let testClock: (() => number) | undefined;
@@ -220,6 +242,14 @@ export function generatedSet(input: {
 
 export function isWorkoutPreset(item: DocumentItem): item is WorkoutPresetItem {
   return item.entity_type === 'workout_preset';
+}
+
+export function isWorkoutPlan(item: DocumentItem): item is WorkoutPlanItem {
+  return item.entity_type === 'workout_plan';
+}
+
+export function isWorkoutPlanPreset(item: DocumentItem): item is WorkoutPlanPresetItem {
+  return item.entity_type === 'workout_plan_preset';
 }
 
 export function isPresetExercise(item: DocumentItem): item is PresetExerciseRow {

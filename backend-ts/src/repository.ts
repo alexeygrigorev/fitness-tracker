@@ -8,6 +8,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand as DocQueryCommand,
+  ScanCommand as DocScanCommand,
   TransactWriteCommand as DocTransactWriteCommand,
   UpdateCommand as DocUpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -15,6 +16,7 @@ import type {
   DeleteCommandInput,
   PutCommandInput,
   QueryCommandInput,
+  ScanCommandInput,
   TransactWriteCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import type {
@@ -283,6 +285,25 @@ export class FitnessRepository {
       ExpressionAttributeValues: values,
       ScanIndexForward: input.scanIndexForward ?? true,
     });
+  }
+
+  async scan<T = DocumentItem>(
+    options: Omit<ScanCommandInput, 'TableName'>,
+  ): Promise<T[]> {
+    const items: T[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+
+    do {
+      const result = await this.client.send(new DocScanCommand({
+        TableName: this.tableName,
+        ...options,
+        ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+      }));
+      items.push(...((result.Items ?? []) as T[]));
+      exclusiveStartKey = result.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+
+    return items;
   }
 
   async update<T = DocumentItem>(input: {
