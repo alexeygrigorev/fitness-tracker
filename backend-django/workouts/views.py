@@ -4,9 +4,11 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from django.db.models import Prefetch, Q
 from django.http import Http404
 from django.db import transaction
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from .models import (
     Exercise, WorkoutSession, WorkoutSet, WorkoutPreset,
@@ -95,6 +97,92 @@ def preset_has_hidden_exercises(preset, user):
             if not is_exercise_visible(item.exercise, user):
                 return True
     return False
+
+
+def user_can_access_preset(preset, user):
+    """Own, common/template, and explicitly public presets are readable."""
+    return (
+        preset.user_id is None
+        or preset.user_id == user.id
+        or preset.is_public
+    )
+
+
+def _parse_datetime(value):
+    """Normalize client ISO timestamps while rejecting non-date scalars."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    if not isinstance(value, datetime):
+        raise ValueError("Invalid datetime")
+    return value
+
+
+def _decimal_value(value):
+    """Coerce JSON numbers/strings to the model's two-decimal precision."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ValueError("Invalid decimal")
+    try:
+        number = Decimal(str(value)).quantize(Decimal('0.01'))
+    except (InvalidOperation, ValueError):
+        raise ValueError("Invalid decimal")
+    if not number.is_finite() or number.adjusted() + 1 > 4:
+        raise ValueError("Invalid decimal")
+    return number
+
+
+def _integer_value(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ValueError("Invalid integer")
+    try:
+        if isinstance(value, float) and not value.is_integer():
+            raise ValueError("Invalid integer")
+        return int(value)
+    except (TypeError, ValueError):
+        raise ValueError("Invalid integer")
+
+
+def copy_preset_for_user(template, user):
+    """Copy a validated preset and its nested rows atomically."""
+    with transaction.atomic():
+        new_preset = WorkoutPreset.objects.create(
+            user=user,
+            name=template.name,
+            notes=template.notes,
+        )
+
+        preset_exercises = template.exercises.prefetch_related(
+            'superset_exercises__exercise'
+        ).order_by('order')
+        for preset_ex in preset_exercises:
+            new_preset_ex = WorkoutPresetExercise.objects.create(
+                preset=new_preset,
+                exercise=preset_ex.exercise,
+                type=preset_ex.type,
+                sets=preset_ex.sets,
+                dropdowns=preset_ex.dropdowns,
+                include_warmup=preset_ex.include_warmup,
+                order=preset_ex.order,
+            )
+            if preset_ex.type == "superset":
+                SupersetExerciseItem.objects.bulk_create([
+                    SupersetExerciseItem(
+                        superset=new_preset_ex,
+                        exercise=sup_item.exercise,
+                        type=sup_item.type,
+                        dropdowns=sup_item.dropdowns,
+                        include_warmup=sup_item.include_warmup,
+                        order=sup_item.order,
+                    )
+                    for sup_item in preset_ex.superset_exercises.all()
+                ])
+
+    return new_preset
 
 
 class ExerciseViewSet(viewsets.ModelViewSet):
@@ -229,32 +317,39 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        from django.utils import timezone
-        from datetime import datetime
         data = request.data.copy()
+        if not isinstance(data, dict):
+            return Response({"error": "Invalid workout"}, status=400)
+
         # Extract sets data before creating session (sets can't be directly assigned)
         sets_data = data.pop('sets', None)
+        if sets_data is not None and (
+            not isinstance(sets_data, list)
+            or any(not isinstance(set_data, dict) for set_data in sets_data)
+        ):
+            return Response({"error": "Invalid sets"}, status=400)
 
         try:
             # Parse ISO format datetimes sent by JavaScript clients.
             if 'startedAt' in data:
                 started_at = data.pop('startedAt')
-                if isinstance(started_at, str):
-                    data['created_at'] = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-                else:
-                    data['created_at'] = started_at
+                data['created_at'] = _parse_datetime(started_at)
             if 'created_at' not in data or data.get('created_at') is None:
                 data['created_at'] = timezone.now()
             if 'endedAt' in data:
                 ended_at = data.pop('endedAt')
-                if isinstance(ended_at, str):
-                    data['finished_at'] = datetime.fromisoformat(ended_at.replace('Z', '+00:00'))
-                else:
-                    data['finished_at'] = ended_at
+                data['finished_at'] = _parse_datetime(ended_at)
+
+            name = data.get('name')
+            notes = data.get('notes')
+            if (name is not None and not isinstance(name, str)) or (
+                notes is not None and not isinstance(notes, str)
+            ):
+                raise ValueError("Invalid text")
+            data['bodyweight'] = _decimal_value(data.get('bodyweight'))
         except (TypeError, ValueError):
             return Response({"error": "Invalid date"}, status=400)
 
-        # Only accept known scalar fields; ownership is assigned server-side.
         preset = None
         preset_id = data.get('preset_id', data.get('preset'))
         if preset_id is not None:
@@ -285,23 +380,29 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
                     if exercise is None:
                         raise ValidationError({"sets": "Invalid or unavailable exercise"})
 
-                    logged_at = set_data.get('loggedAt')
-                    if isinstance(logged_at, str):
-                        logged_at = datetime.fromisoformat(logged_at.replace('Z', '+00:00'))
+                    set_order = _integer_value(set_data.get('set_order', index))
+                    if set_order is None or set_order < 0:
+                        raise ValueError("Invalid set order")
+
+                    set_type = set_data.get(
+                        'setType', set_data.get('set_type', 'normal')
+                    )
+                    if set_type not in {choice for choice, _ in WorkoutSet.SET_TYPES}:
+                        raise ValueError("Invalid set type")
 
                     sets_to_create.append(WorkoutSet(
                         session=obj,
-                        set_order=set_data.get('set_order', index),
+                        set_order=set_order,
                         exercise=exercise,
-                        set_type=set_data.get('setType', set_data.get('set_type', 'normal')),
-                        weight=set_data.get('weight'),
-                        reps=set_data.get('reps'),
+                        set_type=set_type,
+                        weight=_decimal_value(set_data.get('weight')),
+                        reps=_integer_value(set_data.get('reps')),
                         dropdown_weights=set_data.get('dropdownWeights', set_data.get('dropdown_weights')),
-                        completed_at=logged_at,
+                        completed_at=_parse_datetime(set_data.get('loggedAt')),
                     ))
 
                 WorkoutSet.objects.bulk_create(sets_to_create)
-        except ValueError:
+        except (ValueError, ValidationError):
             return Response({"error": "Invalid date or numeric value"}, status=400)
 
         # Use serializer to include sets in the response
@@ -423,6 +524,8 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         # Only allow retrieving own presets or templates/public presets
         if obj.user_id != request.user.id and obj.user is not None and not obj.is_public:
             return Response({"error": "Not found"}, status=404)
+        if preset_has_hidden_exercises(obj, request.user):
+            return Response({"error": "Not found"}, status=404)
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
 
@@ -438,7 +541,13 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         _, error = self._require_owned_preset(request)
         if error is not None:
             return error
-        return super().update(request, *args, **kwargs)
+
+        obj = self.get_object()
+        serializer = self.get_serializer(obj, data=request.data)
+        serializer.context['exercises_data'] = request.data.get('exercises')
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
         """Create a new preset with exercises."""
@@ -486,6 +595,10 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         templates = WorkoutPreset.objects.filter(
             Q(user=None) | Q(is_public=True)
         ).prefetch_related('exercises__exercise', 'exercises__superset_exercises__exercise')
+        templates = [
+            preset for preset in templates
+            if not preset_has_hidden_exercises(preset, request.user)
+        ]
         serializer = self.get_serializer(templates, many=True)
         return Response(serializer.data)
 
@@ -512,39 +625,7 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         if preset_has_hidden_exercises(template, request.user):
             return Response({"error": "Template contains an unavailable exercise"}, status=403)
 
-        # Create a new preset for the user
-        new_preset = WorkoutPreset.objects.create(
-            user=request.user,
-            name=template.name,
-            notes=template.notes,
-        )
-
-        # Copy all exercises from the template
-        preset_exercises = template.exercises.prefetch_related(
-            "superset_exercises__exercise"
-        ).order_by("order")
-
-        for preset_ex in preset_exercises:
-            new_preset_ex = WorkoutPresetExercise.objects.create(
-                preset=new_preset,
-                exercise=preset_ex.exercise,
-                type=preset_ex.type,
-                sets=preset_ex.sets,
-                dropdowns=preset_ex.dropdowns,
-                include_warmup=preset_ex.include_warmup,
-                order=preset_ex.order,
-            )
-            # Copy superset items if applicable
-            if preset_ex.type == "superset":
-                for sup_item in preset_ex.superset_exercises.all():
-                    SupersetExerciseItem.objects.create(
-                        superset=new_preset_ex,
-                        exercise=sup_item.exercise,
-                        type=sup_item.type,
-                        dropdowns=sup_item.dropdowns,
-                        include_warmup=sup_item.include_warmup,
-                        order=sup_item.order,
-                    )
+        new_preset = copy_preset_for_user(template, request.user)
 
         serializer = self.get_serializer(new_preset)
         return Response(serializer.data, status=201)
@@ -555,48 +636,45 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         Accepts optional 'startedAt' and 'bodyweight' parameters.
         Allows multiple active workouts (does not auto-finish existing workouts).
         """
-        from django.utils import timezone
         from .serializers import WorkoutSessionSerializer, WorkoutSetSerializer
 
         preset = self.get_object()
+        if not user_can_access_preset(preset, request.user):
+            return Response({"error": "Preset not found"}, status=404)
         if preset_has_hidden_exercises(preset, request.user):
             return Response({"error": "Preset contains an unavailable exercise"}, status=403)
 
         # Get client-provided start time if available, otherwise use server time
         started_at = request.data.get('startedAt')
         try:
-            if isinstance(started_at, str):
-                created_time = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-            elif started_at is None:
+            created_time = _parse_datetime(started_at)
+            if created_time is None:
                 created_time = timezone.now()
-            else:
-                created_time = started_at
+            bodyweight = _decimal_value(request.data.get('bodyweight'))
         except (TypeError, ValueError):
             return Response({"error": "Invalid date"}, status=400)
 
-        # Get client-provided bodyweight if available
-        bodyweight = request.data.get('bodyweight')
+        try:
+            with transaction.atomic():
+                session = WorkoutSession.objects.create(
+                    user=request.user,
+                    preset=preset,
+                    name=preset.name,
+                    notes=preset.notes,
+                    bodyweight=bodyweight,
+                    created_at=created_time,
+                )
 
-        # Create the workout session
-        session = WorkoutSession.objects.create(
-            user=request.user,
-            preset=preset,
-            name=preset.name,
-            notes=preset.notes,
-            bodyweight=bodyweight,
-            created_at=created_time
-        )
-
-        # Prefetch and convert to list
-        preset_exercises = list(preset.exercises.prefetch_related(
-            "superset_exercises__exercise"
-        ).order_by("order"))
-
-        # Generate WorkoutSet instances (unsaved)
-        sets = generate_sets_from_preset(preset_exercises, session)
-
-        # Bulk create
-        WorkoutSet.objects.bulk_create(sets)
+                preset_exercises = list(preset.exercises.prefetch_related(
+                    "superset_exercises__exercise"
+                ).order_by("order"))
+                sets = generate_sets_from_preset(preset_exercises, session)
+                WorkoutSet.objects.bulk_create(sets)
+        except (ValueError, ValidationError):
+            return Response(
+                {"error": "Unable to create workout from preset"},
+                status=400,
+            )
 
         # Fetch the session from the database with its sets (refresh_from_db doesn't use prefetch_related)
         session = WorkoutSession.objects.filter(
@@ -688,27 +766,52 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
-        data["user_id"] = request.user.id
-        # Create the plan
-        plan = WorkoutPlan.objects.create(
-            user=request.user,
-            name=data.get("name"),
-            description=data.get("description", ""),
-        )
-        # Add presets if provided
+        name = data.get("name")
+        description = data.get("description", "")
+        if not isinstance(name, str) or not name.strip():
+            return Response({"error": "name is required"}, status=400)
+        if description is None:
+            description = ""
+        elif not isinstance(description, str):
+            return Response({"error": "Invalid description"}, status=400)
+
         preset_ids = data.get("preset_ids", [])
-        for idx, preset_id in enumerate(preset_ids):
+        if not isinstance(preset_ids, list):
+            return Response({"error": "preset_ids must be a list"}, status=400)
+
+        accessible_presets = WorkoutPreset.objects.filter(
+            Q(user=request.user) | Q(user__isnull=True) | Q(is_public=True)
+        )
+        presets = []
+        seen_preset_ids = set()
+        for preset_id in preset_ids:
+            if isinstance(preset_id, bool):
+                return Response({"error": "One or more presets are unavailable"}, status=400)
             try:
-                preset = WorkoutPreset.objects.filter(
-                    Q(user=request.user) | Q(user__isnull=True) | Q(is_public=True)
-                ).get(id=preset_id)
-                WorkoutPlanPreset.objects.create(
-                    plan=plan,
-                    preset=preset,
-                    order=idx
-                )
-            except WorkoutPreset.DoesNotExist:
-                continue
+                normalized_id = int(preset_id)
+                if normalized_id < 1 or normalized_id in seen_preset_ids:
+                    return Response(
+                        {"error": "One or more presets are unavailable"},
+                        status=400,
+                    )
+                seen_preset_ids.add(normalized_id)
+                presets.append(accessible_presets.get(id=normalized_id))
+            except (WorkoutPreset.DoesNotExist, TypeError, ValueError):
+                return Response({"error": "One or more presets are unavailable"}, status=400)
+
+        if any(preset_has_hidden_exercises(preset, request.user) for preset in presets):
+            return Response({"error": "One or more presets are unavailable"}, status=400)
+
+        with transaction.atomic():
+            plan = WorkoutPlan.objects.create(
+                user=request.user,
+                name=name.strip(),
+                description=description,
+            )
+            WorkoutPlanPreset.objects.bulk_create([
+                WorkoutPlanPreset(plan=plan, preset=preset, order=index)
+                for index, preset in enumerate(presets)
+            ])
         return Response(model_to_dict(plan), status=201)
 
     def partial_update(self, request, *args, **kwargs):
@@ -740,51 +843,28 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
             return Response({"error": "Cannot use a plan created by another user"}, status=403)
 
         copied_presets = []
-        plan_presets = plan.plan_presets.all().order_by("order")
+        plan_presets = plan.plan_presets.select_related("preset").prefetch_related(
+            "preset__exercises__exercise",
+            "preset__exercises__superset_exercises__exercise",
+        ).order_by("order")
 
+        templates = []
         for plan_preset in plan_presets:
             template = plan_preset.preset
-            if preset_has_hidden_exercises(template, request.user):
+            if not user_can_access_preset(template, request.user) or preset_has_hidden_exercises(
+                template, request.user
+            ):
                 return Response(
                     {"error": "Plan contains a preset with an unavailable exercise"},
                     status=403,
                 )
+            templates.append(template)
 
-            # Create a new preset for the user
-            new_preset = WorkoutPreset.objects.create(
-                user=request.user,
-                name=template.name,
-                notes=template.notes,
+        with transaction.atomic():
+            copied_presets.extend(
+                copy_preset_for_user(template, request.user)
+                for template in templates
             )
-
-            # Copy all exercises from the template
-            preset_exercises = template.exercises.prefetch_related(
-                "superset_exercises__exercise"
-            ).order_by("order")
-
-            for preset_ex in preset_exercises:
-                new_preset_ex = WorkoutPresetExercise.objects.create(
-                    preset=new_preset,
-                    exercise=preset_ex.exercise,
-                    type=preset_ex.type,
-                    sets=preset_ex.sets,
-                    dropdowns=preset_ex.dropdowns,
-                    include_warmup=preset_ex.include_warmup,
-                    order=preset_ex.order,
-                )
-                # Copy superset items if applicable
-                if preset_ex.type == "superset":
-                    for sup_item in preset_ex.superset_exercises.all():
-                        SupersetExerciseItem.objects.create(
-                            superset=new_preset_ex,
-                            exercise=sup_item.exercise,
-                            type=sup_item.type,
-                            dropdowns=sup_item.dropdowns,
-                            include_warmup=sup_item.include_warmup,
-                            order=sup_item.order,
-                        )
-
-            copied_presets.append(new_preset)
 
         # Serialize the copied presets with exercises
         preset_serializer = WorkoutPresetSerializer(copied_presets, many=True)
