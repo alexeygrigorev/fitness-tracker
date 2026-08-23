@@ -1,105 +1,202 @@
-import { test, expect, type Page } from '@playwright/test';
-import { clearAllWorkoutState, ensureTestPresets, findAndClickPreset } from './helpers';
+import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
-/**
- * User Isolation Test
- *
- * Verifies that users can only see their own workouts:
- * 1. User 1 creates and finishes a workout
- * 2. User 1 logs out
- * 3. User 2 logs in
- * 4. User 2 should NOT see User 1's workout
- */
+const API_BASE = process.env.VITE_API_URL || 'http://127.0.0.1:18000';
+const PASSWORD = 'workout-isolation-pass';
 
-async function login(page: Page, username: string, password: string) {
-  await page.goto('/login');
-  await page.getByPlaceholder('Enter your username').fill(username);
-  await page.getByPlaceholder('Enter your password').fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
-  await page.waitForURL(/^(?!.*\/login).*$/, { timeout: 10000 });
+type TestUser = {
+  id: number;
+  username: string;
+  email: string;
+};
+
+type LoginResponse = {
+  access: string;
+  user: TestUser;
+};
+
+type Session = {
+  token: string;
+  user: TestUser;
+};
+
+type SeededRecords = {
+  exerciseId?: number;
+  presetId?: number;
+  sessionId?: number;
+};
+
+type Headers = Record<string, string>;
+
+function uniqueSuffix(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-async function logout(page: Page) {
-  await page.getByTitle('Logout').click();
-  await page.waitForURL('/login', { timeout: 5000 });
+function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
 }
 
-test.describe('User Isolation', () => {
-  test('users cannot see each other workouts', async ({ page }) => {
-    // Auto-accept dialogs
-    page.on('dialog', dialog => dialog.accept());
+async function expectCreated(
+  response: Awaited<ReturnType<APIRequestContext['post']>>,
+): Promise<Record<string, unknown>> {
+  expect(response.status(), await response.text()).toBe(201);
+  return response.json();
+}
 
-    // User 1 (test) logs in and creates a workout
-    await login(page, 'test', 'test');
-    await page.goto('/workouts');
-    await page.waitForLoadState('networkidle');
-
-    // Clear any existing workout state and ensure test presets are ready
-    await clearAllWorkoutState(page);
-    await ensureTestPresets(page);
-
-    // Start Push Day workout
-    await findAndClickPreset(page, /Push Day/i);
-
-    // Wait for active workout mode
-    const activeWorkout = page.locator('.bg-blue-50.dark\\:bg-blue-900\\/20.border-2.border-blue-400');
-    await expect(activeWorkout).toBeVisible({ timeout: 5000 });
-
-    // Complete one set - use the Dropdown badge selector
-    const firstSetRow = page.locator('.border.rounded-lg').filter({ hasText: /Bench Press.*Drop/ }).first();
-    await expect(firstSetRow).toBeVisible();
-    await firstSetRow.click();
-
-    await page.locator('input[placeholder="kg"]').nth(0).fill('60');
-    await page.locator('input[placeholder="reps"]').nth(0).fill('10');
-    await page.locator('input[placeholder="kg"]').nth(1).fill('57.5');
-    await page.locator('input[placeholder="reps"]').nth(1).fill('10');
-    await page.locator('input[placeholder="kg"]').nth(2).fill('55');
-    await page.locator('input[placeholder="reps"]').nth(2).fill('10');
-
-    await page.getByRole('button', { name: 'Save' }).click();
-    await expect(firstSetRow.locator('[data-icon="check"]')).toBeVisible({ timeout: 5000 });
-
-    // Finish the workout
-    await page.getByRole('button', { name: /Finish Workout/ }).click();
-    await expect(activeWorkout).not.toBeVisible({ timeout: 10000 });
-    await page.waitForLoadState('networkidle');
-
-    // Get the workout ID for verification
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    // Wait a bit for the workout list to populate
-    await page.waitForTimeout(1000);
-    // Find any workout with data-workout-id attribute
-    const loggedWorkout = page.locator('[data-workout-id]').first();
-    await expect(loggedWorkout).toBeVisible({ timeout: 5000 });
-    const workoutId = await loggedWorkout.getAttribute('data-workout-id');
-    expect(workoutId).not.toBeNull();
-
-    // Count workouts before logout
-    const workoutsCountUser1 = await page.locator('[data-workout-id]').count();
-    expect(workoutsCountUser1).toBeGreaterThan(0);
-
-    // User 1 logs out
-    await logout(page);
-
-    // User 2 (test2) logs in
-    await login(page, 'test2', 'test2');
-    await page.goto('/workouts');
-    await page.waitForLoadState('networkidle');
-
-    // User 2 should NOT see User 1's workout (by data-workout-id)
-    const user1Workout = page.locator(`[data-workout-id="${workoutId}"]`);
-    await expect(user1Workout).not.toBeVisible({ timeout: 5000 });
-
-    // User 2's workout list should be empty or different (no workout with User 1's ID)
-    const allWorkoutIds = page.locator('[data-workout-id]');
-    const count = await allWorkoutIds.count();
-
-    // Verify none of User 2's workouts have the same ID as User 1's workout
-    for (let i = 0; i < count; i++) {
-      const id = await allWorkoutIds.nth(i).getAttribute('data-workout-id');
-      expect(id).not.toBe(workoutId);
-    }
+async function createSession(
+  request: APIRequestContext,
+  prefix: string,
+): Promise<Session> {
+  const username = `${prefix}-${uniqueSuffix()}`;
+  const registerResponse = await request.post(apiUrl('/api/auth/register/'), {
+    data: {
+      username,
+      email: `${username}@example.com`,
+      password: PASSWORD,
+      password_confirm: PASSWORD,
+    },
   });
+  expect(registerResponse.status(), await registerResponse.text()).toBe(201);
+
+  const loginResponse = await request.post(apiUrl('/api/auth/login/'), {
+    form: { username, password: PASSWORD },
+  });
+  expect(loginResponse.status(), await loginResponse.text()).toBe(200);
+  const loggedIn = (await loginResponse.json()) as LoginResponse;
+
+  return {
+    token: loggedIn.access,
+    user: loggedIn.user,
+  };
+}
+
+async function authenticatePage(page: Page, session: Session): Promise<void> {
+  await page.addInitScript(({ token, user }) => {
+    window.localStorage.setItem('token', token);
+    window.localStorage.setItem('user', JSON.stringify(user));
+  }, session);
+}
+
+async function seedCompletedWorkout(
+  request: APIRequestContext,
+  session: Session,
+  marker: string,
+): Promise<SeededRecords> {
+  const headers = { Authorization: `Bearer ${session.token}` };
+  const exercise = await expectCreated(
+    await request.post(apiUrl('/api/workouts/exercises/'), {
+      headers,
+      data: {
+        name: `Private Lift ${marker}`,
+        category: 'isolation',
+        bodyweight: false,
+        muscleGroups: ['Chest'],
+        equipment: null,
+        instructions: [],
+      },
+    }),
+  );
+
+  const preset = await expectCreated(
+    await request.post(apiUrl('/api/workouts/presets/'), {
+      headers,
+      data: {
+        name: `Owner Preset ${marker}`,
+        notes: `Visible only to ${session.user.username}`,
+        dayLabel: null,
+        tags: ['user-isolation'],
+        is_public: false,
+        exercises: [{
+          exerciseId: exercise.id,
+          type: 'normal',
+          sets: 1,
+          dropdowns: null,
+          includeWarmup: false,
+          order: 0,
+        }],
+      },
+    }),
+  );
+
+  const startedAt = new Date(Date.now() - 60_000).toISOString();
+  const workout = await expectCreated(
+    await request.post(apiUrl('/api/workouts/sessions/'), {
+      headers,
+      data: {
+        name: `Finished Workout ${marker}`,
+        notes: `Owner-only ${marker}`,
+        preset_id: preset.id,
+        startedAt,
+        endedAt: new Date().toISOString(),
+        sets: [{
+          set_order: 0,
+          exerciseId: exercise.id,
+          setType: 'normal',
+          weight: 42.5,
+          reps: 8,
+          dropdownWeights: null,
+          loggedAt: startedAt,
+        }],
+      },
+    }),
+  );
+
+  return {
+    exerciseId: Number(exercise.id),
+    presetId: Number(preset.id),
+    sessionId: Number(workout.id),
+  };
+}
+
+async function cleanupRecords(
+  request: APIRequestContext,
+  session: Session,
+  records: SeededRecords,
+): Promise<void> {
+  const headers = { Authorization: `Bearer ${session.token}` };
+  if (records.sessionId !== undefined) {
+    await request.delete(apiUrl(`/api/workouts/sessions/${records.sessionId}/`), { headers });
+  }
+  if (records.presetId !== undefined) {
+    await request.delete(apiUrl(`/api/workouts/presets/${records.presetId}/`), { headers });
+  }
+  if (records.exerciseId !== undefined) {
+    await request.delete(apiUrl(`/api/workouts/exercises/${records.exerciseId}/`), { headers });
+  }
+}
+
+test('completed workouts are isolated between browser sessions', async ({
+  browser,
+  request,
+}) => {
+  const marker = uniqueSuffix();
+  const owner = await createSession(request, 'isolation-owner');
+  const intruder = await createSession(request, 'isolation-intruder');
+  const records = await seedCompletedWorkout(request, owner, marker);
+
+  let ownerContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
+  let intruderContext: Awaited<ReturnType<typeof browser.newContext>> | undefined;
+
+  try {
+    ownerContext = await browser.newContext();
+    const ownerPage = await ownerContext.newPage();
+    await authenticatePage(ownerPage, owner);
+    await ownerPage.goto('/workouts');
+
+    const ownerWorkout = ownerPage.locator(`[data-workout-id="${records.sessionId}"]`);
+    await expect(ownerWorkout).toContainText(`Finished Workout ${marker}`);
+
+    intruderContext = await browser.newContext();
+    const intruderPage = await intruderContext.newPage();
+    await authenticatePage(intruderPage, intruder);
+    await intruderPage.goto('/workouts');
+
+    await expect(intruderPage.getByText(marker)).toHaveCount(0);
+    await expect(
+      intruderPage.locator(`[data-workout-id="${records.sessionId}"]`),
+    ).toHaveCount(0);
+  } finally {
+    await ownerContext?.close();
+    await intruderContext?.close();
+    await cleanupRecords(request, owner, records);
+  }
 });

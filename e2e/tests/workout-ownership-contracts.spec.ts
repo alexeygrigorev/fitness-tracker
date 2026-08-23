@@ -21,27 +21,34 @@ type OwnedRecords = {
 
 type JsonRecord = Record<string, unknown>;
 
+const TEST_PASSWORD = 'unrelated-contract-password';
+
 async function createUser(
   request: APIRequestContext,
   suffix: string,
   marker: string,
 ): Promise<AuthContext> {
   const username = `ownership_${marker}_${suffix}`;
-  const password = `ownership-${suffix}-password`;
+  const password = TEST_PASSWORD;
   const email = `${username}@example.com`;
 
   const registerResponse = await request.post(`${API_BASE}/api/auth/register/`, {
     data: { username, email, password, password_confirm: password },
   });
-  const registered = await registerResponse.json();
-  expect(registerResponse.status()).toBe(201);
+  const registered = (await registerResponse.json()) as {
+    user?: { username?: string };
+  };
+  expect(registerResponse.status(), await registerResponse.text()).toBe(201);
   expect(registered.user.username).toBe(username);
 
   const loginResponse = await request.post(`${API_BASE}/api/auth/login/`, {
     data: { username, password },
   });
-  expect(loginResponse.status()).toBe(200);
-  const loggedIn = await loginResponse.json();
+  const loggedIn = (await loginResponse.json()) as {
+    access: string;
+    user?: { id?: number };
+  };
+  expect(loginResponse.status(), await loginResponse.text()).toBe(200);
   expect(loggedIn.user.id).toBe(registered.user.id);
 
   return {
