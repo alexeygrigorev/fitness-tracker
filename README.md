@@ -72,8 +72,12 @@ fitness-tracker/
 ├── web/                 # React + Vite frontend
 │   ├── src/
 │   │   ├── components/  # React components
-│   │   ├── contexts/    # Auth context
-│   │   ├── lib/         # API client, types
+│   │   ├── api/         # API clients
+│   │   ├── auth/        # Authentication context and pages
+│   │   ├── food/        # Nutrition components and pages
+│   │   ├── health/      # Sleep and metabolism pages
+│   │   ├── types/       # Shared TypeScript types
+│   │   ├── workout/     # Workout components and set helpers
 │   │   └── pages/       # Page components
 │   └── tests/           # Frontend unit tests
 ├── e2e/                 # Playwright E2E tests
