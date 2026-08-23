@@ -132,6 +132,33 @@ class AuthorizationBoundaryTests(TestCase):
             WorkoutSession.objects.filter(user=self.bob, preset=preset).exists()
         )
 
+    def test_cannot_directly_create_session_from_unsafe_public_preset(self):
+        foreign_exercise = Exercise.objects.create(
+            user=self.alice, name="Alice Secret Lift"
+        )
+        preset = WorkoutPreset.objects.create(
+            user=self.alice, name="Shared But Unsafe", is_public=True
+        )
+        WorkoutPresetExercise.objects.create(
+            preset=preset,
+            exercise=foreign_exercise,
+            type="normal",
+            sets=1,
+            order=0,
+        )
+        self.client.force_authenticate(user=self.bob)
+
+        response = self.client.post(
+            reverse("workoutsession-list"),
+            {"name": "Direct Session", "preset_id": preset.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            WorkoutSession.objects.filter(user=self.bob, preset=preset).exists()
+        )
+
     def test_malformed_sets_payload_returns_400_without_session(self):
         self.client.force_authenticate(user=self.alice)
 

@@ -370,6 +370,11 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             ).first()
             if preset is None:
                 return Response({"error": "Preset not found"}, status=404)
+            if preset_has_hidden_exercises(preset, request.user):
+                return Response(
+                    {"error": "Preset contains an unavailable exercise"},
+                    status=403,
+                )
 
         try:
             with transaction.atomic():
