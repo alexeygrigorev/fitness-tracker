@@ -54,6 +54,7 @@ Resources:
           AllowMethods:
             - GET
             - POST
+            - PUT
             - PATCH
             - OPTIONS
           AllowHeaders:

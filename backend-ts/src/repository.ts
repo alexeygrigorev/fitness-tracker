@@ -4,6 +4,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
+  BatchGetCommand,
   DeleteCommand as DocDeleteCommand,
   GetCommand,
   PutCommand,
@@ -18,8 +19,12 @@ import type {
   TransactWriteCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import type {
+  AccessIndexRecord,
   ExerciseItem,
   ExerciseSettingsItem,
+  FoodItemRecord,
+  MealRecord,
+  MealTemplateRecord,
   UserItem,
 } from './types.js';
 import { HttpError } from './types.js';
@@ -39,7 +44,7 @@ export class FitnessRepository {
   private readonly client: DynamoDBDocumentClient;
 
   constructor(
-    private readonly tableName: string,
+    readonly tableName: string,
     endpoint?: string,
   ) {
     const raw = new DynamoDBClient({
@@ -175,6 +180,183 @@ export class FitnessRepository {
     await this.client.send(new PutCommand({ TableName: this.tableName, Item: exercise }));
   }
 
+  getFood(id: number): Promise<FoodItemRecord | undefined> {
+    return this.getItem<FoodItemRecord>({ pk: `FOOD#${id}`, sk: 'METADATA' });
+  }
+
+  async listFoods(userId?: number): Promise<FoodItemRecord[]> {
+    const partitions = userId === undefined
+      ? ['CANONICAL#FOOD']
+      : [`USER#${userId}`, 'CANONICAL#FOOD'];
+    const indexes = await Promise.all(partitions.map((partition) =>
+      this.queryPartition<AccessIndexRecord>({
+        partitionKey: partition,
+        sortPrefix: 'FOOD#',
+      })
+    ));
+
+    const ids = [...new Set(indexes.flat().map((index) => index.id))]
+      .sort((left, right) => left - right);
+    const foods = await this.batchGet<FoodItemRecord>(ids.map((id) => ({
+      pk: `FOOD#${id}`,
+      sk: 'METADATA',
+    })));
+    return foods.filter((food) => (
+      food.source === 'canonical' ||
+      (userId !== undefined && food.user_id === userId)
+    )).sort((left, right) => left.id - right.id);
+  }
+
+  async saveFood(food: FoodItemRecord): Promise<void> {
+    const indexKey = food.user_id === null
+      ? { pk: 'CANONICAL#FOOD', sk: `FOOD#${food.id}` }
+      : { pk: `USER#${food.user_id}`, sk: `FOOD#${food.id}` };
+    await this.transact([
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: food,
+          ConditionExpression: 'attribute_not_exists(pk)',
+        },
+      },
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: { ...indexKey, id: food.id },
+          ConditionExpression: 'attribute_not_exists(pk)',
+        },
+      },
+    ]);
+  }
+
+  async replaceFood(food: FoodItemRecord): Promise<void> {
+    await this.put(food as DocumentItem);
+  }
+
+  async deleteFood(food: FoodItemRecord): Promise<void> {
+    const indexKey = food.user_id === null
+      ? { pk: 'CANONICAL#FOOD', sk: `FOOD#${food.id}` }
+      : { pk: `USER#${food.user_id}`, sk: `FOOD#${food.id}` };
+    await this.transact([
+      { Delete: { TableName: this.tableName, Key: { pk: food.pk, sk: food.sk } } },
+      { Delete: { TableName: this.tableName, Key: indexKey } },
+    ]);
+  }
+
+  async getMeal(id: number): Promise<MealRecord | undefined> {
+    return this.getItem<MealRecord>({ pk: `MEAL#${id}`, sk: 'METADATA' });
+  }
+
+  async listMeals(userId: number): Promise<MealRecord[]> {
+    return this.listOwnedRecords<MealRecord>(`USER#${userId}`, 'MEAL#', 'MEAL#');
+  }
+
+  async saveNewMeal(meal: MealRecord): Promise<void> {
+    await this.saveOwnedRecord(meal, `MEAL#${meal.id}`, `USER#${meal.user_id}`);
+  }
+
+  async replaceMeal(meal: MealRecord): Promise<void> {
+    await this.put(meal);
+  }
+
+  async deleteMeal(id: number): Promise<void> {
+    await this.deleteOwnedRecord(`MEAL#${id}`);
+  }
+
+  async getMealTemplate(id: number): Promise<MealTemplateRecord | undefined> {
+    return this.getItem<MealTemplateRecord>({
+      pk: `TEMPLATE#${id}`,
+      sk: 'METADATA',
+    });
+  }
+
+  async listMealTemplates(userId: number): Promise<MealTemplateRecord[]> {
+    return this.listOwnedRecords<MealTemplateRecord>(
+      `USER#${userId}`,
+      'TEMPLATE#',
+      'TEMPLATE#',
+    );
+  }
+
+  async saveNewMealTemplate(template: MealTemplateRecord): Promise<void> {
+    await this.saveOwnedRecord(
+      template,
+      `TEMPLATE#${template.id}`,
+      `USER#${template.user_id}`,
+    );
+  }
+
+  async replaceMealTemplate(template: MealTemplateRecord): Promise<void> {
+    await this.put(template);
+  }
+
+  async deleteMealTemplate(id: number): Promise<void> {
+    await this.deleteOwnedRecord(`TEMPLATE#${id}`);
+  }
+
+  private async listOwnedRecords<T extends { id: number }>(
+    ownerPartition: string,
+    indexSortPrefix: string,
+    metadataPrefix: string,
+  ): Promise<T[]> {
+    const indexes = await this.queryPartition<AccessIndexRecord>({
+      partitionKey: ownerPartition,
+      sortPrefix: indexSortPrefix,
+    });
+    const records = await this.batchGet<T>(indexes.map((index) => ({
+      pk: `${metadataPrefix.toUpperCase()}#${index.id}`,
+      sk: 'METADATA',
+    })));
+    return records.sort((left, right) => left.id - right.id);
+  }
+
+  private async saveOwnedRecord(
+    record: DocumentItem,
+    metadataPk: string,
+    ownerPartition: string,
+  ): Promise<void> {
+    const sortKey = metadataPk.split('#').slice(1).join('#');
+    await this.transact([
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: record,
+          ConditionExpression: 'attribute_not_exists(pk)',
+        },
+      },
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: { pk: ownerPartition, sk: sortKey, id: record.id },
+          ConditionExpression: 'attribute_not_exists(pk)',
+        },
+      },
+    ]);
+  }
+
+  private async deleteOwnedRecord(metadataPk: string): Promise<void> {
+    const metadata = await this.get<DocumentItem & { user_id?: number }>({
+      pk: metadataPk,
+      sk: 'METADATA',
+    });
+    const userId = metadata?.user_id;
+    if (!metadata || typeof userId !== 'number') {
+      return;
+    }
+    await this.transact([
+      { Delete: { TableName: this.tableName, Key: { pk: metadataPk, sk: 'METADATA' } } },
+      {
+        Delete: {
+          TableName: this.tableName,
+          Key: {
+            pk: `USER#${userId}`,
+            sk: metadataPk.split('#')[1] ?? '',
+          },
+        },
+      },
+    ]);
+  }
+
   async listExerciseSettings(userId: number): Promise<Record<string, object>> {
     const result = await this.client.send(
       new DocQueryCommand({
@@ -299,6 +481,30 @@ export class FitnessRepository {
     await this.client.send(new DocTransactWriteCommand({
       TransactItems: operations,
     }));
+  }
+
+  async batchGet<T = DocumentItem>(
+    keys: ReadonlyArray<Record<string, unknown>>,
+  ): Promise<T[]> {
+    const items: T[] = [];
+    const pending = [...keys];
+
+    while (pending.length > 0) {
+      const batch = pending.splice(0, 100);
+      let requestKeys = batch;
+
+      while (requestKeys.length > 0) {
+        const result = await this.client.send(new BatchGetCommand({
+          RequestItems: { [this.tableName]: { Keys: requestKeys } },
+        }));
+        items.push(...((result.Responses?.[this.tableName] ?? []) as T[]));
+
+        const unprocessed = result.UnprocessedKeys?.[this.tableName]?.Keys ?? [];
+        requestKeys = unprocessed as Array<Record<string, unknown>>;
+      }
+    }
+
+    return items;
   }
 }
 
