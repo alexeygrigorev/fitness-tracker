@@ -62,7 +62,12 @@ export async function createWorkoutPreset(
   presetId: number,
   name: string,
   rows: PresetRowSpec[],
-  options: { notes?: string; dayLabel?: string } = {},
+  options: {
+    dayLabel?: string;
+    isPublic?: boolean;
+    notes?: string;
+    ownerId?: number | null;
+  } = {},
 ): Promise<void> {
   const partition = `PRESET#${presetId}`;
   const items: Array<Record<string, unknown>> = [{
@@ -70,20 +75,21 @@ export async function createWorkoutPreset(
     sk: 'METADATA',
     entity_type: 'workout_preset',
     id: presetId,
-    user_id: null,
+    user_id: options.ownerId ?? null,
     name,
     ...(options.notes === undefined ? {} : { notes: options.notes }),
     ...(options.dayLabel === undefined ? {} : { day_label: options.dayLabel }),
-    is_public: false,
+    is_public: options.isPublic === true,
   }];
 
   for (const row of rows) {
     if (row.kind === 'superset') {
       items.push({
         pk: partition,
-        sk: `ROW#${String(row.order).padStart(4, '0')}#${row.id}`,
+        sk: `PRESET_EXERCISE#${row.id}`,
         entity_type: 'preset_exercise',
         id: row.id,
+        parent_preset_id: presetId,
         exercise_id: null,
         type: 'superset',
         sets: row.sets,
@@ -97,6 +103,7 @@ export async function createWorkoutPreset(
           entity_type: 'superset_item',
           id: child.id,
           parent_row_id: row.id,
+          parent_preset_id: presetId,
           exercise_id: child.exerciseId,
           type: child.type ?? 'normal',
           ...(child.dropdowns === undefined ? {} : { dropdowns: child.dropdowns }),
@@ -109,9 +116,10 @@ export async function createWorkoutPreset(
 
     items.push({
       pk: partition,
-      sk: `ROW#${String(row.order).padStart(4, '0')}#${row.id}`,
+      sk: `PRESET_EXERCISE#${row.id}`,
       entity_type: 'preset_exercise',
       id: row.id,
+      parent_preset_id: presetId,
       exercise_id: row.exerciseId,
       type: row.type ?? 'normal',
       sets: row.sets,

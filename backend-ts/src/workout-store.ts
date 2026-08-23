@@ -29,6 +29,7 @@ export interface PresetExerciseRow extends DocumentItem {
   entity_type: 'preset_exercise';
   id: number;
   exercise_id?: number | null;
+  exercise_name?: string | null;
   type: 'normal' | 'dropdown' | 'superset';
   sets: number;
   dropdowns?: number | null;
