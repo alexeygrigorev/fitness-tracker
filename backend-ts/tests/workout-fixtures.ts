@@ -20,7 +20,7 @@ export interface NormalRowSpec {
 export interface SupersetChildSpec {
   id: number;
   exerciseId: number;
-  type?: 'normal' | 'dropdown';
+  type?: 'normal' | 'dropdown' | 'bodyweight';
   dropdowns?: number;
   includeWarmup?: boolean;
   order: number;
