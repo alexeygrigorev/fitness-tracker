@@ -56,6 +56,7 @@ function seedExercise(id: number, ownerId: number | null, name: string): void {
   void put([{
     pk: `EXERCISE#${id}`,
     sk: 'METADATA',
+    entity_type: 'exercise',
     id,
     user_id: ownerId,
     name,
@@ -83,48 +84,65 @@ interface SeedPresetInput {
 }
 
 async function seedPreset(input: SeedPresetInput): Promise<void> {
-  await put([{
-    pk: `PRESET#${input.id}`,
-    sk: 'METADATA',
-    id: input.id,
-    user_id: input.ownerId ?? null,
-    name: input.name,
-    notes: input.notes ?? null,
-    status: 'active',
-    day_label: null,
-    tags: [],
-    is_public: input.isPublic === true,
-    created_at: '2026-01-01T00:00:00.000Z',
-    updated_at: '2026-01-01T00:00:00.000Z',
-  }]);
-  await put(input.rows.flatMap((row) => {
-    const rowItem: Item = {
+  await put([
+    {
+      pk: `PRESET#${input.id}`,
+      sk: 'METADATA',
+      entity_type: 'workout_preset',
+      id: input.id,
+      user_id: input.ownerId ?? null,
+      name: input.name,
+      notes: input.notes ?? null,
+      status: 'active',
+      day_label: null,
+      tags: [],
+      is_public: input.isPublic === true,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    },
+    ...input.rows.map((row) => ({
       pk: `PRESET#${input.id}`,
       sk: `PRESET_EXERCISE#${row.id}`,
+      entity_type: 'preset_exercise',
       id: row.id,
-      preset_id: input.id,
+      parent_preset_id: input.id,
       exercise_id: row.exerciseId ?? null,
-      exercise_name: '',
       type: row.type ?? 'normal',
       sets: row.sets ?? 3,
       dropdowns: null,
       include_warmup: false,
       order: row.order,
-    };
-    const childItems = (row.items ?? []).map((child) => ({
-      pk: `PRESET_EXERCISE#${row.id}`,
-      sk: `SUPERSET_ITEM#${child.id}`,
+    })),
+    ...input.rows.flatMap((row) => (row.items ?? []).map((child) => ({
+      pk: `PRESET#${input.id}`,
+      sk: `SUPERSET_ITEM#${row.id}#${child.id}`,
+      entity_type: 'superset_item',
       id: child.id,
-      row_id: row.id,
-      preset_id: input.id,
+      parent_row_id: row.id,
+      parent_preset_id: input.id,
       exercise_id: child.exerciseId,
       type: 'normal',
       dropdowns: null,
       include_warmup: false,
       order: child.order,
-    }));
-    return [rowItem, ...childItems];
-  }));
+    }))),
+  ]);
+}
+
+function presetRows(items: Item[], presetId: number): Item[] {
+  return items.filter((item) =>
+    item.pk === `PRESET#${presetId}` &&
+    String(item.sk).startsWith('PRESET_EXERCISE#'));
+}
+
+function supersetRows(items: Item[], presetId: number): Item[] {
+  return items.filter((item) =>
+    item.pk === `PRESET#${presetId}` &&
+    String(item.sk).startsWith('SUPERSET_ITEM#'));
+}
+
+async function presetPartition(presetId: number): Promise<Item[]> {
+  return partition(`PRESET#${presetId}`);
 }
 
 async function seedSession(
@@ -133,8 +151,9 @@ async function seedSession(
   name: string,
 ): Promise<void> {
   await put([{
-    pk: `SESSION#${id}`,
-    sk: 'METADATA',
+    pk: `USER#${ownerId}`,
+    sk: `SESSION#${String(id).padStart(8, '0')}`,
+    entity_type: 'workout_session',
     id,
     user_id: ownerId,
     preset_id: null,
@@ -148,15 +167,18 @@ async function seedSession(
 
 async function seedSet(
   id: number,
+  ownerId: number,
   sessionId: number,
   exerciseId: number,
   order = 0,
 ): Promise<void> {
   await put([{
-    pk: `SESSION#${sessionId}`,
-    sk: `SET#${id}`,
+    pk: `USER#${ownerId}`,
+    sk: `WORKOUT_SET#${String(order).padStart(8, '0')}#${id}`,
+    entity_type: 'workout_set',
     id,
     session_id: sessionId,
+    user_id: ownerId,
     set_order: order,
     exercise_id: exerciseId,
     set_type: 'normal',
@@ -173,22 +195,28 @@ async function seedPlan(
   ownerId: number,
   presetIds: number[],
 ): Promise<void> {
-  await put([{
-    pk: `PLAN#${id}`,
-    sk: 'METADATA',
-    id,
-    user_id: ownerId,
-    name: 'Mixed Safety Plan',
-    description: null,
-  }]);
-  await put(presetIds.map((presetId, index) => ({
-    pk: `PLAN#${id}`,
-    sk: `PLAN_PRESET#${index + 1}`,
-    id: index + 1,
-    plan_id: id,
-    preset_id: presetId,
-    order: index,
-  })));
+  await put([
+    {
+      pk: `PLAN#${id}`,
+      sk: 'METADATA',
+      entity_type: 'workout_plan',
+      id,
+      user_id: ownerId,
+      name: 'Mixed Safety Plan',
+      description: null,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    },
+    ...presetIds.map((presetId, index) => ({
+      pk: `PLAN#${id}`,
+      sk: `PLAN_PRESET#${index + 1}`,
+      entity_type: 'plan_preset',
+      id: index + 1,
+      parent_plan_id: id,
+      preset_id: presetId,
+      order: index,
+    })),
+  ]);
 }
 
 async function counter(entity: string): Promise<number> {
@@ -381,7 +409,7 @@ describe('AuthorizationBoundaryTests', () => {
 
   it('test_cannot_move_set_into_foreign_session', async () => {
     await seedSession(1301, aliceId, 'Alice');
-    await seedSet(1401, 1301, 204);
+    await seedSet(1401, aliceId, 1301, 204);
     await seedSession(1302, bobId, 'Bob');
 
     const response = await api.call('PATCH', '/api/workouts/sets/1401/', {
@@ -441,7 +469,8 @@ describe('AuthorizationBoundaryTests', () => {
     assert.equal(response.status, 200);
     const row = await get({ pk: 'PRESET#1108', sk: 'PRESET_EXERCISE#5104' });
     assert.equal(row?.exercise_id, 205);
-    assert.deepEqual(await partition('PRESET_EXERCISE#5104'), []);
+    const items = await presetPartition(1108);
+    assert.equal(supersetRows(items, 1108).length, 0);
   });
 
   it('test_invalid_nested_set_does_not_leave_orphan_session', async () => {
@@ -512,9 +541,10 @@ describe('AuthorizationBoundaryTests', () => {
     const presetId = await counter('preset');
     const normalRowId = await counter('preset_exercise');
     await put([{
-      pk: `PRESET_EXERCISE#${normalRowId + 1}`,
-      sk: 'METADATA',
+      pk: `PRESET#${presetId}`,
+      sk: `PRESET_EXERCISE#${normalRowId + 1}`,
       id: normalRowId + 1,
+      entity_type: 'preset_exercise',
       collision: true,
     }]);
 
@@ -529,7 +559,9 @@ describe('AuthorizationBoundaryTests', () => {
     assert.equal(response.status, 500);
 
     assert.equal(await get({ pk: `PRESET#${presetId}`, sk: 'METADATA' }), undefined);
-    assert.equal((await partition('PRESET#1111')).length, 3);
-    assert.equal((await partition(`PRESET#${presetId}`)).length, 0);
+    const sourceItems = await presetPartition(1111);
+    assert.equal(presetRows(sourceItems, 1111).length, 2);
+    assert.equal(supersetRows(sourceItems, 1111).length, 1);
+    assert.equal((await presetPartition(presetId)).length, 0);
   });
 });
