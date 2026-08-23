@@ -213,7 +213,7 @@ test('nutrition meals and templates persist nested foods through edit and reload
     ).toBeVisible();
     await expect(page.getByText(`${initialFoodName} (200g)`)).toBeVisible();
 
-    await page.getByRole('button', { name: 'Meals' }).click();
+    await page.getByRole('tab', { name: 'Meals' }).click();
     await page.getByRole('button', { name: '+ Log Meal' }).click();
     await page.getByRole('button', { name: new RegExp(editedTemplateName) }).click();
     await expect(page.getByLabel('Meal Name *')).toHaveValue(editedTemplateName);
@@ -335,7 +335,7 @@ test('nutrition meals and templates persist nested foods through edit and reload
     await updatedMealCard.getByTitle('Delete meal').click();
     await expect(page.getByText(/^No meals logged for today$/)).toBeVisible();
 
-    await page.getByRole('button', { name: 'Templates' }).click();
+    await page.getByRole('tab', { name: 'Templates' }).click();
     await editedTemplateCard.getByTitle('Delete template').click();
     await expect(
       page.getByText(
@@ -343,7 +343,7 @@ test('nutrition meals and templates persist nested foods through edit and reload
       ),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Items' }).click();
+    await page.getByRole('tab', { name: 'Items' }).click();
     const ownedFoodCard = page.locator('div.rounded-lg.shadow').filter({
       has: page.getByText(initialFoodName, { exact: true }),
     });

@@ -12,7 +12,8 @@ import type {
   User,
   Exercise,
   AiFoodAnalysis,
-  AiMealAnalysis
+  AiMealAnalysis,
+  AiAnalyzedFood,
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -706,8 +707,21 @@ export const analyzeMealWithAI = async (description: string): Promise<AiMealAnal
   return handleResponse(response);
 };
 
+export const resolveMealFoodsWithAI = async (
+  foods: AiAnalyzedFood[],
+): Promise<FoodItem[]> => {
+  const response = await fetch(`${API_BASE}/api/ai/meal-foods/`, {
+    method: 'POST',
+    headers: await getHeaders(),
+    body: JSON.stringify({ foods }),
+  });
+  const resolvedFoods = await handleResponse(response);
+  return resolvedFoods.map(normalizeFoodRecord);
+};
+
 export const aiMealApi = {
-  analyzeMeal: analyzeMealWithAI
+  analyzeMeal: analyzeMealWithAI,
+  resolveMealFoods: resolveMealFoodsWithAI
 };
 
 // Last Used Weights API (backend for cross-device sync)

@@ -195,7 +195,14 @@ export default function NutritionPage() {
   };
 
   const handleAIFoodCreated = (food: FoodItem) => {
-    setFoodItems(prev => [...prev, food]);
+    // AI analysis can resolve an ingredient to an existing accessible item, so
+    // replace stale local data instead of appending a second selector entry.
+    setFoodItems(prev => {
+      const existing = prev.find(item => item.id === food.id);
+      return existing
+        ? prev.map(item => item.id === food.id ? food : item)
+        : [...prev, food];
+    });
   };
 
   const handleDeleteFood = async (id: string) => {
@@ -249,7 +256,8 @@ export default function NutritionPage() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div role="status" aria-live="polite" className="flex justify-center items-center h-64">
+        <span className="sr-only">Loading nutrition data</span>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
@@ -268,6 +276,7 @@ export default function NutritionPage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Nutrition Tracking</h1>
         {activeTab === "meals" && (
           <button
+            type="button"
             onClick={() => setShowLogMeal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
@@ -282,6 +291,8 @@ export default function NutritionPage() {
           {/* Date navigation */}
           <div className="flex items-center justify-center gap-4">
             <button
+              type="button"
+              aria-label="Go to previous day"
               onClick={() => goToDate(-1)}
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
             >
@@ -291,6 +302,8 @@ export default function NutritionPage() {
             </button>
             <div className="text-center">
               <button
+                type="button"
+                aria-label="Go to today"
                 onClick={goToToday}
                 className="text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
@@ -301,6 +314,8 @@ export default function NutritionPage() {
               </div>
             </div>
             <button
+              type="button"
+              aria-label="Go to next day"
               onClick={() => goToDate(1)}
               disabled={isToday}
               className={"p-2 rounded-md transition-colors " + (isToday
@@ -338,30 +353,39 @@ export default function NutritionPage() {
       )}
 
       <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8">
-          {(["meals", "templates", "items"] as Tab[]).map(tab => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={
-                "py-2 px-1 border-b-2 font-medium text-sm " +
-                (activeTab === tab
-                  ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
-              }
-            >
-              {tabLabels[tab]}
-            </button>
-          ))}
+        <nav aria-label="Nutrition sections">
+          <div role="tablist" className="flex space-x-8">
+            {(["meals", "templates", "items"] as Tab[]).map(tab => (
+              <button
+                key={tab}
+                id={`${tab}-nutrition-tab`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                aria-controls={`${tab}-nutrition-panel`}
+                tabIndex={activeTab === tab ? 0 : -1}
+                onClick={() => handleTabChange(tab)}
+                className={
+                  "py-2 px-1 border-b-2 font-medium text-sm " +
+                  (activeTab === tab
+                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200")
+                }
+              >
+                {tabLabels[tab]}
+              </button>
+            ))}
+          </div>
         </nav>
       </div>
 
       {activeTab === "meals" && (
-        <div className="space-y-3">
+        <div id="meals-nutrition-panel" role="tabpanel" aria-labelledby="meals-nutrition-tab" className="space-y-3">
           {mealsForDate.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <p>No meals logged for {formatDate(selectedDate).toLowerCase()}</p>
               <button
+                type="button"
                 onClick={() => setShowLogMeal(true)}
                 className="mt-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
               >
@@ -383,7 +407,7 @@ export default function NutritionPage() {
                       {meal.foods.map(f => {
                         const food = foodItems.find(fi => fi.id === f.foodId);
                         if (!food) return null;
-                        const grams = f.grams ?? ('servings' in (f as any) ? (f as any).servings * food.servingSize : 0);
+                        const grams = f.grams;
                         return (
                           <span key={f.foodId} className="inline mr-2">
                             {food.name} ({Math.round(grams)}g)
@@ -408,6 +432,8 @@ export default function NutritionPage() {
                   </div>
                   <div className="flex gap-1">
                     <button
+                      type="button"
+                      aria-label={`Edit meal ${meal.name}`}
                       onClick={() => handleEditMeal(meal)}
                       className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
                       title="Edit meal"
@@ -415,6 +441,8 @@ export default function NutritionPage() {
                       <FontAwesomeIcon icon={faPen} />
                     </button>
                     <button
+                      type="button"
+                      aria-label={`Delete meal ${meal.name}`}
                       onClick={() => handleDeleteMeal(meal.id)}
                       className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                       title="Delete meal"
@@ -430,9 +458,10 @@ export default function NutritionPage() {
       )}
 
       {activeTab === "templates" && (
-        <div className="space-y-4">
+        <div id="templates-nutrition-panel" role="tabpanel" aria-labelledby="templates-nutrition-tab" className="space-y-4">
           <div className="flex justify-end">
             <button
+              type="button"
               onClick={() => {
                 setEditingTemplate(undefined);
                 setShowTemplateForm(true);
@@ -452,8 +481,7 @@ export default function NutritionPage() {
                 const totals = template.foods.reduce((acc, f) => {
                   const food = foodItems.find(fi => fi.id === f.foodId);
                   if (food) {
-                    // Handle migration from old 'servings' format to new 'grams' format
-                    const grams = f.grams ?? ('servings' in f ? (f as any).servings * food.servingSize : 0);
+                    const grams = f.grams;
                     const multiplier = grams / 100;
                     return {
                       calories: acc.calories + food.calories * multiplier,
@@ -479,7 +507,7 @@ export default function NutritionPage() {
                           {template.foods.map(f => {
                             const food = foodItems.find(fi => fi.id === f.foodId);
                             if (!food) return null;
-                            const grams = f.grams ?? ('servings' in (f as any) ? (f as any).servings * food.servingSize : 0);
+                            const grams = f.grams;
                             return (
                               <span key={f.foodId} className="inline mr-2">
                                 {food.name} ({Math.round(grams)}g)
@@ -504,6 +532,8 @@ export default function NutritionPage() {
                       </div>
                       <div className="flex gap-1">
                         <button
+                          type="button"
+                          aria-label={`Log ${template.name} as a meal`}
                           onClick={() => setShowLogMeal(true)}
                           className="text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 p-1"
                           title="Log meal from template"
@@ -511,6 +541,8 @@ export default function NutritionPage() {
                           <FontAwesomeIcon icon={faPlus} />
                         </button>
                         <button
+                          type="button"
+                          aria-label={`Edit template ${template.name}`}
                           onClick={() => {
                             setEditingTemplate(template);
                             setShowTemplateForm(true);
@@ -521,6 +553,8 @@ export default function NutritionPage() {
                           <FontAwesomeIcon icon={faPen} />
                         </button>
                         <button
+                          type="button"
+                          aria-label={`Delete template ${template.name}`}
                           onClick={() => handleDeleteTemplate(template.id)}
                           className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                           title="Delete template"
@@ -538,9 +572,10 @@ export default function NutritionPage() {
       )}
 
       {activeTab === "items" && (
-        <div className="space-y-4">
+        <div id="items-nutrition-panel" role="tabpanel" aria-labelledby="items-nutrition-tab" className="space-y-4">
           <div className="flex justify-end">
             <button
+              type="button"
               onClick={() => {
                 setEditingFood(undefined);
                 setShowFoodForm(true);
@@ -550,6 +585,7 @@ export default function NutritionPage() {
               + Add Food Item
             </button>
             <button
+              type="button"
               onClick={() => setShowAIAddFood(true)}
               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center gap-2"
             >
@@ -584,6 +620,8 @@ export default function NutritionPage() {
                     </div>
                     <div className="flex gap-1">
                       <button
+                        type="button"
+                        aria-label={`Edit food item ${food.name}`}
                         onClick={() => {
                           setEditingFood(food);
                           setShowFoodForm(true);
@@ -594,6 +632,8 @@ export default function NutritionPage() {
                         <FontAwesomeIcon icon={faPen} />
                       </button>
                       <button
+                        type="button"
+                        aria-label={`Delete food item ${food.name}`}
                         onClick={() => handleDeleteFood(food.id)}
                         className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                         title="Delete food"
@@ -695,6 +735,7 @@ export default function NutritionPage() {
           title={editingTemplate ? "Edit Template" : "Create Template"}
         >
           <MealTemplateForm
+            key={editingTemplate?.id ?? 'new'}
             availableFoods={foodItems}
             template={editingTemplate}
             onSave={handleTemplateSaved}

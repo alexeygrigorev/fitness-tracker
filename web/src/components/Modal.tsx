@@ -6,9 +6,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, className = '' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
   const titleId = useId();
@@ -108,7 +109,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       {/* Modal content */}
       <div className="absolute inset-0 flex items-end sm:items-center justify-center sm:p-4 pointer-events-none">
         <div
-          className="bg-white dark:bg-gray-800 rounded-t-lg sm:rounded-lg shadow-xl w-full sm:max-w-lg sm:max-h-[90vh] overflow-y-auto max-h-[85vh] sm:max-h-[90vh] pointer-events-auto relative"
+          className={`bg-white dark:bg-gray-800 rounded-t-lg sm:rounded-lg shadow-xl w-full sm:max-w-lg sm:max-h-[90vh] overflow-y-auto max-h-[85vh] sm:max-h-[90vh] pointer-events-auto relative ${className}`}
           onClick={e => e.stopPropagation()}
           role="dialog"
           aria-modal="true"

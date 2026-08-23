@@ -1,9 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import Modal from '../components/Modal';
 import { mealsApi, mealTemplatesApi, aiMealApi, foodApi } from '../api';
 import FoodSelector from './FoodSelector';
 import type {
   AiAnalyzedFood,
-  AiFoodAnalysis,
   MealTemplate,
   Meal,
   MealCategory,
@@ -23,58 +23,20 @@ interface LogMealModalProps {
   editingMeal?: Meal;
 }
 
-const normalizeText = (value?: string | null) => value?.trim().toLowerCase() ?? '';
-
-function findAccessibleFood(foods: FoodItem[], ingredient: Omit<AiFoodAnalysis, 'grams'>) {
-  const name = normalizeText(ingredient.name);
-  const brand = normalizeText(ingredient.brand);
-  return foods.find(food =>
-    normalizeText(food.name) === name && normalizeText(food.brand) === brand
-  );
-}
-
 async function resolveAnalyzedFoods(
   ingredients: AiAnalyzedFood[],
-  accessibleFoods: FoodItem[],
 ) {
-  const availableFoods = [...accessibleFoods];
-  const selectedFoods: MealFoodItem[] = [];
-  const createdFoods: FoodItem[] = [];
+  const resolvedFoods = await aiMealApi.resolveMealFoods(ingredients);
+  const selectedFoods = ingredients.map(({ grams }, index) => ({
+    foodId: String(resolvedFoods[index].id),
+    grams: Number(grams),
+  }));
 
-  for (const { grams, ...ingredient } of ingredients) {
-    let food = findAccessibleFood(availableFoods, ingredient);
-
-    if (!food) {
-      food = await foodApi.create({
-        ...ingredient,
-        name: ingredient.name.trim(),
-        brand: ingredient.brand?.trim() || undefined,
-        servingSize: ingredient.servingSize || 100,
-        servingType: ingredient.servingType || 'g',
-        calories: ingredient.calories ?? 0,
-        protein: ingredient.protein ?? 0,
-        carbs: ingredient.carbs ?? 0,
-        fat: ingredient.fat ?? 0,
-        sugar: ingredient.sugar ?? 0,
-        fiber: ingredient.fiber ?? 0,
-        glycemicIndex: ingredient.glycemicIndex ?? 50,
-        absorptionSpeed: ingredient.absorptionSpeed || 'moderate',
-        insulinResponse: ingredient.insulinResponse ?? 50,
-        satietyScore: ingredient.satietyScore ?? 5,
-        proteinQuality: ingredient.proteinQuality ?? 2,
-      });
-      availableFoods.push(food);
-      createdFoods.push(food);
-    }
-
-    selectedFoods.push({ foodId: String(food.id), grams: Number(grams) });
-  }
-
-  return { selectedFoods, createdFoods };
+  return { selectedFoods, resolvedFoods };
 }
 
 export default function LogMealModal({
-  isOpen: _isOpen,
+  isOpen,
   onClose,
   onMealLogged,
   onFoodCreated,
@@ -84,6 +46,8 @@ export default function LogMealModal({
   templateId,
   editingMeal,
 }: LogMealModalProps) {
+  const aiDescriptionId = useId();
+  const aiImageInputId = useId();
   const templates = incomingTemplates;
   const foodItems = incomingFoodItems;
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(templateId ?? null);
@@ -148,12 +112,9 @@ export default function LogMealModal({
       // For now, we use the text description. Images would be processed by a real AI API
       const result = await aiMealApi.analyzeMeal(aiDescription || 'Meal from photo');
       setAiAssisted(true);
-      const { selectedFoods, createdFoods } = await resolveAnalyzedFoods(
-        result.foods,
-        foodItems,
-      );
+      const { selectedFoods, resolvedFoods } = await resolveAnalyzedFoods(result.foods);
 
-      createdFoods.forEach(food => onFoodCreated?.(food));
+      resolvedFoods.forEach(food => onFoodCreated?.(food));
       setName(result.name);
       setMealType(result.mealType);
       setFoods(selectedFoods);
@@ -337,21 +298,13 @@ export default function LogMealModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
-      <div
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{editingMeal ? 'Edit Meal' : 'Log Meal'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={editingMeal ? 'Edit Meal' : 'Log Meal'}
+      className="sm:max-w-2xl"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
           {/* Quick Actions: Templates and AI */}
           {!editingMeal && (
             <div className="space-y-3">
@@ -371,11 +324,12 @@ export default function LogMealModal({
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {templates.map(t => (
+                      {templates.map(t => (
                       <button
                         key={t.id}
                         type="button"
                         onClick={() => setSelectedTemplate(t.id)}
+                        aria-pressed={selectedTemplate === t.id}
                         className={"px-3 py-2 text-sm rounded-md border transition-colors " + (selectedTemplate === t.id ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300')}
                       >
                         <div className="font-medium">{t.name}</div>
@@ -392,7 +346,11 @@ export default function LogMealModal({
                   <div className="space-y-3 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-md border border-purple-200 dark:border-purple-700">
                     {/* Text input with dictation */}
                     <div className="relative">
-                      <textarea
+                    <label htmlFor={aiDescriptionId} className="sr-only">
+                      Meal description for AI
+                    </label>
+                    <textarea
+                      id={aiDescriptionId}
                         value={aiDescription}
                         onChange={e => setAiDescription(e.target.value)}
                         placeholder="e.g., 'chicken breast with rice and broccoli for lunch' or '2 eggs with bread for breakfast'"
@@ -406,6 +364,7 @@ export default function LogMealModal({
                           onClick={isRecording ? stopDictation : startDictation}
                           className={"absolute right-2 bottom-2 p-1.5 rounded-full " + (isRecording ? "bg-red-500 text-white animate-pulse" : "bg-gray-200 text-gray-600 hover:bg-gray-300")}
                           title={isRecording ? "Stop dictation" : "Start dictation"}
+                          aria-label={isRecording ? 'Stop meal description dictation' : 'Start meal description dictation'}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -416,14 +375,14 @@ export default function LogMealModal({
 
                     {/* Image upload */}
                     <div>
-                      <label className="block">
+                      <label htmlFor={aiImageInputId} className="block">
                         <input
+                          id={aiImageInputId}
                           type="file"
                           accept="image/*"
                           multiple
                           onChange={handleImageUpload}
                           className="hidden"
-                          id="ai-image-upload"
                         />
                         <span className="px-3 py-1.5 text-xs text-purple-700 bg-purple-100 rounded-md hover:bg-purple-200 cursor-pointer inline-flex items-center gap-1">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -448,6 +407,7 @@ export default function LogMealModal({
                               type="button"
                               onClick={() => handleRemoveImage(index)}
                               className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                              aria-label={`Remove photo ${index + 1}`}
                             >
                               ×
                             </button>
@@ -605,7 +565,6 @@ export default function LogMealModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

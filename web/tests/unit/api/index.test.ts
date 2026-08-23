@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  aiMealApi,
   dailySummaryApi,
   exercisesApi,
   foodApi,
@@ -7,7 +8,7 @@ import {
   mealsApi,
   workoutsApi,
 } from '@/api';
-import type { WorkoutSession } from '@/types';
+import type { AiAnalyzedFood, WorkoutSession } from '@/types';
 
 const fetchMock = vi.fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>();
 
@@ -251,6 +252,48 @@ describe('API adapter', () => {
           foods: [{ foodId: '31', grams: 15 }],
         },
       ]);
+    });
+  });
+
+  describe('AI meal ingredients', () => {
+    it('resolves analyzed foods through the atomic backend endpoint', async () => {
+      const ingredient: AiAnalyzedFood = {
+        name: 'Roasted Vegetable',
+        brand: null,
+        category: 'mixed',
+        servingSize: 100,
+        servingType: 'g',
+        grams: 125,
+        calories: 50,
+        protein: 2,
+        carbs: 10,
+        fat: 0,
+        saturatedFat: 0,
+        sugar: 4,
+        fiber: 3,
+        sodium: 30,
+        glycemicIndex: 35,
+        absorptionSpeed: 'moderate',
+        insulinResponse: 25,
+        satietyScore: 5,
+        proteinQuality: 1,
+      };
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse([{ id: 24, name: 'Roasted Vegetable' }]),
+      );
+
+      await expect(aiMealApi.resolveMealFoods([ingredient])).resolves.toEqual([
+        { id: '24', name: 'Roasted Vegetable' },
+      ]);
+
+      expect(fetchMock).toHaveBeenCalledWith('/api/ai/meal-foods/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer auth-token',
+        },
+        body: JSON.stringify({ foods: [ingredient] }),
+      });
     });
   });
 

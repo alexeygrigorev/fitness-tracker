@@ -87,6 +87,7 @@ const FRONTEND_API_CALLS = [
   { method: 'POST', path: '/api/ai/analyze-exercise/', description: 'exercisesApi.analyzeWithAI' },
   { method: 'POST', path: '/api/ai/analyze-food/', description: 'foodApi.analyzeWithAI' },
   { method: 'POST', path: '/api/ai/analyze-meal/', description: 'analyzeMealWithAI' },
+  { method: 'POST', path: '/api/ai/meal-foods/', description: 'aiMealApi.resolveMealFoods' },
 ];
 
 type JsonValue =
