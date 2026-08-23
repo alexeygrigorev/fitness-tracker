@@ -85,7 +85,7 @@ export function createRouter(): Router {
       });
     },
     async handle(context) {
-      for (const route of routes) {
+      routeLoop: for (const route of routes) {
         const match = route.matcher.exec(context.request.path);
         if (!match) continue;
 
@@ -100,12 +100,13 @@ export function createRouter(): Router {
 
         const params: RouteParams = {};
         for (const [name, value] of Object.entries(match.groups ?? {})) {
-          params[name] = /^\d+$/.test(value)
+          const parsed = /^\d+$/.test(value)
             ? Number.parseInt(value, 10)
             : value;
-          if (/^\d+$/.test(value) && !Number.isSafeInteger(params[name])) {
-            continue;
+          if (/^\d+$/.test(value) && !Number.isSafeInteger(parsed)) {
+            continue routeLoop;
           }
+          params[name] = parsed;
         }
         return await route.handle(context, params);
       }

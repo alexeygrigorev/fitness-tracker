@@ -10,6 +10,11 @@ import { verifyAccessToken } from './jwt.js';
 import { createRouter } from './router.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerHealthRoutes } from './routes/health.js';
+import { registerExerciseRoutes } from './routes/exercises.js';
+import { registerSessionRoutes } from './routes/sessions.js';
+import { registerPresetRoutes } from './routes/presets.js';
+import { registerNutritionRoutes } from './routes/nutrition.js';
+import { registerAiRoutes } from './routes/ai.js';
 
 export async function requireUser(
   request: NormalizedRequest,
@@ -50,6 +55,11 @@ async function handleApi(
   const router = createRouter();
   registerHealthRoutes((route) => router.add(route));
   registerAuthRoutes((route) => router.add(route));
+  registerExerciseRoutes((route) => router.add(route));
+  registerSessionRoutes((route) => router.add(route));
+  registerPresetRoutes((route) => router.add(route));
+  registerNutritionRoutes((route) => router.add(route));
+  registerAiRoutes((route) => router.add(route));
   return router.handle({
     request,
     repository,

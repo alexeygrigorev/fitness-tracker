@@ -4,6 +4,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
+  DeleteCommand as DocDeleteCommand,
   GetCommand,
   PutCommand,
   QueryCommand as DocQueryCommand,
@@ -11,11 +12,22 @@ import {
   UpdateCommand as DocUpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 import type {
+  DeleteCommandInput,
+  PutCommandInput,
+  QueryCommandInput,
+  TransactWriteCommandInput,
+} from '@aws-sdk/lib-dynamodb';
+import type {
   ExerciseItem,
   ExerciseSettingsItem,
   UserItem,
 } from './types.js';
 import { HttpError } from './types.js';
+
+export type DocumentItem = Record<string, unknown>;
+export type TransactionOperations = NonNullable<
+  TransactWriteCommandInput['TransactItems']
+>;
 
 export interface ExerciseSettingsInput {
   weight?: number | null;
@@ -57,7 +69,7 @@ export class FitnessRepository {
     }
   }
 
-  async nextId(entity: 'user' | 'exercise'): Promise<number> {
+  async nextId(entity: string): Promise<number> {
     const result = await this.client.send(
       new DocUpdateCommand({
         TableName: this.tableName,
@@ -197,6 +209,96 @@ export class FitnessRepository {
       new GetCommand({ TableName: this.tableName, Key: key }),
     );
     return result.Item as T | undefined;
+  }
+
+  get<T = DocumentItem>(key: Record<string, unknown>): Promise<T | undefined> {
+    return this.getItem<T>(key);
+  }
+
+  async put<T extends DocumentItem>(
+    item: T,
+    options: Omit<PutCommandInput, 'Item' | 'TableName'> = {},
+  ): Promise<void> {
+    await this.client.send(new PutCommand({
+      TableName: this.tableName,
+      Item: item,
+      ...options,
+    }));
+  }
+
+  async delete(
+    key: Record<string, unknown>,
+    options: Omit<DeleteCommandInput, 'Key' | 'TableName'> = {},
+  ): Promise<void> {
+    await this.client.send(new DocDeleteCommand({
+      TableName: this.tableName,
+      Key: key,
+      ...options,
+    }));
+  }
+
+  async query<T = DocumentItem>(
+    options: Omit<QueryCommandInput, 'TableName'>,
+  ): Promise<T[]> {
+    const items: T[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+
+    do {
+      const result = await this.client.send(new DocQueryCommand({
+        TableName: this.tableName,
+        ...options,
+        ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+      }));
+      items.push(...((result.Items ?? []) as T[]));
+      exclusiveStartKey = result.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+
+    return items;
+  }
+
+  async queryPartition<T = DocumentItem>(input: {
+    partitionKey: string;
+    sortPrefix?: string;
+    scanIndexForward?: boolean;
+  }): Promise<T[]> {
+    const values: Record<string, unknown> = { ':pk': input.partitionKey };
+    let expression = 'pk = :pk';
+    if (input.sortPrefix !== undefined) {
+      expression += ' AND begins_with(sk, :prefix)';
+      values[':prefix'] = input.sortPrefix;
+    }
+
+    return this.query<T>({
+      KeyConditionExpression: expression,
+      ExpressionAttributeValues: values,
+      ScanIndexForward: input.scanIndexForward ?? true,
+    });
+  }
+
+  async update<T = DocumentItem>(input: {
+    key: Record<string, unknown>;
+    updateExpression: string;
+    conditionExpression?: string;
+    values?: Record<string, unknown>;
+    names?: Record<string, string>;
+    returnValues?: 'NONE' | 'ALL_OLD' | 'UPDATED_OLD' | 'ALL_NEW' | 'UPDATED_NEW';
+  }): Promise<T | undefined> {
+    const result = await this.client.send(new DocUpdateCommand({
+      TableName: this.tableName,
+      Key: input.key,
+      UpdateExpression: input.updateExpression,
+      ...(input.conditionExpression ? { ConditionExpression: input.conditionExpression } : {}),
+      ...(input.values ? { ExpressionAttributeValues: input.values } : {}),
+      ...(input.names ? { ExpressionAttributeNames: input.names } : {}),
+      ReturnValues: input.returnValues ?? 'NONE',
+    }));
+    return result.Attributes as T | undefined;
+  }
+
+  async transact(operations: TransactionOperations): Promise<void> {
+    await this.client.send(new DocTransactWriteCommand({
+      TransactItems: operations,
+    }));
   }
 }
 
