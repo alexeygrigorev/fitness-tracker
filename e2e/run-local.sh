@@ -103,4 +103,4 @@ done
 # Run tests
 echo "Running E2E tests..."
 cd e2e
-BASE_URL="${FRONTEND_URL}" VITE_API_URL="${BACKEND_URL}" npm test "$@"
+BASE_URL="${FRONTEND_URL}" VITE_API_URL="${BACKEND_URL}" npm test -- "$@"
