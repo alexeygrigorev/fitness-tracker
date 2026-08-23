@@ -17,6 +17,9 @@ ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts.split(',') if host.stri
 if not DEBUG and SECRET_KEY == 'local-secret':
     raise ImproperlyConfigured('SECRET_KEY must be set when DEBUG is disabled')
 
+if not DEBUG and len(SECRET_KEY) < 50:
+    raise ImproperlyConfigured('SECRET_KEY must contain at least 50 characters')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -71,6 +74,18 @@ DATABASES = {
         # Configure via DB_PATH env var, defaults to BASE_DIR / 'db.sqlite3'
         # Docker: set DB_PATH=/app/backend/db/db.sqlite3 for persistent volume
         'NAME': Path(os.environ.get('DB_PATH', BASE_DIR / 'db.sqlite3')),
+        # Gunicorn runs several request threads against one SQLite file. WAL and
+        # an explicit busy timeout prevent transient writer contention from
+        # surfacing as failed requests during bursts.
+        'OPTIONS': {
+            'init_command': (
+                'PRAGMA journal_mode=WAL;'
+                'PRAGMA synchronous=NORMAL;'
+                'PRAGMA busy_timeout=10000;'
+            ),
+            'timeout': 10,
+            'transaction_mode': 'IMMEDIATE',
+        },
     }
 }
 
@@ -87,7 +102,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = Path(os.environ.get('STATIC_ROOT', BASE_DIR / 'staticfiles'))
 
 # Frontend static files (React build)
 # Only served when SERVE_FRONTEND env var is explicitly set to 'true'
@@ -102,6 +117,27 @@ if SERVE_FRONTEND:
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
+
+if not DEBUG:
+    # TLS is normally terminated by the platform proxy. Deployments that serve
+    # plain HTTP inside an isolated network or local E2E environment can turn
+    # this off without changing the rest of production hardening.
+    trust_proxy_tls = os.environ.get('DJANGO_TRUST_PROXY_TLS', 'true').lower() == 'true'
+    if trust_proxy_tls:
+        SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = trust_proxy_tls
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    CSRF_TRUSTED_ORIGINS = [
+        origin.strip()
+        for origin in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',')
+        if origin.strip()
+    ]
+    SECURE_REFERRER_POLICY = 'same-origin'
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+    X_FRAME_OPTIONS = 'DENY'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -119,23 +155,26 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=60),
 }
 
-default_cors_origins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:8080',
-    'http://127.0.0.1:8080',
-]
-
 # Local E2E runs may bind Vite to an arbitrary free port.
 frontend_url = os.environ.get('FRONTEND_URL')
-if frontend_url:
-    default_cors_origins.append(frontend_url.rstrip('/'))
+if DEBUG:
+    default_cors_origins = [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:8080',
+        'http://127.0.0.1:8080',
+    ]
+    if frontend_url:
+        default_cors_origins.append(frontend_url.rstrip('/'))
+    CORS_ALLOWED_ORIGINS = default_cors_origins
+else:
+    # Production serves the browser app from the same origin, so cross-origin
+    # access is opt-in via FRONTEND_URL instead of allowing localhost origins.
+    CORS_ALLOWED_ORIGINS = [frontend_url.rstrip('/')] if frontend_url else []
 
-CORS_ALLOWED_ORIGINS = default_cors_origins
-
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = False
 
 # drf-spectacular settings
 SPECTACULAR_SETTINGS = {
