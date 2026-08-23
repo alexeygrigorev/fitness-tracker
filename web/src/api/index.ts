@@ -4,9 +4,12 @@ import type {
   WorkoutPreset,
   Meal,
   MealFoodItem,
+  MealCategory,
   WorkoutSet,
+  SleepEntry,
   DailySummary,
   MealTemplate,
+  User,
   Exercise,
   AiFoodAnalysis,
   AiMealAnalysis
@@ -51,9 +54,30 @@ function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-function normalizeMealRecord(record: Record<string, any>): Meal {
+interface SerializedMealFood {
+  foodId?: string | number;
+  grams?: string | number;
+}
+
+interface SerializedMealRecord extends Omit<Meal, 'id' | 'foods'> {
+  id?: string | number;
+  category?: MealCategory;
+  food_items?: SerializedMealFood[];
+}
+
+interface CreateMealRequest {
+  name: string;
+  mealType: MealCategory;
+  foods: MealFoodItem[];
+  loggedAt?: Date | string | number;
+  date?: string;
+  notes?: string;
+  source?: Meal['source'];
+}
+
+function normalizeMealRecord(record: SerializedMealRecord): Meal {
   const { food_items: foodItems, ...frontendRecord } = record;
-  const foods = (foodItems ?? []).map((item: any) => ({
+  const foods = (foodItems ?? []).map((item) => ({
     foodId: String(item.foodId),
     grams: Number(item.grams),
   }));
@@ -64,24 +88,24 @@ function normalizeMealRecord(record: Record<string, any>): Meal {
   } as Meal;
 }
 
-function normalizeTemplateRecord(record: Record<string, any>): MealTemplate {
+function normalizeTemplateRecord(record: SerializedMealRecord): MealTemplate {
   const normalized = normalizeMealRecord(record);
   return {
     id: normalized.id,
     name: normalized.name,
-    category: record.category,
+    category: record.category ?? normalized.mealType,
     foods: normalized.foods,
   };
 }
 
-function normalizeFoodRecord(record: Record<string, any>): FoodItem {
+function normalizeFoodRecord(record: Record<string, unknown>): FoodItem {
   return {
     ...record,
     id: String(record.id),
   } as FoodItem;
 }
 
-function serializeFoodsPayload<T extends { foods?: any[] }>(payload: T) {
+function serializeFoodsPayload<T extends { foods?: MealFoodItem[] }>(payload: T) {
   const { foods, ...rest } = payload;
   if (!foods) {
     return rest;
@@ -160,7 +184,7 @@ export const authApi = {
   },
 
   // Store auth data
-  setAuth: (token: string, user: any) => {
+  setAuth: (token: string, user: User) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
   },
@@ -551,11 +575,18 @@ export const mealsApi = {
     });
     return handleResponse(response);
   },
-  create: async (meal: any) => {
+  create: async (meal: CreateMealRequest) => {
+    // A Date represents the user's selected local day; an ISO instant would
+    // let a UTC-only backend assign it to the neighboring calendar day.
+    const { loggedAt, ...mealData } = meal;
+    const serializedMeal = {
+      ...mealData,
+      date: mealData.date ?? toDateKey(new Date(loggedAt ?? Date.now())),
+    };
     const response = await fetch(`${API_BASE}/api/food/meals/`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify(serializeFoodsPayload(meal)),
+      body: JSON.stringify(serializeFoodsPayload(serializedMeal)),
     });
     const created = await handleResponse(response);
     return normalizeMealRecord(created);
@@ -618,13 +649,16 @@ export const foodCalculationsApi = {
 export const sleepApi = {
   getAll: async () => [],
   getLatest: async () => null,
-  create: async (entry: any) => ({ ...entry, id: 'sleep' + Date.now() })
+  create: async (entry: Omit<SleepEntry, 'id'>): Promise<SleepEntry> => ({
+    ...entry,
+    id: `sleep${Date.now()}`,
+  })
 };
 
 // Metabolism API (not implemented in backend yet)
 export const metabolismApi = {
   getCurrent: async () => null,
-  getByDate: async (_date: Date) => null
+  getByDate: async () => null
 };
 
 // Workout Plans API

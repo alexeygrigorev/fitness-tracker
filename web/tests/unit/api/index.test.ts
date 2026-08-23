@@ -207,6 +207,30 @@ describe('API adapter', () => {
       );
     });
 
+    it('creates meals using the local calendar day from their logged timestamp', async () => {
+      fetchMock.mockResolvedValueOnce(
+        jsonResponse({
+          id: 14,
+          date: '2026-01-02',
+          food_items: [{ foodId: 8, grams: 50 }],
+        }),
+      );
+
+      await mealsApi.create({
+        name: 'Late snack',
+        mealType: 'snack',
+        foods: [{ foodId: '8', grams: 50 }],
+        loggedAt: new Date(2026, 0, 2, 23, 30),
+      });
+
+      expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+        name: 'Late snack',
+        mealType: 'snack',
+        date: '2026-01-02',
+        food_items: [{ foodId: 8, grams: 50, order: 0 }],
+      });
+    });
+
     it('normalizes meals returned by a date query', async () => {
       fetchMock.mockResolvedValueOnce(
         jsonResponse([
