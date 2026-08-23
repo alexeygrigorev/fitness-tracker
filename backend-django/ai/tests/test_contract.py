@@ -1,6 +1,7 @@
 import json
 from decimal import Decimal
 from io import StringIO
+from unittest.mock import patch
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -14,6 +15,30 @@ from ai.serializers import (
 )
 from food.models import FoodItem
 from users.models import User
+
+
+def analyzed_meal_ingredient(name):
+    return {
+        "name": name,
+        "brand": None,
+        "category": "mixed",
+        "servingSize": 100,
+        "servingType": "g",
+        "grams": 100,
+        "calories": 50,
+        "protein": 2,
+        "carbs": 10,
+        "fat": 0,
+        "saturatedFat": 0,
+        "sugar": 4,
+        "fiber": 3,
+        "sodium": 30,
+        "glycemicIndex": 35,
+        "absorptionSpeed": "moderate",
+        "insulinResponse": 25,
+        "satietyScore": 5,
+        "proteinQuality": 1,
+    }
 
 
 class AiContractTests(TestCase):
@@ -37,6 +62,7 @@ class AiContractTests(TestCase):
             "analyze-food",
             "analyze-meal",
             "analyze-exercise",
+            "meal-foods",
         ]:
             with self.subTest(endpoint=endpoint):
                 response = self.analyze(endpoint)
@@ -107,6 +133,76 @@ class AiContractTests(TestCase):
         self.assertEqual(food.saturated_fat, Decimal("1.25"))
         self.assertEqual(food.sodium, Decimal("300.50"))
 
+    def test_meal_ingredients_are_reused_and_created_atomically(self):
+        self.client.force_authenticate(user=self.user)
+        canonical = FoodItem.objects.create(
+            source="canonical",
+            name="protein source",
+            serving_size=100,
+            serving_unit="g",
+            calories=100,
+        )
+        owned_duplicate = FoodItem.objects.create(
+            user=self.user,
+            source="user",
+            name="PROTEIN SOURCE",
+            serving_size=100,
+            serving_unit="g",
+            calories=165,
+        )
+
+        response = self.client.post(
+            reverse("meal-foods"),
+            {
+                "foods": [
+                    analyzed_meal_ingredient("Protein Source"),
+                    analyzed_meal_ingredient("Roasted Vegetable"),
+                    analyzed_meal_ingredient("Roasted Vegetable"),
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        vegetable = FoodItem.objects.get(name="Roasted Vegetable")
+        self.assertEqual([food["id"] for food in response.json()], [
+            owned_duplicate.id,
+            vegetable.id,
+            vegetable.id,
+        ])
+        self.assertEqual(FoodItem.objects.count(), 3)
+        self.assertEqual(vegetable.user, self.user)
+        self.assertEqual(vegetable.source, "user")
+        self.assertEqual(vegetable.saturated_fat, Decimal("0"))
+        self.assertEqual(vegetable.sodium, Decimal("30.00"))
+
+    def test_failed_ingredient_creation_rolls_back_the_entire_batch(self):
+        self.client.force_authenticate(user=self.user)
+        ingredients = [
+            analyzed_meal_ingredient("First Ingredient"),
+            analyzed_meal_ingredient("Second Ingredient"),
+        ]
+        real_create = FoodItem.objects.create
+
+        def fail_on_second_creation(**kwargs):
+            if kwargs["name"] == "Second Ingredient":
+                raise RuntimeError("simulated persistence failure")
+            return real_create(**kwargs)
+
+        with patch.object(
+            FoodItem.objects,
+            "create",
+            side_effect=fail_on_second_creation,
+        ):
+            with self.assertRaises(RuntimeError):
+                self.client.post(
+                    reverse("meal-foods"),
+                    {"foods": ingredients},
+                    format="json",
+                )
+
+        self.assertFalse(FoodItem.objects.filter(user=self.user).exists())
+
     def test_openapi_documents_authenticated_camel_case_contracts(self):
         output = StringIO()
         call_command("spectacular", "--format", "openapi-json", stdout=output)
@@ -160,6 +256,7 @@ class AiContractTests(TestCase):
             },
         )
         self.assertIn("grams", schemas["AiMealFood"]["properties"])
+        self.assertIn("grams", schemas["AiMealIngredientRequest"]["properties"])
         self.assertEqual(
             set(schemas["AiMealAnalysis"]["properties"]),
             {"name", "mealType", "foods"},
@@ -168,3 +265,18 @@ class AiContractTests(TestCase):
             set(schemas["AiExerciseAnalysis"]["properties"]),
             {"name", "category", "muscleGroups", "equipment", "instructions", "bodyweight"},
         )
+
+        meal_food_operation = schema["paths"]["/api/ai/meal-foods/"]["post"]
+        self.assertEqual(meal_food_operation["operationId"], "ai_resolve_meal_foods")
+        self.assertEqual(
+            meal_food_operation["requestBody"]["content"]["application/json"]["schema"]["$ref"],
+            "#/components/schemas/AiMealIngredientResolutionRequestRequest",
+        )
+        self.assertEqual(
+            meal_food_operation["responses"]["200"]["content"]["application/json"]["schema"],
+            {
+                "type": "array",
+                "items": {"$ref": "#/components/schemas/FoodItem"},
+            },
+        )
+        self.assertIn("jwtAuth", meal_food_operation["security"][0])

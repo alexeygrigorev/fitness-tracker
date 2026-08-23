@@ -1,13 +1,17 @@
+from django.db import models, transaction
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
 
+from food.models import FoodItem
+from food.serializers import FoodItemSerializer
 from .serializers import (
     AiAnalysisRequestSerializer,
     AiExerciseAnalysisSerializer,
     AiFoodAnalysisSerializer,
     AiMealAnalysisSerializer,
+    AiMealIngredientResolutionRequestSerializer,
 )
 
 
@@ -111,6 +115,89 @@ def analyze_meal(request):
         ],
     }
     return Response(result)
+
+
+def _find_accessible_food(request, name, brand):
+    queryset = FoodItem.objects.filter(
+        models.Q(user=request.user) | models.Q(source='canonical'),
+        name__iexact=name,
+    )
+    if brand:
+        queryset = queryset.filter(brand__iexact=brand)
+    else:
+        queryset = queryset.filter(models.Q(brand__isnull=True) | models.Q(brand=''))
+
+    # Prefer the requester's editable copy when both user-owned and canonical
+    # entries use the same name and brand.
+    return queryset.select_for_update().order_by(
+        models.Case(
+            models.When(user=request.user, then=models.Value(0)),
+            default=models.Value(1),
+            output_field=models.IntegerField(),
+        ),
+        'id',
+    ).first()
+
+
+@extend_schema(
+    operation_id='ai_resolve_meal_foods',
+    tags=['AI'],
+    summary='Resolve analyzed meal ingredients',
+    description=(
+        'Resolve accessible food matches for every analyzed ingredient. '
+        'Missing user-owned ingredients are created in one database transaction.'
+    ),
+    request=AiMealIngredientResolutionRequestSerializer,
+    responses={200: FoodItemSerializer(many=True)},
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def resolve_meal_foods(request):
+    request_serializer = AiMealIngredientResolutionRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    ingredients = request_serializer.validated_data['foods']
+
+    resolved_foods = []
+    resolved_by_identity = {}
+    with transaction.atomic():
+        for ingredient in ingredients:
+            name = ingredient['name'].strip()
+            raw_brand = ingredient.get('brand')
+            brand = raw_brand.strip() if raw_brand else None
+            identity = (name.casefold(), brand.casefold() if brand else '')
+            food = resolved_by_identity.get(identity)
+
+            if food is None:
+                food = _find_accessible_food(request, name, brand)
+                if food is None:
+                    food = FoodItem.objects.create(
+                        user=request.user,
+                        source='user',
+                        name=name,
+                        brand=brand,
+                        category=ingredient['category'],
+                        serving_size=ingredient['servingSize'],
+                        serving_unit=ingredient['servingType'],
+                        calories=ingredient['calories'],
+                        protein=ingredient['protein'],
+                        carbs=ingredient['carbs'],
+                        fat=ingredient['fat'],
+                        saturated_fat=ingredient.get('saturatedFat'),
+                        fiber=ingredient['fiber'],
+                        sugar=ingredient['sugar'],
+                        sodium=ingredient.get('sodium'),
+                        glycemic_index=ingredient['glycemicIndex'],
+                        absorption_speed=ingredient['absorptionSpeed'],
+                        insulin_response=ingredient['insulinResponse'],
+                        satiety_score=ingredient['satietyScore'],
+                        protein_quality=ingredient['proteinQuality'],
+                    )
+                resolved_by_identity[identity] = food
+
+            resolved_foods.append(food)
+
+    response_serializer = FoodItemSerializer(resolved_foods, many=True)
+    return Response(response_serializer.data)
 
 
 @extend_schema(

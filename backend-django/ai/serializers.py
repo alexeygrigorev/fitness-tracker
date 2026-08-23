@@ -45,6 +45,32 @@ class AiMealFoodSerializer(AiFoodAnalysisSerializer):
     grams = serializers.FloatField(min_value=0.01)
 
 
+class AiMealIngredientSerializer(AiFoodAnalysisSerializer):
+    """A complete analyzed ingredient constrained to FoodItem storage limits."""
+
+    grams = serializers.FloatField(min_value=0.01)
+
+    name = serializers.CharField(max_length=255)
+    brand = serializers.CharField(
+        max_length=255,
+        allow_blank=True,
+        allow_null=True,
+        required=False,
+    )
+    servingType = serializers.CharField(max_length=50)
+
+
+class AiMealIngredientResolutionRequestSerializer(serializers.Serializer):
+    foods = AiMealIngredientSerializer(many=True)
+
+    def validate_foods(self, value):
+        if not value:
+            raise serializers.ValidationError('At least one food is required.')
+        if len(value) > 200:
+            raise serializers.ValidationError('A meal may contain at most 200 foods.')
+        return value
+
+
 class AiMealAnalysisSerializer(serializers.Serializer):
     name = serializers.CharField()
     mealType = serializers.ChoiceField(
