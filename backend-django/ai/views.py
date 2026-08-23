@@ -1,7 +1,14 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema
+
+from .serializers import (
+    AiAnalysisRequestSerializer,
+    AiExerciseAnalysisSerializer,
+    AiFoodAnalysisSerializer,
+    AiMealAnalysisSerializer,
+)
 
 
 @extend_schema(
@@ -9,52 +16,34 @@ from drf_spectacular.utils import extend_schema
     tags=['AI'],
     summary='Analyze food from description',
     description='AI-powered food analysis that returns nutritional information',
-    request={
-        'application/json': {
-            'type': 'object',
-            'properties': {
-                'description': {'type': 'string', 'description': 'Food description'},
-            },
-            'required': ['description'],
-        }
-    },
-    responses={
-        200: {
-            'type': 'object',
-            'properties': {
-                'name': {'type': 'string'},
-                'serving_size': {'type': 'number'},
-                'serving_unit': {'type': 'string'},
-                'calories_per_serving': {'type': 'number'},
-                'protein_g': {'type': 'number'},
-                'carbs_g': {'type': 'number'},
-                'fat_g': {'type': 'number'},
-                'fiber_g': {'type': 'number'},
-                'sugar_g': {'type': 'number'},
-                'sodium_mg': {'type': 'number'},
-                'category': {'type': 'string'},
-                'confidence': {'type': 'number'},
-            },
-        }
-    }
+    request=AiAnalysisRequestSerializer,
+    responses={200: AiFoodAnalysisSerializer},
 )
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def analyze_food(request):
-    description = request.data.get('description', '')
+    request_serializer = AiAnalysisRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    description = request_serializer.validated_data['description']
     result = {
         'name': description.title() if description else 'Unknown Food',
-        'serving_size': 100,
-        'serving_unit': 'g',
-        'calories_per_serving': 150,
-        'protein_g': 10,
-        'carbs_g': 20,
-        'fat_g': 5,
-        'fiber_g': 2,
-        'sugar_g': 5,
-        'sodium_mg': 300,
-        'category': 'balanced',
-        'confidence': 0.8
+        'brand': None,
+        'category': 'mixed',
+        'servingSize': 100,
+        'servingType': 'g',
+        'calories': 150,
+        'protein': 10,
+        'carbs': 20,
+        'fat': 5,
+        'saturatedFat': 1,
+        'sugar': 5,
+        'fiber': 2,
+        'sodium': 300,
+        'glycemicIndex': 45,
+        'absorptionSpeed': 'moderate',
+        'insulinResponse': 45,
+        'satietyScore': 5,
+        'proteinQuality': 2,
     }
     return Response(result)
 
@@ -64,49 +53,62 @@ def analyze_food(request):
     tags=['AI'],
     summary='Analyze meal from description',
     description='AI-powered meal analysis that breaks down into food items',
-    request={
-        'application/json': {
-            'type': 'object',
-            'properties': {
-                'description': {'type': 'string', 'description': 'Meal description'},
-            },
-            'required': ['description'],
-        }
-    },
-    responses={
-        200: {
-            'type': 'object',
-            'properties': {
-                'name': {'type': 'string'},
-                'meal_type': {'type': 'string'},
-                'food_items': {'type': 'array'},
-                'total_calories': {'type': 'number'},
-                'total_protein_g': {'type': 'number'},
-                'total_carbs_g': {'type': 'number'},
-                'total_fat_g': {'type': 'number'},
-                'confidence': {'type': 'number'},
-            },
-        }
-    }
+    request=AiAnalysisRequestSerializer,
+    responses={200: AiMealAnalysisSerializer},
 )
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def analyze_meal(request):
-    description = request.data.get('description', '')
+    request_serializer = AiAnalysisRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    description = request_serializer.validated_data['description']
+    protein_source = {
+        'name': 'Protein Source',
+        'brand': None,
+        'category': 'protein',
+        'servingSize': 100,
+        'servingType': 'g',
+        'calories': 165,
+        'protein': 31,
+        'carbs': 0,
+        'fat': 4,
+        'saturatedFat': 1,
+        'sugar': 0,
+        'fiber': 0,
+        'sodium': 75,
+        'glycemicIndex': 0,
+        'absorptionSpeed': 'slow',
+        'insulinResponse': 20,
+        'satietyScore': 8,
+        'proteinQuality': 3,
+        'grams': 150,
+    }
+    vegetable = {
+        **protein_source,
+        'name': 'Vegetable',
+        'category': 'mixed',
+        'calories': 50,
+        'protein': 2,
+        'carbs': 10,
+        'fat': 0,
+        'saturatedFat': 0,
+        'sugar': 4,
+        'fiber': 3,
+        'sodium': 30,
+        'glycemicIndex': 35,
+        'absorptionSpeed': 'moderate',
+        'insulinResponse': 25,
+        'satietyScore': 5,
+        'proteinQuality': 1,
+        'grams': 100,
+    }
     result = {
         'name': description.title() if description else 'Unknown Meal',
-        'meal_type': 'lunch',
-        'food_items': [
-            {'name': 'Protein Source', 'serving_size': 100, 'serving_unit': 'g',
-             'calories_per_serving': 150, 'protein_g': 25, 'carbs_g': 0, 'fat_g': 5},
-            {'name': 'Vegetable', 'serving_size': 100, 'serving_unit': 'g',
-             'calories_per_serving': 50, 'protein_g': 2, 'carbs_g': 10, 'fat_g': 0}
+        'mealType': 'lunch',
+        'foods': [
+            protein_source,
+            vegetable,
         ],
-        'total_calories': 200,
-        'total_protein_g': 27,
-        'total_carbs_g': 10,
-        'total_fat_g': 5,
-        'confidence': 0.75
     }
     return Response(result)
 
@@ -116,45 +118,25 @@ def analyze_meal(request):
     tags=['AI'],
     summary='Analyze exercise from description',
     description='AI-powered exercise analysis that returns exercise details',
-    request={
-        'application/json': {
-            'type': 'object',
-            'properties': {
-                'description': {'type': 'string', 'description': 'Exercise description'},
-            },
-            'required': ['description'],
-        }
-    },
-    responses={
-        200: {
-            'type': 'object',
-            'properties': {
-                'name': {'type': 'string'},
-                'muscle_group': {'type': 'string'},
-                'equipment': {'type': 'string'},
-                'description': {'type': 'string'},
-                'is_compound': {'type': 'boolean'},
-                'primary_muscles': {'type': 'array', 'items': {'type': 'string'}},
-                'secondary_muscles': {'type': 'array', 'items': {'type': 'string'}},
-                'difficulty': {'type': 'string'},
-                'confidence': {'type': 'number'},
-            },
-        }
-    }
+    request=AiAnalysisRequestSerializer,
+    responses={200: AiExerciseAnalysisSerializer},
 )
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def analyze_exercise(request):
-    description = request.data.get('description', '')
+    request_serializer = AiAnalysisRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    description = request_serializer.validated_data['description']
     result = {
         'name': description.title() if description else 'Unknown Exercise',
-        'muscle_group': 'chest',
+        'category': 'compound',
+        'muscleGroups': ['chest', 'triceps', 'shoulders'],
         'equipment': 'dumbbells',
-        'description': 'A compound exercise that targets multiple muscle groups.',
-        'is_compound': True,
-        'primary_muscles': ['chest', 'triceps', 'shoulders'],
-        'secondary_muscles': ['core'],
-        'difficulty': 'intermediate',
-        'confidence': 0.85
+        'instructions': [
+            'Lie on a bench holding dumbbells at chest height.',
+            'Press the dumbbells upward until your arms are extended.',
+            'Lower them under control to the starting position.',
+        ],
+        'bodyweight': False,
     }
     return Response(result)
