@@ -1,0 +1,41 @@
+{
+  "status": "locked",
+  "lockedAt": "2026-08-23",
+  "pythonBaselineCommit": "3030309",
+  "pythonCommittedTestClasses": 22,
+  "pythonCommittedTestMethods": 138,
+  "knownInFlightAdditionalTestMethods": 2,
+  "minimumCurrentTestMethods": 140,
+  "target": {
+    "language": "typescript",
+    "runtime": "nodejs24.x-arm64",
+    "compute": "aws-lambda-function-url",
+    "database": "dynamodb-pay-per-request",
+    "infrastructure": "aws-sam",
+    "testRunner": "node-test-with-dynamodb-local"
+  },
+  "contractRequirements": {
+    "preserveTrailingSlashes": true,
+    "preserveNumericIds": true,
+    "preserveJwtAuthorizationHeader": true,
+    "preserveDrfErrorCompatibility": true,
+    "allowFrontendBreakingChanges": false
+  },
+  "gates": [
+    {"id": "test-parity-manifest", "required": true},
+    {"id": "all-translated-tests-pass", "required": true},
+    {"id": "openapi-contract-diff-clean", "required": true},
+    {"id": "frontend-unit-tests-pass-ts-backend", "required": true},
+    {"id": "full-playwright-pass-local-ts", "required": true},
+    {"id": "full-playwright-pass-sam-artifact", "required": true},
+    {"id": "ownership-security-review", "required": true},
+    {"id": "sandbox-deployment-smoke", "required": true},
+    {"id": "sqlite-data-migration-rehearsal", "required": true},
+    {"id": "frontend-cutover-configured", "required": true}
+  ],
+  "deletionRules": {
+    "keepBackendDjangoUntilAllGatesPass": true,
+    "deletePythonOnlyAfterAllGatesPass": true,
+    "requireFinalManifestAtDeletionTime": true
+  }
+}
