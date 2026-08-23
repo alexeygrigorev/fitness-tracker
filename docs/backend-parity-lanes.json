@@ -59,21 +59,20 @@
     "activeWave": [
       {
         "id": "nutrition",
-        "agent": "nutrition_backend_v5",
+        "agent": "nutrition_backend_v7",
         "branch": "parity/nutrition-backend",
         "status": "in-progress"
       },
       {
-        "id": "workout-api",
-        "agent": "workout_api_parity_v5",
-        "branch": "parity/templates-plans",
+        "id": "workout-clean-tree-gate",
+        "agent": "committed_workout_gate_v1",
+        "branch": "34c515e-detached",
         "status": "in-progress"
       },
       {
-        "id": "preset-generation",
-        "agent": "preset_generation_parity_v5",
-        "branch": "parity/preset-generation",
-        "status": "in-progress"
+        "id": "nutrition-python-mapping",
+        "agent": "nutrition_python_mapper",
+        "status": "read-only-review"
       },
       {
         "id": "backcompat-audit",
