@@ -8,6 +8,7 @@ import {
   GetCommand,
   PutCommand,
   QueryCommand as DocQueryCommand,
+  ScanCommand as DocScanCommand,
   TransactWriteCommand as DocTransactWriteCommand,
   UpdateCommand as DocUpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -173,6 +174,35 @@ export class FitnessRepository {
 
   async putExercise(exercise: ExerciseItem): Promise<void> {
     await this.client.send(new PutCommand({ TableName: this.tableName, Item: exercise }));
+  }
+
+  async listExercises(userId?: number): Promise<ExerciseItem[]> {
+    const names = { '#sk': 'sk', '#owner': 'user_id' };
+    const values: Record<string, unknown> = { ':metadata': 'METADATA' };
+    let filter = '#sk = :metadata AND (#owner = :null OR #owner = :user)';
+    values[':null'] = null;
+    values[':user'] = userId ?? -1;
+
+    if (userId === undefined) {
+      filter = '#sk = :metadata AND #owner = :null';
+      delete values[':user'];
+    }
+
+    const items: ExerciseItem[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+    do {
+      const result = await this.client.send(new DocScanCommand({
+        TableName: this.tableName,
+        FilterExpression: filter,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
+        ...(exclusiveStartKey ? { ExclusiveStartKey: exclusiveStartKey } : {}),
+      }));
+      items.push(...((result.Items ?? []) as ExerciseItem[]));
+      exclusiveStartKey = result.LastEvaluatedKey;
+    } while (exclusiveStartKey);
+
+    return items.sort((left, right) => left.id - right.id);
   }
 
   async listExerciseSettings(userId: number): Promise<Record<string, object>> {
