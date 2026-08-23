@@ -13,10 +13,10 @@ type AuthContext = {
 };
 
 type OwnedRecords = {
-  exerciseId: number;
-  presetId: number;
-  sessionId: number;
-  setId: number;
+  exerciseId?: number;
+  presetId?: number;
+  sessionId?: number;
+  setId?: number;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -95,7 +95,6 @@ test('workout records enforce ownership across direct CRUD requests', async ({ r
   const userB = await createUser(request, suffix, 'intruder');
 
   const records = {} as OwnedRecords;
-  let cleanupCreated = false;
 
   try {
     const exercise = await postJson(userA.request, '/api/workouts/exercises/', {
@@ -145,7 +144,6 @@ test('workout records enforce ownership across direct CRUD requests', async ({ r
     records.presetId = Number(preset.id);
     records.sessionId = Number(session.id);
     records.setId = Number((session.sets as Array<JsonRecord>)[0].id);
-    cleanupCreated = true;
 
     const resources = [
       {
@@ -238,15 +236,15 @@ test('workout records enforce ownership across direct CRUD requests', async ({ r
       );
     }
   } finally {
-    if (!cleanupCreated) {
-      await userA.request.dispose();
-      await userB.request.dispose();
-      return;
+    if (records.sessionId !== undefined) {
+      await userA.request.delete(`${API_BASE}/api/workouts/sessions/${records.sessionId}/`);
     }
-
-    await userA.request.delete(`${API_BASE}/api/workouts/sessions/${records.sessionId}/`);
-    await userA.request.delete(`${API_BASE}/api/workouts/presets/${records.presetId}/`);
-    await userA.request.delete(`${API_BASE}/api/workouts/exercises/${records.exerciseId}/`);
+    if (records.presetId !== undefined) {
+      await userA.request.delete(`${API_BASE}/api/workouts/presets/${records.presetId}/`);
+    }
+    if (records.exerciseId !== undefined) {
+      await userA.request.delete(`${API_BASE}/api/workouts/exercises/${records.exerciseId}/`);
+    }
     await userA.request.dispose();
     await userB.request.dispose();
   }
