@@ -181,6 +181,17 @@ export class FitnessRepository {
     })));
   }
 
+  /** Copy/create helpers rely on DynamoDB transactions to reject partial writes. */
+  async putNewItemsTransactionally(items: readonly object[]): Promise<void> {
+    await this.transact(items.map((item) => ({
+      Put: {
+        TableName: this.tableName,
+        Item: item as DocumentItem,
+        ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+      },
+    })));
+  }
+
   async deleteAllTransactionally(
     keys: ReadonlyArray<Record<string, unknown>>,
   ): Promise<void> {
