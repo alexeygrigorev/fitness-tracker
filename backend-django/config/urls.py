@@ -4,6 +4,7 @@ from django.conf import settings
 from django.http import HttpResponse
 import os
 import mimetypes
+from pathlib import Path
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -46,12 +47,11 @@ def serve_spa(request, path=''):
     if path:
         # Remove leading slash if present
         path = path.lstrip('/')
-        file_path = os.path.join(frontend_path, path)
-
-        # Security check: ensure file is within frontend_path
-        file_path = os.path.realpath(file_path)
-        frontend_path_real = os.path.realpath(frontend_path)
-        if not file_path.startswith(frontend_path_real):
+        frontend_root = Path(frontend_path).resolve()
+        try:
+            file_path = (frontend_root / path).resolve()
+            file_path.relative_to(frontend_root)
+        except (ValueError, OSError):
             return HttpResponse("Access denied.", status=403)
 
         if os.path.exists(file_path) and not os.path.isdir(file_path):
