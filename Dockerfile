@@ -41,9 +41,9 @@ RUN mkdir -p /app/backend/db && chmod 700 /app/backend/db
 
 # Run migrations and start server
 ENV DJANGO_SETTINGS_MODULE=config.settings
-# Platforms terminate TLS in front of the container; local production-image
-# checks can override this when they intentionally serve plain HTTP.
-ENV DJANGO_TRUST_PROXY_TLS=true
+# Portable images default to direct HTTP. Fly opts into its trusted TLS proxy
+# header through fly.toml.
+ENV DJANGO_TRUST_PROXY_TLS=false
 # Hosts are supplied by the platform environment (see DJANGO_ALLOWED_HOSTS).
 ENV DB_PATH=/app/backend/db/db.sqlite3
 ENV SERVE_FRONTEND=true

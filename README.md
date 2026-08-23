@@ -219,7 +219,7 @@ docker build -t fitness-tracker .
 docker run -d -p 8000:80 -v fitness-db:/app/backend/db fitness-tracker
 ```
 
-For a secure local container run, also set `DEBUG=false`, `SECRET_KEY`, and `DJANGO_ALLOWED_HOSTS`. The Fly deployment sets debug off explicitly and verifies that its `SECRET_KEY` secret exists before deploying.
+For an HTTP-only local container run, also set `DEBUG=false`, a `SECRET_KEY` of at least 50 characters, `DJANGO_ALLOWED_HOSTS`, and `DJANGO_TRUST_PROXY_TLS=false`. Keep the last setting disabled unless a trusted reverse proxy strips client-supplied forwarding headers; Fly sets it explicitly for its TLS terminator and verifies that the `SECRET_KEY` secret exists before deploying.
 
 ## CI/CD
 

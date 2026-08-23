@@ -119,10 +119,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
 if not DEBUG:
-    # TLS is normally terminated by the platform proxy. Deployments that serve
-    # plain HTTP inside an isolated network or local E2E environment can turn
-    # this off without changing the rest of production hardening.
-    trust_proxy_tls = os.environ.get('DJANGO_TRUST_PROXY_TLS', 'true').lower() == 'true'
+    # A portable image cannot know whether its network terminates TLS, so
+    # proxy trust is an explicit per-deployment decision.
+    trust_proxy_tls = os.environ.get('DJANGO_TRUST_PROXY_TLS', 'false').lower() == 'true'
     if trust_proxy_tls:
         SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = trust_proxy_tls
