@@ -54,8 +54,8 @@
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 141,
-    "translatedTargetsApprovedOrPassing": 0,
+    "translatedTargetsPending": 136,
+    "translatedTargetsApprovedOrPassing": 5,
     "nextAction": "Implement the pending backend-ts targets and replace their statuses with verified results or recorded approved equivalents."
   },
   "entries": [
@@ -161,7 +161,7 @@
       "intent": "Documented User And Settings Contracts Match Responses",
       "domain": "contracts",
       "targetTestId": "backend-ts/tests/openapi-contracts.test.ts#OpenApiContractTests#test_documented_user_and_settings_contracts_match_responses",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-014",
@@ -337,7 +337,7 @@
       "intent": "Create Exercise Settings",
       "domain": "users",
       "targetTestId": "backend-ts/tests/exercise-settings.test.ts#ExerciseSettingsTests#test_create_exercise_settings",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-036",
@@ -345,7 +345,7 @@
       "intent": "Exercise Settings Unique Per User",
       "domain": "users",
       "targetTestId": "backend-ts/tests/exercise-settings.test.ts#ExerciseSettingsTests#test_exercise_settings_unique_per_user",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-037",
@@ -353,7 +353,7 @@
       "intent": "Exercise Settings With Dropdowns",
       "domain": "users",
       "targetTestId": "backend-ts/tests/exercise-settings.test.ts#ExerciseSettingsTests#test_exercise_settings_with_dropdowns",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-038",
@@ -361,7 +361,7 @@
       "intent": "Update Exercise Settings",
       "domain": "users",
       "targetTestId": "backend-ts/tests/exercise-settings.test.ts#ExerciseSettingsTests#test_update_exercise_settings",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-039",
