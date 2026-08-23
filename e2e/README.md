@@ -5,8 +5,8 @@ End-to-end tests for Fitness Tracker using Playwright.
 ## Quick Start
 
 ```bash
-# Install dependencies
-npm install
+# Install dependencies from the lockfile
+npm ci
 
 # Install browsers
 npm run install:browsers

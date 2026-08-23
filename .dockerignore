@@ -32,7 +32,6 @@ web/.vite/
 web/playwright-report/
 web/playwright/.cache/
 web/test-results/
-web/package-lock.json
 
 # Git
 .git/

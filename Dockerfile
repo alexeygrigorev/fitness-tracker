@@ -4,7 +4,7 @@ FROM node:22-slim AS frontend-builder
 
 WORKDIR /app/web
 COPY web/package*.json ./
-RUN npm install
+RUN npm ci
 COPY web/ ./
 # Build with relative API URL (same origin) for production
 RUN VITE_API_URL="" npm run build:only
@@ -38,7 +38,7 @@ RUN mkdir -p /app/backend/db && chmod 777 /app/backend/db
 
 # Run migrations and start server
 ENV DJANGO_SETTINGS_MODULE=config.settings
-ENV ALLOWED_HOSTS=*
+# Hosts are supplied by the platform environment (see DJANGO_ALLOWED_HOSTS).
 ENV DB_PATH=/app/backend/db/db.sqlite3
 ENV SERVE_FRONTEND=true
 

@@ -45,7 +45,7 @@ uv run python manage.py runserver
 **2. Frontend Setup (separate terminal)**
 ```bash
 cd web
-npm install
+npm ci
 npm run dev
 ```
 
