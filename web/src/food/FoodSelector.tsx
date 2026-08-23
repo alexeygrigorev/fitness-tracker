@@ -206,6 +206,7 @@ export default function FoodSelector({ selectedFoods, onChange }: FoodSelectorPr
                     <input
                       type="text"
                       inputMode="decimal"
+                      aria-label={`Portions for ${food.name}`}
                       value={portions.toFixed(2)}
                       onChange={e => updatePortions(sf.foodId, parseFloat(e.target.value) || 0)}
                       className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-center dark:bg-gray-800 dark:text-gray-100"
@@ -251,8 +252,9 @@ export default function FoodSelector({ selectedFoods, onChange }: FoodSelectorPr
       )}
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Add Food</label>
+        <label htmlFor="food-selector-search" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Add Food</label>
         <input
+          id="food-selector-search"
           type="text"
           placeholder="Search foods..."
           value={search}

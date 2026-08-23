@@ -1,3 +1,7 @@
+from decimal import Decimal
+
+from django.db import transaction, models
+from django.utils import timezone
 from rest_framework import serializers
 from .models import FoodItem, Meal, MealFoodItem, MealTemplate, MealTemplateFoodItem
 
@@ -31,6 +35,11 @@ class FoodItemSerializer(serializers.ModelSerializer):
     absorptionSpeed = serializers.CharField(source='absorption_speed', required=False, allow_null=True)
     satietyScore = serializers.IntegerField(source='satiety_score', required=False, allow_null=True)
     proteinQuality = serializers.IntegerField(source='protein_quality', required=False, allow_null=True)
+    insulinResponse = FloatWithoutTrailingZerosField(
+        source='insulin_response',
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = FoodItem
@@ -39,16 +48,34 @@ class FoodItemSerializer(serializers.ModelSerializer):
             'servingSize', 'servingType',
             'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar',
             'glycemicIndex', 'absorptionSpeed', 'satietyScore', 'proteinQuality',
-            'category'
+            'insulinResponse', 'category'
         ]
         # Mark user as read-only for canonical foods
         read_only_fields = ['user']
 
+    def validate_servingSize(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Serving size must be greater than zero.')
+        return value
+
+
+class AccessibleFoodPrimaryKeyField(serializers.PrimaryKeyRelatedField):
+    """Restrict writable references to canonical or requesting-user foods."""
+
+    def get_queryset(self):
+        request = self.context.get('request')
+        if request is None or not request.user.is_authenticated:
+            return FoodItem.objects.none()
+        return FoodItem.objects.filter(
+            models.Q(user=request.user) | models.Q(source='canonical')
+        )
+
 
 class MealFoodItemSerializer(serializers.ModelSerializer):
     # Frontend expects foodId (string), not nested food object
-    foodId = serializers.IntegerField(source='food_id')
-    grams = FloatWithoutTrailingZerosField()
+    foodId = AccessibleFoodPrimaryKeyField(source='food')
+    grams = FloatWithoutTrailingZerosField(min_value=Decimal('0.01'))
+    order = serializers.IntegerField(required=False)
 
     class Meta:
         model = MealFoodItem
@@ -57,21 +84,88 @@ class MealFoodItemSerializer(serializers.ModelSerializer):
 
 class MealSerializer(serializers.ModelSerializer):
     # Include nested food items with frontend-friendly format
-    food_items = MealFoodItemSerializer(many=True, read_only=True)
+    food_items = MealFoodItemSerializer(many=True, required=False)
     # Map snake_case to camelCase
     mealType = serializers.CharField(source='meal_type')
-    loggedAt = serializers.DateTimeField(source='logged_at')
-    eventTime = serializers.TimeField(source='event_time', required=False)
+    date = serializers.DateField(required=False)
+    loggedAt = serializers.DateTimeField(source='logged_at', required=False)
+    eventTime = serializers.TimeField(source='event_time', required=False, allow_null=True)
+    totalCalories = serializers.SerializerMethodField()
+    totalProtein = serializers.SerializerMethodField()
+    totalCarbs = serializers.SerializerMethodField()
+    totalFat = serializers.SerializerMethodField()
 
     class Meta:
         model = Meal
-        fields = ['id', 'name', 'mealType', 'date', 'loggedAt', 'eventTime', 'notes', 'source', 'food_items']
+        fields = [
+            'id', 'name', 'mealType', 'date', 'loggedAt', 'eventTime',
+            'notes', 'source', 'food_items',
+            'totalCalories', 'totalProtein', 'totalCarbs', 'totalFat',
+        ]
+
+    @transaction.atomic
+    def create(self, validated_data):
+        food_items = validated_data.pop('food_items', [])
+        if not validated_data.get('date'):
+            logged_at = validated_data.get('logged_at') or timezone.now()
+            validated_data['date'] = timezone.localtime(logged_at).date()
+        meal = super().create(validated_data)
+        self._replace_food_items(meal, food_items)
+        return meal
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        food_items = validated_data.pop('food_items', None)
+        meal = super().update(instance, validated_data)
+        if food_items is not None:
+            self._replace_food_items(meal, food_items)
+        return meal
+
+    def _replace_food_items(self, meal, food_items):
+        meal.food_items.all().delete()
+        for index, item in enumerate(food_items):
+            MealFoodItem.objects.create(
+                meal=meal,
+                food=item['food'],
+                grams=item['grams'],
+                order=item.get('order', index),
+            )
+
+    def _nutrition_totals(self, meal):
+        totals = {
+            'calories': Decimal('0'),
+            'protein': Decimal('0'),
+            'carbs': Decimal('0'),
+            'fat': Decimal('0'),
+        }
+        for item in meal.food_items.select_related('food'):
+            if item.food.serving_size <= 0:
+                continue
+            multiplier = item.grams / item.food.serving_size
+            totals['calories'] += item.food.calories * multiplier
+            totals['protein'] += item.food.protein * multiplier
+            totals['carbs'] += item.food.carbs * multiplier
+            totals['fat'] += item.food.fat * multiplier
+        return {key: float(round(value, 2)) for key, value in totals.items()}
+
+    def get_totalCalories(self, meal):
+        return self._nutrition_totals(meal)['calories']
+
+    def get_totalProtein(self, meal):
+        return self._nutrition_totals(meal)['protein']
+
+    def get_totalCarbs(self, meal):
+        return self._nutrition_totals(meal)['carbs']
+
+    def get_totalFat(self, meal):
+        return self._nutrition_totals(meal)['fat']
 
 
 class MealTemplateFoodItemSerializer(serializers.ModelSerializer):
     # Frontend expects foodId (string), not nested food object
-    foodId = serializers.IntegerField(source='food_id')
-    grams = FloatWithoutTrailingZerosField()
+    foodId = AccessibleFoodPrimaryKeyField(source='food')
+    grams = FloatWithoutTrailingZerosField(min_value=Decimal('0.01'))
+    order = serializers.IntegerField(required=False)
 
     class Meta:
         model = MealTemplateFoodItem
@@ -80,11 +174,36 @@ class MealTemplateFoodItemSerializer(serializers.ModelSerializer):
 
 class MealTemplateSerializer(serializers.ModelSerializer):
     # Include nested food items with frontend-friendly format
-    food_items = MealTemplateFoodItemSerializer(many=True, read_only=True)
+    food_items = MealTemplateFoodItemSerializer(many=True, required=False)
 
     class Meta:
         model = MealTemplate
         fields = ['id', 'name', 'category', 'notes', 'food_items']
+
+    @transaction.atomic
+    def create(self, validated_data):
+        food_items = validated_data.pop('food_items', [])
+        template = super().create(validated_data)
+        self._replace_food_items(template, food_items)
+        return template
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        food_items = validated_data.pop('food_items', None)
+        template = super().update(instance, validated_data)
+        if food_items is not None:
+            self._replace_food_items(template, food_items)
+        return template
+
+    def _replace_food_items(self, template, food_items):
+        template.food_items.all().delete()
+        for index, item in enumerate(food_items):
+            MealTemplateFoodItem.objects.create(
+                template=template,
+                food=item['food'],
+                grams=item['grams'],
+                order=item.get('order', index),
+            )
 
 
 # Serializers for function-based views

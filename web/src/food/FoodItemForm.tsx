@@ -120,8 +120,9 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Line 1: Food Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Food Name *</label>
+        <label htmlFor="food-name" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Food Name *</label>
         <input
+          id="food-name"
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -138,8 +139,9 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
         <div className="grid grid-cols-2 gap-3">
           {/* Fats */}
           <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Total Fat (g)</label>
+            <label htmlFor="food-fat" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Total Fat (g)</label>
             <input
+              id="food-fat"
               type="text"
               inputMode="decimal"
               value={fat}
@@ -159,8 +161,9 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
           </div>
           {/* Carbs */}
           <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Total Carbs (g)</label>
+            <label htmlFor="food-carbs" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Total Carbs (g)</label>
             <input
+              id="food-carbs"
               type="text"
               inputMode="decimal"
               value={carbs}
@@ -191,8 +194,9 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
           </div>
           {/* Protein */}
           <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Protein (g)</label>
+            <label htmlFor="food-protein" className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Protein (g)</label>
             <input
+              id="food-protein"
               type="text"
               inputMode="decimal"
               value={protein}
@@ -224,8 +228,9 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
       {/* Serving Size (always in grams) and Serving Type (description) */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Serving Size (g)</label>
+          <label htmlFor="food-serving-size" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Serving Size (g)</label>
           <input
+            id="food-serving-size"
             type="text"
             inputMode="decimal"
             value={servingSizeDisplay}
@@ -239,8 +244,9 @@ export default function FoodItemForm({ food, onSave, onCancel }: FoodItemFormPro
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Serving Description</label>
+          <label htmlFor="food-serving-description" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Serving Description</label>
           <input
+            id="food-serving-description"
             type="text"
             value={servingType}
             onChange={e => setServingType(e.target.value)}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { mealsApi, mealTemplatesApi, aiMealApi, foodApi } from '../api';
 import FoodSelector from './FoodSelector';
 import type { MealTemplate, Meal, MealCategory, MealFoodItem, FoodItem } from '../types';
@@ -15,11 +15,12 @@ interface LogMealModalProps {
 export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCreated, templateId, editingMeal }: LogMealModalProps) {
   const [templates, setTemplates] = useState<MealTemplate[]>([]);
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [name, setName] = useState('');
-  const [mealType, setMealType] = useState<MealCategory>('snack');
-  const [foods, setFoods] = useState<MealFoodItem[]>([]);
-  const [notes, setNotes] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(templateId ?? null);
+  const [name, setName] = useState(editingMeal?.name ?? '');
+  const [mealType, setMealType] = useState<MealCategory>(editingMeal?.mealType ?? 'snack');
+  const [foods, setFoods] = useState<MealFoodItem[]>(editingMeal?.foods ?? []);
+  const [notes, setNotes] = useState(editingMeal?.notes ?? '');
+  const populatedTemplateRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [aiDescription, setAiDescription] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -42,26 +43,6 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
       ]).then(([templatesData, foodsData]) => {
         setTemplates(templatesData);
         setFoodItems(foodsData);
-
-        // If editing a meal, populate the form
-        if (editingMeal) {
-          setName(editingMeal.name);
-          setMealType(editingMeal.mealType);
-          setFoods([...editingMeal.foods]);
-          setNotes(editingMeal.notes || '');
-          setSelectedTemplate(null);
-        } else if (templateId) {
-          const t = templatesData.find((tm: MealTemplate) => tm.id === templateId);
-          if (t) {
-            setSelectedTemplate(t.id);
-            setName(t.name);
-            setMealType(t.category);
-            setFoods([...t.foods]);
-          }
-        } else {
-          // Reset form for new meal
-          resetFormInternal();
-        }
       });
     }
   }, [isOpen, templateId, editingMeal]);
@@ -86,8 +67,13 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
 
   // When a template is selected, populate the form
   useEffect(() => {
+    if (!selectedTemplate || populatedTemplateRef.current === selectedTemplate) {
+      return;
+    }
+
     const t = templates.find(tm => tm.id === selectedTemplate);
     if (t) {
+      populatedTemplateRef.current = selectedTemplate;
       setName(t.name);
       setMealType(t.category);
       setFoods([...t.foods]);
@@ -242,7 +228,7 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
           foods,
           loggedAt: new Date(),
           notes: notes.trim() || undefined,
-          source: 'ai_assisted'
+          source: 'manual'
         });
       }
 
@@ -472,8 +458,9 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meal Name *</label>
+            <label htmlFor="meal-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meal Name *</label>
             <input
+              id="meal-name"
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
@@ -483,8 +470,9 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meal Type</label>
+            <label htmlFor="meal-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Meal Type</label>
             <select
+              id="meal-type"
               value={mealType}
               onChange={e => setMealType(e.target.value as MealCategory)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
@@ -504,8 +492,9 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional)</label>
+            <label htmlFor="meal-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes (optional)</label>
             <textarea
+              id="meal-notes"
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}

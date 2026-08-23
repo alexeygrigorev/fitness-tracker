@@ -49,8 +49,9 @@ export default function MealTemplateForm({ template, onSave, onCancel }: MealTem
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Template Name *</label>
+        <label htmlFor="template-name" className="block text-sm font-medium text-gray-700 mb-1">Template Name *</label>
         <input
+          id="template-name"
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -60,8 +61,9 @@ export default function MealTemplateForm({ template, onSave, onCancel }: MealTem
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+        <label htmlFor="template-category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
         <select
+          id="template-category"
           value={category}
           onChange={e => setCategory(e.target.value as MealCategory)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

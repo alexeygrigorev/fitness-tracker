@@ -43,6 +43,51 @@ async function handleResponse(response: Response) {
   return response.json();
 }
 
+function normalizeMealRecord(record: Record<string, any>): Meal {
+  const { food_items: foodItems, ...frontendRecord } = record;
+  const foods = (foodItems ?? []).map((item: any) => ({
+    foodId: String(item.foodId),
+    grams: Number(item.grams),
+  }));
+  return {
+    ...frontendRecord,
+    id: String(frontendRecord.id),
+    foods,
+  } as Meal;
+}
+
+function normalizeTemplateRecord(record: Record<string, any>): MealTemplate {
+  const normalized = normalizeMealRecord(record);
+  return {
+    id: normalized.id,
+    name: normalized.name,
+    category: record.category,
+    foods: normalized.foods,
+  };
+}
+
+function normalizeFoodRecord(record: Record<string, any>): FoodItem {
+  return {
+    ...record,
+    id: String(record.id),
+  } as FoodItem;
+}
+
+function serializeFoodsPayload<T extends { foods?: any[] }>(payload: T) {
+  const { foods, ...rest } = payload;
+  if (!foods) {
+    return rest;
+  }
+  return {
+    ...rest,
+    food_items: foods.map((food, index) => ({
+      foodId: Number(food.foodId),
+      grams: Number(food.grams),
+      order: index,
+    })),
+  };
+}
+
 // Auth API
 export const authApi = {
   login: async (username: string, password: string) => {
@@ -353,13 +398,15 @@ export const foodApi = {
     const response = await fetch(`${API_BASE}/api/food/foods/`, {
       headers: await getHeaders(),
     });
-    return handleResponse(response);
+    const foods = await handleResponse(response);
+    return foods.map(normalizeFoodRecord);
   },
   getById: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/foods/${id}/`, {
       headers: await getHeaders(),
     });
-    return handleResponse(response);
+    const food = await handleResponse(response);
+    return normalizeFoodRecord(food);
   },
   search: async (query: string) => {
     // Search is done client-side for now
@@ -374,7 +421,8 @@ export const foodApi = {
       headers: await getHeaders(),
       body: JSON.stringify(food),
     });
-    return handleResponse(response);
+    const created = await handleResponse(response);
+    return normalizeFoodRecord(created);
   },
   update: async (id: string, updates: Partial<FoodItem>) => {
     const response = await fetch(`${API_BASE}/api/food/foods/${id}/`, {
@@ -382,7 +430,8 @@ export const foodApi = {
       headers: await getHeaders(),
       body: JSON.stringify(updates),
     });
-    return handleResponse(response);
+    const updated = await handleResponse(response);
+    return normalizeFoodRecord(updated);
   },
   delete: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/foods/${id}/`, {
@@ -407,29 +456,33 @@ export const mealTemplatesApi = {
     const response = await fetch(`${API_BASE}/api/food/templates/`, {
       headers: await getHeaders(),
     });
-    return handleResponse(response);
+    const templates = await handleResponse(response);
+    return templates.map(normalizeTemplateRecord);
   },
   getById: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/templates/${id}/`, {
       headers: await getHeaders(),
     });
-    return handleResponse(response);
+    const template = await handleResponse(response);
+    return normalizeTemplateRecord(template);
   },
   create: async (template: Omit<MealTemplate, 'id'>) => {
     const response = await fetch(`${API_BASE}/api/food/templates/`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify(template),
+      body: JSON.stringify(serializeFoodsPayload(template)),
     });
-    return handleResponse(response);
+    const created = await handleResponse(response);
+    return normalizeTemplateRecord(created);
   },
   update: async (id: string, updates: Partial<MealTemplate>) => {
     const response = await fetch(`${API_BASE}/api/food/templates/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
-      body: JSON.stringify(updates),
+      body: JSON.stringify(serializeFoodsPayload(updates)),
     });
-    return handleResponse(response);
+    const updated = await handleResponse(response);
+    return normalizeTemplateRecord(updated);
   },
   delete: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/templates/${id}/`, {
@@ -442,9 +495,20 @@ export const mealTemplatesApi = {
     const response = await fetch(`${API_BASE}/api/food/calculations/calculate-nutrition/`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify(request),
+      body: JSON.stringify({
+        food_items: request.foods.map((food) => ({
+          food_id: Number(food.foodId),
+          grams: Number(food.grams),
+        })),
+      }),
     });
-    return handleResponse(response);
+    const totals = await handleResponse(response);
+    return {
+      totalCalories: Number(totals.total_calories),
+      totalProtein: Number(totals.total_protein_g),
+      totalCarbs: Number(totals.total_carbs_g),
+      totalFat: Number(totals.total_fat_g),
+    };
   }
 };
 
@@ -454,20 +518,23 @@ export const mealsApi = {
     const response = await fetch(`${API_BASE}/api/food/meals/`, {
       headers: await getHeaders(),
     });
-    return handleResponse(response);
+    const meals = await handleResponse(response);
+    return meals.map(normalizeMealRecord);
   },
   getById: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/meals/${id}/`, {
       headers: await getHeaders(),
     });
-    return handleResponse(response);
+    const meal = await handleResponse(response);
+    return normalizeMealRecord(meal);
   },
   getByDate: async (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     const response = await fetch(`${API_BASE}/api/food/meals/date/${dateStr}/`, {
       headers: await getHeaders(),
     });
-    return handleResponse(response);
+    const meals = await handleResponse(response);
+    return meals.map(normalizeMealRecord);
   },
   getDailyTotals: async (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
@@ -480,17 +547,19 @@ export const mealsApi = {
     const response = await fetch(`${API_BASE}/api/food/meals/`, {
       method: 'POST',
       headers: await getHeaders(),
-      body: JSON.stringify(meal),
+      body: JSON.stringify(serializeFoodsPayload(meal)),
     });
-    return handleResponse(response);
+    const created = await handleResponse(response);
+    return normalizeMealRecord(created);
   },
   update: async (id: string, updates: Partial<Meal>) => {
     const response = await fetch(`${API_BASE}/api/food/meals/${id}/`, {
       method: 'PATCH',
       headers: await getHeaders(),
-      body: JSON.stringify(updates),
+      body: JSON.stringify(serializeFoodsPayload(updates)),
     });
-    return handleResponse(response);
+    const updated = await handleResponse(response);
+    return normalizeMealRecord(updated);
   },
   delete: async (id: string) => {
     const response = await fetch(`${API_BASE}/api/food/meals/${id}/`, {

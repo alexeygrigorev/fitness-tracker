@@ -1,7 +1,8 @@
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db.models import Sum, F
 from drf_spectacular.utils import extend_schema
 from .models import FoodItem, Meal, MealFoodItem, MealTemplate, MealTemplateFoodItem
@@ -39,14 +40,24 @@ class FoodItemViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
+    def _ensure_owner(self, instance):
+        if instance.user_id != self.request.user.id:
+            raise PermissionDenied('Only the food owner can modify this item.')
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user, source='user')
         return Response(serializer.data, status=201)
 
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self._ensure_owner(instance)
+        return super().update(request, *args, **kwargs)
+
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
+        self._ensure_owner(instance)
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -54,6 +65,7 @@ class FoodItemViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        self._ensure_owner(instance)
         instance.delete()
         return Response(status=204)
 
@@ -126,6 +138,8 @@ class MealViewSet(viewsets.ModelViewSet):
         total_sodium = Decimal(0)
 
         for mfi in meal_food_items:
+            if mfi.food.serving_size <= 0:
+                continue
             # Calculate multiplier based on serving size (grams in meal / serving_size in food)
             multiplier = mfi.grams / mfi.food.serving_size
             total_calories += mfi.food.calories * multiplier
@@ -294,7 +308,7 @@ def infer_metabolism(request):
     description="Calculate total nutrition for a list of food items"
 )
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def calculate_nutrition(request):
     from decimal import Decimal
 
@@ -313,6 +327,10 @@ def calculate_nutrition(request):
 
         try:
             food = FoodItem.objects.get(id=food_id)
+            if food.serving_size <= 0 or (
+                food.user_id is not None and food.user_id != request.user.id
+            ):
+                continue
             # Calculate multiplier based on grams vs serving size
             multiplier = Decimal(grams) / food.serving_size
             total_calories += food.calories * multiplier
