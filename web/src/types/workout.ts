@@ -48,7 +48,6 @@ export interface WorkoutPresetExercise {
   dropdowns?: number;
   includeWarmup: boolean;
   order: number;
-  warmup?: boolean;
   supersetExercises?: SupersetExerciseItem[];
 }
 
@@ -74,12 +73,3 @@ export interface WorkoutPlan {
   name: string;
   description?: string;
 }
-
-export interface WorkoutProgram {
-  id: number;
-  name: string;
-  description?: string;
-}
-
-// Re-export for compatibility
-export type WorkoutTag = string;

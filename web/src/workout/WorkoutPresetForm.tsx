@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { workoutPresetsApi } from '../api';
 import ExerciseSelector from './ExerciseSelector';
-import type { WorkoutPreset, WorkoutPresetExercise, WorkoutTag } from '../types';
+import type { WorkoutPreset, WorkoutPresetExercise } from '../types';
 
-const WORKOUT_TYPES: { value: WorkoutTag; label: string }[] = [
+const WORKOUT_TYPES: { value: string; label: string }[] = [
   { value: 'strength', label: 'Strength' },
   { value: 'cardio', label: 'Cardio' },
   { value: 'mixed', label: 'Mixed' },
@@ -29,7 +29,7 @@ interface WorkoutPresetFormProps {
 export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutPresetFormProps) {
   const [name, setName] = useState(preset?.name || '');
   const [dayLabel, setDayLabel] = useState(preset?.dayLabel || '');
-  const [workoutType, setWorkoutType] = useState<WorkoutTag | ''>(preset?.tags?.[0] || '');
+  const [workoutType, setWorkoutType] = useState(preset?.tags?.[0] || '');
   const [status] = useState<'active' | 'archived'>(preset?.status || 'active');
 
   const [exerciseList, setExerciseList] = useState<WorkoutPresetExercise[]>(
@@ -104,7 +104,7 @@ export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutP
         <select
           id="preset-type"
           value={workoutType}
-          onChange={e => setWorkoutType(e.target.value as WorkoutTag | '')}
+          onChange={e => setWorkoutType(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
         >
           <option value="">None</option>
