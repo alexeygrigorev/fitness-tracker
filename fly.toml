@@ -7,7 +7,7 @@ primary_region = "iad"
 
 [env]
   DJANGO_SETTINGS_MODULE = "config.settings"
-  DJANGO_ALLOWED_HOSTS = ".fly.dev,fitness-tracker.fly.dev"
+  DJANGO_ALLOWED_HOSTS = "rough-leaf-5415.fly.dev"
   DJANGO_CSRF_TRUSTED_ORIGINS = "https://rough-leaf-5415.fly.dev"
   DJANGO_TRUST_PROXY_TLS = "true"
   DEBUG = "false"
