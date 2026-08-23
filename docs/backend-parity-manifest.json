@@ -54,8 +54,8 @@
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 141,
-    "translatedTargetsApprovedOrPassing": 0,
+    "translatedTargetsPending": 133,
+    "translatedTargetsApprovedOrPassing": 8,
     "nextAction": "Implement the pending backend-ts targets and replace their statuses with verified results or recorded approved equivalents."
   },
   "entries": [
@@ -65,7 +65,7 @@
       "intent": "Anonymous Requests Are Unauthorized",
       "domain": "ai",
       "targetTestId": "backend-ts/tests/ai-contract.test.ts#AiContractTests#test_anonymous_requests_are_unauthorized",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-002",
@@ -73,7 +73,7 @@
       "intent": "Created Food Preserves Ai Nutrition Fields",
       "domain": "ai",
       "targetTestId": "backend-ts/tests/ai-contract.test.ts#AiContractTests#test_created_food_preserves_ai_nutrition_fields",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-003",
@@ -81,7 +81,7 @@
       "intent": "Exercise Response Matches Serializer Contract",
       "domain": "ai",
       "targetTestId": "backend-ts/tests/ai-contract.test.ts#AiContractTests#test_exercise_response_matches_serializer_contract",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-004",
@@ -89,7 +89,7 @@
       "intent": "Failed Ingredient Creation Rolls Back The Entire Batch",
       "domain": "ai",
       "targetTestId": "backend-ts/tests/ai-contract.test.ts#AiContractTests#test_failed_ingredient_creation_rolls_back_the_entire_batch",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-005",
@@ -97,7 +97,7 @@
       "intent": "Food Response Matches Serializer Contract",
       "domain": "ai",
       "targetTestId": "backend-ts/tests/ai-contract.test.ts#AiContractTests#test_food_response_matches_serializer_contract",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-006",
@@ -105,7 +105,7 @@
       "intent": "Meal Ingredients Are Reused And Created Atomically",
       "domain": "ai",
       "targetTestId": "backend-ts/tests/ai-contract.test.ts#AiContractTests#test_meal_ingredients_are_reused_and_created_atomically",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-007",
@@ -113,7 +113,7 @@
       "intent": "Meal Response Matches Nested Serializer Contract",
       "domain": "ai",
       "targetTestId": "backend-ts/tests/ai-contract.test.ts#AiContractTests#test_meal_response_matches_nested_serializer_contract",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-008",
@@ -121,7 +121,7 @@
       "intent": "Openapi Documents Authenticated Camel Case Contracts",
       "domain": "ai",
       "targetTestId": "backend-ts/tests/ai-contract.test.ts#AiContractTests#test_openapi_documents_authenticated_camel_case_contracts",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-009",
