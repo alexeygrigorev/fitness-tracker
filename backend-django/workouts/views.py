@@ -1,9 +1,12 @@
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from datetime import datetime
 from django.db.models import Prefetch, Q
+from django.http import Http404
+from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from .models import (
     Exercise, WorkoutSession, WorkoutSet, WorkoutPreset,
@@ -64,8 +67,40 @@ def model_to_dict(instance):
     return result
 
 
+def is_exercise_visible(exercise, user):
+    """Private exercises are usable only by their owner."""
+    return exercise.user_id is None or exercise.user_id == user.id
+
+
+def get_visible_exercise(exercise_id, user):
+    """Resolve an exercise without leaking IDs owned by another user."""
+    if exercise_id is None:
+        return None
+    try:
+        exercise = Exercise.objects.get(pk=exercise_id)
+    except (Exercise.DoesNotExist, TypeError, ValueError):
+        return None
+    return exercise if is_exercise_visible(exercise, user) else None
+
+
+def preset_has_hidden_exercises(preset, user):
+    """Reject shared presets that embed references a caller cannot see."""
+    for preset_exercise in preset.exercises.all():
+        if preset_exercise.type != "superset":
+            exercise = preset_exercise.exercise
+            if exercise is None or not is_exercise_visible(exercise, user):
+                return True
+            continue
+        for item in preset_exercise.superset_exercises.all():
+            if not is_exercise_visible(item.exercise, user):
+                return True
+    return False
+
+
 class ExerciseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Exercise.objects.filter(user__isnull=True)
         return (
             Exercise.objects.filter(user=self.request.user)
             | Exercise.objects.filter(user__isnull=True)
@@ -82,25 +117,51 @@ class ExerciseViewSet(viewsets.ModelViewSet):
         # User-created exercises are always owned by the user
         serializer.save(user=self.request.user)
 
+    def _get_exercise_for_write(self, pk):
+        """Resolve outside the visible queryset so denied writes return 403."""
+        try:
+            return Exercise.objects.get(pk=pk)
+        except (Exercise.DoesNotExist, TypeError, ValueError):
+            raise Http404
+
+    def _authorize_exercise_write(self, exercise, *, deleting=False):
+        verb = "delete" if deleting else "modify"
+        if exercise.user_id is None:
+            return Response({"error": f"Cannot {verb} common exercises"}, status=403)
+        if exercise.user_id != self.request.user.id:
+            return Response(
+                {"error": f"Cannot {verb} exercises created by another user"},
+                status=403,
+            )
+        return None
+
+    def update(self, request, *args, **kwargs):
+        obj = self._get_exercise_for_write(kwargs.get("pk"))
+        error = self._authorize_exercise_write(obj)
+        if error is not None:
+            return error
+        serializer = self.get_serializer(obj, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
     def partial_update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        # Common exercises (user=None) cannot be modified
-        if obj.user is None:
-            return Response({"error": "Cannot modify common exercises"}, status=403)
-        # User exercises can only be modified by their owner
-        if obj.user_id != request.user.id:
-            return Response({"error": "Cannot modify exercises created by another user"}, status=403)
-        return super().partial_update(request, *args, **kwargs)
+        obj = self._get_exercise_for_write(kwargs.get("pk"))
+        error = self._authorize_exercise_write(obj)
+        if error is not None:
+            return error
+        serializer = self.get_serializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
-        obj = self.get_object()
-        # Common exercises (user=None) cannot be deleted
-        if obj.user is None:
-            return Response({"error": "Cannot delete common exercises"}, status=403)
-        # User exercises can only be deleted by their owner
-        if obj.user_id != request.user.id:
-            return Response({"error": "Cannot delete exercises created by another user"}, status=403)
-        return super().destroy(request, *args, **kwargs)
+        obj = self._get_exercise_for_write(kwargs.get("pk"))
+        error = self._authorize_exercise_write(obj, deleting=True)
+        if error is not None:
+            return error
+        obj.delete()
+        return Response(status=204)
 
 
 class WorkoutSetViewSet(viewsets.ModelViewSet):
@@ -124,7 +185,10 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
             'dropdownWeights': 'dropdown_weights',
         }
 
+        allowed_fields = {"weight", "reps", "dropdownWeights"}
         for k, v in request.data.items():
+            if k not in allowed_fields:
+                continue
             # Map camelCase to snake_case
             field_name = field_mapping.get(k, k)
             setattr(obj, field_name, v)
@@ -171,45 +235,74 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         # Extract sets data before creating session (sets can't be directly assigned)
         sets_data = data.pop('sets', None)
 
-        # Map frontend field names to Django model field names
-        if 'startedAt' in data:
-            started_at = data.pop('startedAt')
-            # Parse ISO format datetime string from JavaScript
-            if isinstance(started_at, str):
-                # Handle various ISO formats from JS toISOString()
-                # JS: "2025-01-06T09:00:00.000Z" or "2025-01-06T09:00:00.000+00:00"
-                data['created_at'] = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-            else:
-                data['created_at'] = started_at
-        # Default to server time if not provided
-        if 'created_at' not in data or data.get('created_at') is None:
-            data['created_at'] = timezone.now()
-        if 'endedAt' in data:
-            ended_at = data.pop('endedAt')
-            if isinstance(ended_at, str):
-                data['finished_at'] = datetime.fromisoformat(ended_at.replace('Z', '+00:00'))
-            else:
-                data['finished_at'] = ended_at
+        try:
+            # Parse ISO format datetimes sent by JavaScript clients.
+            if 'startedAt' in data:
+                started_at = data.pop('startedAt')
+                if isinstance(started_at, str):
+                    data['created_at'] = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+                else:
+                    data['created_at'] = started_at
+            if 'created_at' not in data or data.get('created_at') is None:
+                data['created_at'] = timezone.now()
+            if 'endedAt' in data:
+                ended_at = data.pop('endedAt')
+                if isinstance(ended_at, str):
+                    data['finished_at'] = datetime.fromisoformat(ended_at.replace('Z', '+00:00'))
+                else:
+                    data['finished_at'] = ended_at
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid date"}, status=400)
 
-        data["user_id"] = request.user.id
-        obj = WorkoutSession.objects.create(**data)
+        # Only accept known scalar fields; ownership is assigned server-side.
+        preset = None
+        preset_id = data.get('preset_id', data.get('preset'))
+        if preset_id is not None:
+            preset = WorkoutPreset.objects.filter(
+                pk=preset_id,
+            ).filter(
+                Q(user=request.user) | Q(user__isnull=True) | Q(is_public=True)
+            ).first()
+            if preset is None:
+                return Response({"error": "Preset not found"}, status=404)
 
-        # Handle sets creation if provided
-        if sets_data:
-            for idx, set_data in enumerate(sets_data):
-                # Map frontend field names to Django model field names
-                mapped_data = {
-                    'session': obj,
-                    'set_order': set_data.get('set_order', idx),
-                    'exercise_id': set_data.get('exerciseId'),
-                    'set_type': set_data.get('setType', 'normal'),
-                    'weight': set_data.get('weight'),
-                    'reps': set_data.get('reps'),
-                    'completed_at': set_data.get('loggedAt'),
-                }
-                # Remove None values to let defaults apply
-                mapped_data = {k: v for k, v in mapped_data.items() if v is not None}
-                WorkoutSet.objects.create(**mapped_data)
+        try:
+            with transaction.atomic():
+                obj = WorkoutSession.objects.create(
+                    user=request.user,
+                    name=data.get('name') or 'Workout',
+                    notes=data.get('notes'),
+                    bodyweight=data.get('bodyweight'),
+                    created_at=data['created_at'],
+                    finished_at=data.get('finished_at'),
+                    preset=preset,
+                )
+
+                sets_to_create = []
+                for index, set_data in enumerate(sets_data or []):
+                    exercise_id = set_data.get('exerciseId', set_data.get('exercise_id'))
+                    exercise = get_visible_exercise(exercise_id, request.user)
+                    if exercise is None:
+                        raise ValidationError({"sets": "Invalid or unavailable exercise"})
+
+                    logged_at = set_data.get('loggedAt')
+                    if isinstance(logged_at, str):
+                        logged_at = datetime.fromisoformat(logged_at.replace('Z', '+00:00'))
+
+                    sets_to_create.append(WorkoutSet(
+                        session=obj,
+                        set_order=set_data.get('set_order', index),
+                        exercise=exercise,
+                        set_type=set_data.get('setType', set_data.get('set_type', 'normal')),
+                        weight=set_data.get('weight'),
+                        reps=set_data.get('reps'),
+                        dropdown_weights=set_data.get('dropdownWeights', set_data.get('dropdown_weights')),
+                        completed_at=logged_at,
+                    ))
+
+                WorkoutSet.objects.bulk_create(sets_to_create)
+        except ValueError:
+            return Response({"error": "Invalid date or numeric value"}, status=400)
 
         # Use serializer to include sets in the response
         serializer = self.serializer_class(obj)
@@ -243,7 +336,11 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
 
         # Get the set directly, verifying it belongs to this session
         try:
-            workout_set = WorkoutSet.objects.get(pk=set_id, session_id=pk)
+            workout_set = WorkoutSet.objects.get(
+                pk=set_id,
+                session_id=pk,
+                session__user=request.user,
+            )
         except WorkoutSet.DoesNotExist:
             return Response({"error": "Set not found in this session"}, status=404)
 
@@ -252,7 +349,10 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
             'dropdownWeights': 'dropdown_weights',
         }
 
+        allowed_fields = {"weight", "reps", "dropdownWeights"}
         for k, v in request.data.items():
+            if k not in allowed_fields:
+                continue
             field_name = field_mapping.get(k, k)
             setattr(workout_set, field_name, v)
 
@@ -270,7 +370,11 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         """
         # Get the set directly, verifying it belongs to this session
         try:
-            workout_set = WorkoutSet.objects.get(pk=set_id, session_id=pk)
+            workout_set = WorkoutSet.objects.get(
+                pk=set_id,
+                session_id=pk,
+                session__user=request.user,
+            )
         except WorkoutSet.DoesNotExist:
             return Response({"error": "Set not found in this session"}, status=404)
 
@@ -322,6 +426,20 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(obj)
         return Response(serializer.data)
 
+    def _require_owned_preset(self, request):
+        obj = self.get_object()
+        if obj.user is None:
+            return None, Response({"error": "Cannot modify template presets"}, status=403)
+        if obj.user_id != request.user.id:
+            return None, Response({"error": "Cannot modify presets created by another user"}, status=403)
+        return obj, None
+
+    def update(self, request, *args, **kwargs):
+        _, error = self._require_owned_preset(request)
+        if error is not None:
+            return error
+        return super().update(request, *args, **kwargs)
+
     def create(self, request, *args, **kwargs):
         """Create a new preset with exercises."""
         # Extract exercises data to pass to serializer for manual handling
@@ -340,13 +458,9 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
     def partial_update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        # Template presets (user=None) cannot be modified
-        if obj.user is None:
-            return Response({"error": "Cannot modify template presets"}, status=403)
-        # User presets can only be modified by their owner
-        if obj.user_id != request.user.id:
-            return Response({"error": "Cannot modify presets created by another user"}, status=403)
+        obj, error = self._require_owned_preset(request)
+        if error is not None:
+            return error
 
         # Extract exercises data to pass to serializer for manual handling
         exercises_data = request.data.get('exercises')
@@ -395,6 +509,8 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         )
         if not can_copy:
             return Response({"error": "Cannot copy private preset from another user"}, status=403)
+        if preset_has_hidden_exercises(template, request.user):
+            return Response({"error": "Template contains an unavailable exercise"}, status=403)
 
         # Create a new preset for the user
         new_preset = WorkoutPreset.objects.create(
@@ -443,18 +559,20 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
         from .serializers import WorkoutSessionSerializer, WorkoutSetSerializer
 
         preset = self.get_object()
+        if preset_has_hidden_exercises(preset, request.user):
+            return Response({"error": "Preset contains an unavailable exercise"}, status=403)
 
         # Get client-provided start time if available, otherwise use server time
         started_at = request.data.get('startedAt')
-        if started_at:
-            # Parse ISO format datetime string
-            from datetime import datetime
+        try:
             if isinstance(started_at, str):
                 created_time = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            elif started_at is None:
+                created_time = timezone.now()
             else:
                 created_time = started_at
-        else:
-            created_time = timezone.now()
+        except (TypeError, ValueError):
+            return Response({"error": "Invalid date"}, status=400)
 
         # Get client-provided bodyweight if available
         bodyweight = request.data.get('bodyweight')
@@ -556,6 +674,18 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
             return Response({"error": "Not found"}, status=404)
         return Response(model_to_dict(obj))
 
+    def _require_owned_plan(self, request):
+        obj = self.get_object()
+        if obj.user_id != request.user.id:
+            return None, Response({"error": "Cannot modify plans created by another user"}, status=403)
+        return obj, None
+
+    def update(self, request, *args, **kwargs):
+        _, error = self._require_owned_plan(request)
+        if error is not None:
+            return error
+        return self.partial_update(request, *args, **kwargs)
+
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         data["user_id"] = request.user.id
@@ -569,7 +699,9 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
         preset_ids = data.get("preset_ids", [])
         for idx, preset_id in enumerate(preset_ids):
             try:
-                preset = WorkoutPreset.objects.get(id=preset_id)
+                preset = WorkoutPreset.objects.filter(
+                    Q(user=request.user) | Q(user__isnull=True) | Q(is_public=True)
+                ).get(id=preset_id)
                 WorkoutPlanPreset.objects.create(
                     plan=plan,
                     preset=preset,
@@ -580,12 +712,12 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
         return Response(model_to_dict(plan), status=201)
 
     def partial_update(self, request, *args, **kwargs):
-        obj = self.get_object()
-        # Only allow modifying own plans
-        if obj.user_id != request.user.id:
-            return Response({"error": "Cannot modify plans created by another user"}, status=403)
+        obj, error = self._require_owned_plan(request)
+        if error is not None:
+            return error
+        allowed_fields = {"name", "description"}
         for k, v in request.data.items():
-            if k != "preset_ids":  # Handle preset_ids separately
+            if k in allowed_fields:
                 setattr(obj, k, v)
         obj.save()
         return Response(model_to_dict(obj))
@@ -612,6 +744,11 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
 
         for plan_preset in plan_presets:
             template = plan_preset.preset
+            if preset_has_hidden_exercises(template, request.user):
+                return Response(
+                    {"error": "Plan contains a preset with an unavailable exercise"},
+                    status=403,
+                )
 
             # Create a new preset for the user
             new_preset = WorkoutPreset.objects.create(

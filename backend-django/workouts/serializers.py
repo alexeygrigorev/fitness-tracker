@@ -1,3 +1,4 @@
+from django.db.models import Max, Q
 from rest_framework import serializers
 from .models import (
     Exercise, WorkoutSet, WorkoutSession, WorkoutPreset,
@@ -137,14 +138,39 @@ class ExerciseSerializer(serializers.ModelSerializer):
 
 
 class WorkoutSetSerializer(serializers.ModelSerializer):
-    exerciseId = serializers.ReadOnlyField(source='exercise.id')
+    class AccessibleExercisePrimaryKeyField(serializers.PrimaryKeyRelatedField):
+        def get_queryset(self):
+            request = self.context.get('request')
+            if request is None or not getattr(request.user, 'is_authenticated', False):
+                return Exercise.objects.none()
+            return Exercise.objects.filter(
+                Q(user=request.user) | Q(user__isnull=True)
+            )
+
+    exerciseId = AccessibleExercisePrimaryKeyField(source='exercise')
     exerciseName = serializers.ReadOnlyField(source='exercise.name')  # Include exercise name for fallback matching
+    set_order = serializers.IntegerField(required=False, min_value=0)
     # Use a custom method field to ensure loggedAt is always included
     loggedAt = serializers.SerializerMethodField()
     dropdownWeights = serializers.JSONField(source='dropdown_weights', required=False)
     setType = serializers.CharField(source='set_type')
     # Return weight as a number (not string) - use Decimal with coerce_to_string=False
     weight = serializers.DecimalField(max_digits=6, decimal_places=2, allow_null=True, required=False, coerce_to_string=False)
+
+    def validate_session(self, value):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not getattr(user, 'is_authenticated', False) or value.user_id != user.id:
+            raise serializers.ValidationError('Invalid session')
+        return value
+
+    def create(self, validated_data):
+        if 'set_order' not in validated_data:
+            last_order = validated_data['session'].sets.aggregate(
+                Max('set_order')
+            )['set_order__max']
+            validated_data['set_order'] = -1 if last_order is None else last_order + 1
+        return super().create(validated_data)
 
     def get_loggedAt(self, obj):
         """Always return completed_at, even if None."""
@@ -157,6 +183,8 @@ class WorkoutSetSerializer(serializers.ModelSerializer):
 
 
 class WorkoutSessionSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
+    preset = serializers.PrimaryKeyRelatedField(read_only=True)
     sets = WorkoutSetSerializer(many=True, read_only=True)
     startedAt = serializers.DateTimeField(source='created_at')
     endedAt = serializers.DateTimeField(source='finished_at', allow_null=True)
