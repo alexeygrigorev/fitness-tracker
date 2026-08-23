@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPen, faTrash, faPlus } from "@fortawesome/free-solid-svg-icons";
@@ -23,12 +23,6 @@ const isSameDay = (date1: Date, date2: Date) => {
   return date1.getFullYear() === date2.getFullYear() &&
     date1.getMonth() === date2.getMonth() &&
     date1.getDate() === date2.getDate();
-};
-
-const toDateKey = (date: Date) => {
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${month}-${day}`;
 };
 
 // Format date for display
@@ -58,7 +52,11 @@ export default function NutritionPage() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [templates, setTemplates] = useState<MealTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingMeals, setLoadingMeals] = useState(getTabFromPath() === 'meals');
+  const [loadingFoodItems, setLoadingFoodItems] = useState(true);
+  const [templatesLoaded, setTemplatesLoaded] = useState(getTabFromPath() === 'templates');
+  const [loadingTemplates, setLoadingTemplates] = useState(getTabFromPath() === 'templates');
+  const templatesRequestedRef = useRef(false);
 
   // Sync tab with URL changes
   useEffect(() => {
@@ -84,18 +82,78 @@ export default function NutritionPage() {
   const [editingMeal, setEditingMeal] = useState<Meal>();
 
   useEffect(() => {
-    Promise.all([mealsApi.getAll(), foodApi.getAll(), mealTemplatesApi.getAll()]).then(([mls, fds, tmpl]) => {
-      setMeals(mls);
-      setFoodItems(fds);
-      setTemplates(tmpl);
-      setLoading(false);
-    });
+    if (activeTab !== 'meals') return;
+
+    let cancelled = false;
+    setLoadingMeals(true);
+
+    mealsApi.getByDate(selectedDate)
+      .then(data => {
+        if (!cancelled) setMeals(data);
+      })
+      .catch(error => {
+        console.error('Failed to load meals', error);
+        if (!cancelled) setMeals([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingMeals(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, selectedDate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    foodApi.getAll()
+      .then(data => {
+        if (!cancelled) setFoodItems(data);
+      })
+      .catch(error => {
+        console.error('Failed to load food items', error);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingFoodItems(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Filter meals by selected date
-  const mealsForDate = meals.filter(meal =>
-    meal.date === toDateKey(selectedDate)
-  );
+  useEffect(() => {
+    const shouldLoadTemplates = activeTab === 'templates' ||
+      (showLogMeal && !editingMeal);
+    if (!shouldLoadTemplates || templatesRequestedRef.current) return;
+
+    let cancelled = false;
+    templatesRequestedRef.current = true;
+    setLoadingTemplates(true);
+
+    mealTemplatesApi.getAll()
+      .then(data => {
+        if (!cancelled) {
+          setTemplates(data);
+          setTemplatesLoaded(true);
+        }
+      })
+      .catch(error => {
+        console.error('Failed to load meal templates', error);
+        templatesRequestedRef.current = false;
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingTemplates(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, editingMeal, showLogMeal]);
+
+  // The API returns exactly the selected local calendar date.
+  const mealsForDate = meals;
 
   // Calculate totals for selected date
   const totals = mealsForDate.reduce((acc, meal) => ({
@@ -186,6 +244,10 @@ export default function NutritionPage() {
   // Check if selected date is today (to disable forward button)
   const isToday = isSameDay(selectedDate, new Date());
 
+  const loading = loadingFoodItems ||
+    (activeTab === 'meals' && loadingMeals) ||
+    (activeTab === 'templates' && (!templatesLoaded || loadingTemplates));
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -204,7 +266,7 @@ export default function NutritionPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Nutrition Tracking</h2>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Nutrition Tracking</h1>
         {activeTab === "meals" && (
           <button
             onClick={() => setShowLogMeal(true)}
@@ -596,6 +658,10 @@ export default function NutritionPage() {
             setEditingMeal(undefined);
           }}
           onMealLogged={handleMealLogged}
+          onFoodCreated={handleAIFoodCreated}
+          templates={templates}
+          foods={foodItems}
+          loggedAt={selectedDate}
           editingMeal={editingMeal}
         />
       )}
@@ -630,6 +696,7 @@ export default function NutritionPage() {
           title={editingTemplate ? "Edit Template" : "Create Template"}
         >
           <MealTemplateForm
+            availableFoods={foodItems}
             template={editingTemplate}
             onSave={handleTemplateSaved}
             onCancel={() => {

@@ -7,7 +7,9 @@ import type {
   WorkoutSet,
   DailySummary,
   MealTemplate,
-  Exercise
+  Exercise,
+  AiFoodAnalysis,
+  AiMealAnalysis
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -41,6 +43,12 @@ async function handleResponse(response: Response) {
     return null;
   }
   return response.json();
+}
+
+function toDateKey(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 function normalizeMealRecord(record: Record<string, any>): Meal {
@@ -215,7 +223,7 @@ export const exercisesApi = {
     });
     return handleResponse(response);
   },
-  analyzeWithAI: async (input: { images?: File[]; description?: string }) => {
+  analyzeWithAI: async (input: { images?: File[]; description?: string }): Promise<Partial<Exercise>> => {
     const response = await fetch(`${API_BASE}/api/ai/analyze-exercise/`, {
       method: 'POST',
       headers: await getHeaders(),
@@ -440,7 +448,7 @@ export const foodApi = {
     });
     return handleResponse(response);
   },
-  analyzeWithAI: async (params: { images?: File[]; description: string }) => {
+  analyzeWithAI: async (params: { images?: File[]; description: string }): Promise<AiFoodAnalysis> => {
     const response = await fetch(`${API_BASE}/api/ai/analyze-food/`, {
       method: 'POST',
       headers: await getHeaders(),
@@ -529,7 +537,7 @@ export const mealsApi = {
     return normalizeMealRecord(meal);
   },
   getByDate: async (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toDateKey(date);
     const response = await fetch(`${API_BASE}/api/food/meals/date/${dateStr}/`, {
       headers: await getHeaders(),
     });
@@ -537,7 +545,7 @@ export const mealsApi = {
     return meals.map(normalizeMealRecord);
   },
   getDailyTotals: async (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toDateKey(date);
     const response = await fetch(`${API_BASE}/api/food/meals/daily/totals/${dateStr}/`, {
       headers: await getHeaders(),
     });
@@ -632,7 +640,7 @@ export const adviceApi = {
 };
 
 // AI Meal Analysis
-export const analyzeMealWithAI = async (description: string) => {
+export const analyzeMealWithAI = async (description: string): Promise<AiMealAnalysis> => {
   const response = await fetch(`${API_BASE}/api/ai/analyze-meal/`, {
     method: 'POST',
     headers: await getHeaders(),

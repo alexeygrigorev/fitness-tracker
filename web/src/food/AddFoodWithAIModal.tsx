@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { foodApi } from '../api';
 import Modal from '../components/Modal';
-import type { FoodItem } from '../types';
+import type { AiFoodAnalysis, FoodItem } from '../types';
 
 interface AddFoodWithAIModalProps {
   isOpen: boolean;
@@ -27,7 +27,7 @@ export default function AddFoodWithAIModal({ isOpen, onClose, onFoodCreated }: A
   const [description, setDescription] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [step, setStep] = useState<'input' | 'review' | 'done'>('input');
-  const [analyzedFood, setAnalyzedFood] = useState<Partial<FoodItem> | null>(null);
+  const [analyzedFood, setAnalyzedFood] = useState<AiFoodAnalysis | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,7 +61,6 @@ export default function AddFoodWithAIModal({ isOpen, onClose, onFoodCreated }: A
       setAnalyzedFood({
         ...result,
         category: detectCategoryFromMacros(result.protein, result.carbs, result.fat),
-        source: 'ai_generated'
       });
       setStep('review');
     } finally {

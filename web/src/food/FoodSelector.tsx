@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
-import { foodApi } from '../api';
+import { useState, useMemo } from 'react';
 import type { FoodItem, MealFoodItem } from '../types';
 
 interface FoodSelectorProps {
   selectedFoods: MealFoodItem[];
   onChange: (foods: MealFoodItem[]) => void;
+  foods?: FoodItem[];
 }
 
 interface AggregateMetabolism {
@@ -89,17 +89,8 @@ const calculateAggregateMetabolism = (foodItems: FoodItem[], selected: MealFoodI
   };
 };
 
-export default function FoodSelector({ selectedFoods, onChange }: FoodSelectorProps) {
-  const [foods, setFoods] = useState<FoodItem[]>([]);
+export default function FoodSelector({ selectedFoods, onChange, foods = [] }: FoodSelectorProps) {
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    foodApi.getAll().then(data => {
-      setFoods(data);
-      setLoading(false);
-    });
-  }, []);
 
   // Filter foods based on search
   const filteredFoods = useMemo(
@@ -261,10 +252,7 @@ export default function FoodSelector({ selectedFoods, onChange }: FoodSelectorPr
           onChange={e => setSearch(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 dark:bg-gray-700 dark:text-gray-100"
         />
-        {loading ? (
-          <div className="text-center py-4 text-gray-500 dark:text-gray-400">Loading...</div>
-        ) : (
-          <div className="max-h-64 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-md p-1 dark:bg-gray-800/50">
+        <div className="max-h-64 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-700 rounded-md p-1 dark:bg-gray-800/50">
             {filteredFoods.length === 0 ? (
               <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
                 {search ? `No foods found matching "${search}"` : 'No foods available'}
@@ -295,8 +283,7 @@ export default function FoodSelector({ selectedFoods, onChange }: FoodSelectorPr
               ))
             )}
           </div>
-        )}
-      </div>
+        </div>
     </div>
   );
 }

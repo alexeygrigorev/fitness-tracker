@@ -36,6 +36,21 @@ export interface MealFoodItem {
   grams: number; // Store grams directly, not portions - so changing food serving size doesn't affect templates
 }
 
+export type AiAnalyzedFood = Omit<FoodItem, 'id' | 'source' | 'brand'> & {
+  brand?: string | null;
+  grams: number;
+};
+
+export type AiFoodAnalysis = Omit<FoodItem, 'id' | 'source' | 'brand'> & {
+  brand?: string | null;
+};
+
+export interface AiMealAnalysis {
+  name: string;
+  mealType: MealCategory;
+  foods: AiAnalyzedFood[];
+}
+
 export interface Meal {
   id: string;
   name: string;

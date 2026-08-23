@@ -1,20 +1,91 @@
 import { useRef, useState, useEffect } from 'react';
 import { mealsApi, mealTemplatesApi, aiMealApi, foodApi } from '../api';
 import FoodSelector from './FoodSelector';
-import type { MealTemplate, Meal, MealCategory, MealFoodItem, FoodItem } from '../types';
+import type {
+  AiAnalyzedFood,
+  AiFoodAnalysis,
+  MealTemplate,
+  Meal,
+  MealCategory,
+  MealFoodItem,
+  FoodItem,
+} from '../types';
 
 interface LogMealModalProps {
   isOpen: boolean;
   onClose: () => void;
   onMealLogged: (meal: Meal) => void;
   onFoodCreated?: (food: FoodItem) => void;
+  templates?: MealTemplate[];
+  foods?: FoodItem[];
+  loggedAt?: Date;
   templateId?: string;
   editingMeal?: Meal;
 }
 
-export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCreated, templateId, editingMeal }: LogMealModalProps) {
-  const [templates, setTemplates] = useState<MealTemplate[]>([]);
-  const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
+const normalizeText = (value?: string | null) => value?.trim().toLowerCase() ?? '';
+
+function findAccessibleFood(foods: FoodItem[], ingredient: Omit<AiFoodAnalysis, 'grams'>) {
+  const name = normalizeText(ingredient.name);
+  const brand = normalizeText(ingredient.brand);
+  return foods.find(food =>
+    normalizeText(food.name) === name && normalizeText(food.brand) === brand
+  );
+}
+
+async function resolveAnalyzedFoods(
+  ingredients: AiAnalyzedFood[],
+  accessibleFoods: FoodItem[],
+) {
+  const availableFoods = [...accessibleFoods];
+  const selectedFoods: MealFoodItem[] = [];
+  const createdFoods: FoodItem[] = [];
+
+  for (const { grams, ...ingredient } of ingredients) {
+    let food = findAccessibleFood(availableFoods, ingredient);
+
+    if (!food) {
+      food = await foodApi.create({
+        ...ingredient,
+        name: ingredient.name.trim(),
+        brand: ingredient.brand?.trim() || undefined,
+        servingSize: ingredient.servingSize || 100,
+        servingType: ingredient.servingType || 'g',
+        calories: ingredient.calories ?? 0,
+        protein: ingredient.protein ?? 0,
+        carbs: ingredient.carbs ?? 0,
+        fat: ingredient.fat ?? 0,
+        sugar: ingredient.sugar ?? 0,
+        fiber: ingredient.fiber ?? 0,
+        glycemicIndex: ingredient.glycemicIndex ?? 50,
+        absorptionSpeed: ingredient.absorptionSpeed || 'moderate',
+        insulinResponse: ingredient.insulinResponse ?? 50,
+        satietyScore: ingredient.satietyScore ?? 5,
+        proteinQuality: ingredient.proteinQuality ?? 2,
+      });
+      availableFoods.push(food);
+      createdFoods.push(food);
+    }
+
+    selectedFoods.push({ foodId: String(food.id), grams: Number(grams) });
+  }
+
+  return { selectedFoods, createdFoods };
+}
+
+export default function LogMealModal({
+  isOpen: _isOpen,
+  onClose,
+  onMealLogged,
+  onFoodCreated,
+  templates: incomingTemplates = [],
+  foods: incomingFoodItems = [],
+  loggedAt,
+  templateId,
+  editingMeal,
+}: LogMealModalProps) {
+  const templates = incomingTemplates;
+  const foodItems = incomingFoodItems;
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(templateId ?? null);
   const [name, setName] = useState(editingMeal?.name ?? '');
   const [mealType, setMealType] = useState<MealCategory>(editingMeal?.mealType ?? 'snack');
@@ -24,6 +95,7 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
   const [loading, setLoading] = useState(false);
   const [aiDescription, setAiDescription] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiAssisted, setAiAssisted] = useState(editingMeal?.source === 'ai_assisted');
   const [saveAsFoodItem, setSaveAsFoodItem] = useState(false);
   const [showAiSection, setShowAiSection] = useState(false);
   const [aiImages, setAiImages] = useState<File[]>([]);
@@ -35,18 +107,6 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
     setHasSpeechSupport('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
   }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      Promise.all([
-        mealTemplatesApi.getAll(),
-        foodApi.getAll()
-      ]).then(([templatesData, foodsData]) => {
-        setTemplates(templatesData);
-        setFoodItems(foodsData);
-      });
-    }
-  }, [isOpen, templateId, editingMeal]);
-
   const resetFormInternal = () => {
     setName('');
     setMealType('snack');
@@ -55,6 +115,7 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
     setSelectedTemplate(null);
     setAiDescription('');
     setSaveAsFoodItem(false);
+    setAiAssisted(false);
     setShowAiSection(false);
     setAiImages([]);
     setIsRecording(false);
@@ -86,9 +147,16 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
     try {
       // For now, we use the text description. Images would be processed by a real AI API
       const result = await aiMealApi.analyzeMeal(aiDescription || 'Meal from photo');
+      setAiAssisted(true);
+      const { selectedFoods, createdFoods } = await resolveAnalyzedFoods(
+        result.foods,
+        foodItems,
+      );
+
+      createdFoods.forEach(food => onFoodCreated?.(food));
       setName(result.name);
       setMealType(result.mealType);
-      setFoods(result.foods);
+      setFoods(selectedFoods);
       setShowAiSection(false);
       setAiDescription('');
       setAiImages([]);
@@ -226,9 +294,9 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
           name: name.trim(),
           mealType,
           foods,
-          loggedAt: new Date(),
+          loggedAt: loggedAt ?? new Date(),
           notes: notes.trim() || undefined,
-          source: 'manual'
+          source: aiAssisted ? 'ai_assisted' : 'manual',
         });
       }
 
@@ -488,7 +556,7 @@ export default function LogMealModal({ isOpen, onClose, onMealLogged, onFoodCrea
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Foods</label>
-            <FoodSelector selectedFoods={foods} onChange={setFoods} />
+            <FoodSelector selectedFoods={foods} onChange={setFoods} foods={foodItems} />
           </div>
 
           <div>

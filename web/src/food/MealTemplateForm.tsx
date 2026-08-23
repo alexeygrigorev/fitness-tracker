@@ -1,15 +1,21 @@
 import { useState, useEffect } from 'react';
 import { mealTemplatesApi } from '../api';
 import FoodSelector from './FoodSelector';
-import type { MealTemplate, MealCategory } from '../types';
+import type { FoodItem, MealTemplate, MealCategory } from '../types';
 
 interface MealTemplateFormProps {
+  availableFoods?: FoodItem[];
   template?: MealTemplate;
   onSave: (template: MealTemplate) => void;
   onCancel: () => void;
 }
 
-export default function MealTemplateForm({ template, onSave, onCancel }: MealTemplateFormProps) {
+export default function MealTemplateForm({
+  availableFoods = [],
+  template,
+  onSave,
+  onCancel,
+}: MealTemplateFormProps) {
   const [name, setName] = useState(template?.name || '');
   const [category, setCategory] = useState<MealCategory>(template?.category || 'snack');
   const [foods, setFoods] = useState(template?.foods || []);
@@ -79,7 +85,7 @@ export default function MealTemplateForm({ template, onSave, onCancel }: MealTem
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Food Items</label>
-        <FoodSelector selectedFoods={foods} onChange={setFoods} />
+        <FoodSelector selectedFoods={foods} onChange={setFoods} foods={availableFoods} />
       </div>
 
       <div className="flex justify-end gap-3 pt-4">
