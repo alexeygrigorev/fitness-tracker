@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import { loadConfig } from '../src/config.js';
-import { corsHeaders, jsonResponse } from '../src/http.js';
+import { corsHeaders, jsonResponse, securityHeaders } from '../src/http.js';
 import { handler } from '../src/lambda.js';
 import type { NormalizedRequest } from '../src/types.js';
 
@@ -95,6 +95,42 @@ describe('ProductionSettingsTests', () => {
     assert.equal(response.headers['referrer-policy'], 'same-origin');
     assert.equal(response.headers['x-frame-options'], 'DENY');
     assert.equal(response.headers['cross-origin-opener-policy'], 'same-origin');
+    assert.equal(response.headers['x-content-type-options'], 'nosniff');
+  });
+
+  it('test_edge_cors_defers_to_the_application_allowlist', async () => {
+    const template = await readFile(`${process.cwd()}/template.yaml`, 'utf8');
+    const functionConfig = template.slice(
+      template.indexOf('  Api:'),
+      template.indexOf('  Table:'),
+    );
+
+    assert.match(functionConfig, /FunctionUrlConfig:/);
+    assert.doesNotMatch(functionConfig, /Cors:/);
+  });
+
+  it('test_lambda_policy_matches_implemented_access_patterns', async () => {
+    const template = await readFile(`${process.cwd()}/template.yaml`, 'utf8');
+    const policy = template.slice(
+      template.indexOf('      Policies:'),
+      template.indexOf('      FunctionUrlConfig:'),
+    );
+
+    assert.match(policy, /dynamodb:DescribeTable/);
+    assert.match(policy, /dynamodb:Scan/);
+    assert.doesNotMatch(policy, /dynamodb:BatchGetItem/);
+  });
+
+  it('test_portable_lambda_defaults_to_production_mode', async () => {
+    const template = await readFile(`${process.cwd()}/template.yaml`, 'utf8');
+    const variables = template.slice(
+      template.indexOf('        Variables:'),
+      template.indexOf('      Policies:'),
+    );
+
+    assert.match(variables, /NODE_ENV:\s*production/);
+    const config = loadConfig(controlEnvironment());
+    assert.equal(config.allowedOrigins.size, 0);
   });
 
   it('test_portable_direct_http_mode_does_not_redirect_health_checks', async () => {
@@ -168,10 +204,16 @@ describe('SpaCacheTests', () => {
     );
     assert.equal(asset.headers['content-type'], 'text/javascript');
     assert.equal(asset.body, 'window.test = true;\n');
+    for (const [name, value] of Object.entries(securityHeaders())) {
+      assert.equal(asset.headers[name], value);
+    }
 
     assert.equal(entrypoint.status, 200);
     assert.equal(entrypoint.headers['cache-control'], 'no-store, must-revalidate');
     assert.ok(entrypoint.headers['content-type'].startsWith('text/html'));
     assert.match(entrypoint.body, /<title>Fitness<\/title>/);
+    for (const [name, value] of Object.entries(securityHeaders())) {
+      assert.equal(entrypoint.headers[name], value);
+    }
   });
 });

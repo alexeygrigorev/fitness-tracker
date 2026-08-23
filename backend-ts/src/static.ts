@@ -1,5 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { securityHeaders } from './http.js';
 import type { ApiResponse, NormalizedRequest } from './types.js';
 
 const mimeTypes: Record<string, string> = {
@@ -27,7 +28,11 @@ function textResponse(
 ): ApiResponse {
   return {
     statusCode: status,
-    headers: { ...cors, 'content-type': 'text/plain; charset=utf-8' },
+    headers: {
+      ...cors,
+      ...securityHeaders(),
+      'content-type': 'text/plain; charset=utf-8',
+    },
     body: message,
     isBase64Encoded: false,
   };
@@ -50,6 +55,7 @@ async function fileResponse(
     statusCode: 200,
     headers: {
       ...cors,
+      ...securityHeaders(),
       'cache-control': cacheControl,
       'content-type': mimeTypes[extension] ?? 'application/octet-stream',
     },
@@ -73,7 +79,7 @@ export async function serveSpa(
       throw new Error('Frontend build path is not a directory');
     }
   } catch {
-    return textResponse(503, `Frontend build not found at ${frontendRoot}`, cors);
+    return textResponse(503, 'Frontend build not found.', cors);
   }
 
   let relativePath = '';

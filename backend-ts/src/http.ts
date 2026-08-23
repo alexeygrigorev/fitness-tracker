@@ -152,6 +152,16 @@ export function corsHeaders(
   };
 }
 
+export function securityHeaders(): Record<string, string> {
+  return {
+    'cross-origin-opener-policy': 'same-origin',
+    'referrer-policy': 'same-origin',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains',
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+  };
+}
+
 export function jsonResponse(
   status: number,
   payload: object,
@@ -160,10 +170,7 @@ export function jsonResponse(
   const headers: Record<string, string> = {
     ...cors,
     'content-type': 'application/json',
-    'cross-origin-opener-policy': 'same-origin',
-    'referrer-policy': 'same-origin',
-    'strict-transport-security': 'max-age=31536000; includeSubDomains',
-    'x-frame-options': 'DENY',
+    ...securityHeaders(),
   };
   return {
     statusCode: status,
@@ -176,7 +183,7 @@ export function jsonResponse(
 export function emptyResponse(status: number, cors: Record<string, string>): ApiResponse {
   return {
     statusCode: status,
-    headers: { ...cors },
+    headers: { ...cors, ...securityHeaders() },
     body: '',
     isBase64Encoded: false,
   };
