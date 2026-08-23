@@ -1,9 +1,11 @@
 from rest_framework import viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
+from decimal import Decimal
+
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.db.models import Sum, F
+from django.db.models import Prefetch, Q
 from drf_spectacular.utils import extend_schema
 from .models import FoodItem, Meal, MealFoodItem, MealTemplate, MealTemplateFoodItem
 from .serializers import (
@@ -72,7 +74,12 @@ class MealViewSet(viewsets.ModelViewSet):
     serializer_class = MealSerializer
 
     def get_queryset(self):
-        return Meal.objects.filter(user=self.request.user)
+        return Meal.objects.filter(user=self.request.user).prefetch_related(
+            Prefetch(
+                "food_items",
+                queryset=MealFoodItem.objects.select_related("food"),
+            )
+        )
 
     def list(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_queryset(), many=True)
@@ -165,7 +172,12 @@ class MealTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = MealTemplateSerializer
 
     def get_queryset(self):
-        return MealTemplate.objects.filter(user=self.request.user)
+        return MealTemplate.objects.filter(user=self.request.user).prefetch_related(
+            Prefetch(
+                "food_items",
+                queryset=MealTemplateFoodItem.objects.select_related("food"),
+            )
+        )
 
     def list(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_queryset(), many=True)
@@ -202,11 +214,19 @@ class MealTemplateViewSet(viewsets.ModelViewSet):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def calculate_calories(request):
-    protein = request.data.get("protein_g", 0)
-    carbs = request.data.get("carbs_g", 0)
-    fat = request.data.get("fat_g", 0)
+    request_serializer = CalorieCalculationRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    data = request_serializer.validated_data
+    protein = data["protein_g"]
+    carbs = data["carbs_g"]
+    fat = data["fat_g"]
     calories = (protein * 4) + (carbs * 4) + (fat * 9)
-    return Response({"calories": calories, "protein_g": protein, "carbs_g": carbs, "fat_g": fat})
+    return Response({
+        "calories": float(calories),
+        "protein_g": float(protein),
+        "carbs_g": float(carbs),
+        "fat_g": float(fat),
+    })
 
 @extend_schema(
     request=CategoryDetectionRequestSerializer,
@@ -216,27 +236,30 @@ def calculate_calories(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def detect_category(request):
-    protein = request.data.get("protein_g", 0)
-    carbs = request.data.get("carbs_g", 0)
-    fat = request.data.get("fat_g", 0)
+    request_serializer = CategoryDetectionRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    data = request_serializer.validated_data
+    protein = data["protein_g"]
+    carbs = data["carbs_g"]
+    fat = data["fat_g"]
     total = protein + carbs + fat
 
     if total == 0:
         category = "unknown"
-    elif protein > total * 0.4:
+    elif protein > total * Decimal("0.4"):
         category = "protein"
-    elif carbs > total * 0.5:
+    elif carbs > total * Decimal("0.5"):
         category = "carb"
-    elif fat > total * 0.5:
+    elif fat > total * Decimal("0.5"):
         category = "fat"
     else:
         category = "balanced"
 
     return Response({
         "category": category,
-        "protein_ratio": protein / total if total > 0 else 0,
-        "carb_ratio": carbs / total if total > 0 else 0,
-        "fat_ratio": fat / total if total > 0 else 0
+        "protein_ratio": float(protein / total) if total > 0 else 0,
+        "carb_ratio": float(carbs / total) if total > 0 else 0,
+        "fat_ratio": float(fat / total) if total > 0 else 0,
     })
 
 @extend_schema(
@@ -247,11 +270,14 @@ def detect_category(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def infer_metabolism(request):
-    protein = request.data.get("protein_g", 0)
-    carbs = request.data.get("carbs_g", 0)
-    fat = request.data.get("fat_g", 0)
-    fiber = request.data.get("fiber_g", 0)
-    food_type = request.data.get("food_type", "").lower()
+    request_serializer = MetabolismInferenceRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    data = request_serializer.validated_data
+    protein = data["protein_g"]
+    carbs = data["carbs_g"]
+    fat = data["fat_g"]
+    fiber = data["fiber_g"]
+    food_type = data["food_type"].lower()
 
     total = protein + carbs + fat
 
@@ -271,10 +297,14 @@ def infer_metabolism(request):
     else:
         absorption_speed = "moderate"
 
-    thermic_effect = "high" if protein > total * 0.3 else ("medium" if protein > total * 0.15 else "low")
+    thermic_effect = (
+        "high"
+        if protein > total * Decimal("0.3")
+        else ("medium" if protein > total * Decimal("0.15") else "low")
+    )
 
     satiety_score = 0
-    if protein > total * 0.2:
+    if protein > total * Decimal("0.2"):
         satiety_score += 3
     if fiber >= 5:
         satiety_score += 3
@@ -282,7 +312,7 @@ def infer_metabolism(request):
         satiety_score += 2
     elif fiber > 0:
         satiety_score += 1
-    if fat > total * 0.2:
+    if fat > total * Decimal("0.2"):
         satiety_score += 2
 
     if satiety_score >= 6:
@@ -309,9 +339,9 @@ def infer_metabolism(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def calculate_nutrition(request):
-    from decimal import Decimal
-
-    items = request.data.get("food_items", [])
+    request_serializer = NutritionCalculationRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    items = request_serializer.validated_data["food_items"]
     total_calories = Decimal(0)
     total_protein = Decimal(0)
     total_carbs = Decimal(0)
@@ -321,17 +351,13 @@ def calculate_nutrition(request):
     total_sodium = Decimal(0)
 
     for item in items:
-        food_id = item.get("food_id")
-        grams = item.get("grams", 0)
+        food = FoodItem.objects.filter(
+            Q(user__isnull=True) | Q(user=request.user),
+            id=item["food_id"],
+        ).first()
 
-        try:
-            food = FoodItem.objects.get(id=food_id)
-            if food.serving_size <= 0 or (
-                food.user_id is not None and food.user_id != request.user.id
-            ):
-                continue
-            # Calculate multiplier based on grams vs serving size
-            multiplier = Decimal(grams) / food.serving_size
+        if food and food.serving_size > 0:
+            multiplier = item["grams"] / food.serving_size
             total_calories += food.calories * multiplier
             total_protein += food.protein * multiplier
             total_carbs += food.carbs * multiplier
@@ -340,8 +366,6 @@ def calculate_nutrition(request):
             total_sugar += food.sugar * multiplier
             if food.sodium:
                 total_sodium += food.sodium * multiplier
-        except FoodItem.DoesNotExist:
-            continue
 
     return Response({
         "total_calories": float(round(total_calories, 2)),

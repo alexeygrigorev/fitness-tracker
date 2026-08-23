@@ -29,8 +29,14 @@ class FoodItemSerializer(serializers.ModelSerializer):
     protein = FloatWithoutTrailingZerosField()
     carbs = FloatWithoutTrailingZerosField()
     fat = FloatWithoutTrailingZerosField()
+    saturatedFat = FloatWithoutTrailingZerosField(
+        source='saturated_fat',
+        required=False,
+        allow_null=True,
+    )
     fiber = FloatWithoutTrailingZerosField(required=False, allow_null=True)
     sugar = FloatWithoutTrailingZerosField(required=False, allow_null=True)
+    sodium = FloatWithoutTrailingZerosField(required=False, allow_null=True)
     glycemicIndex = serializers.IntegerField(source='glycemic_index', required=False, allow_null=True)
     absorptionSpeed = serializers.CharField(source='absorption_speed', required=False, allow_null=True)
     satietyScore = serializers.IntegerField(source='satiety_score', required=False, allow_null=True)
@@ -46,7 +52,8 @@ class FoodItemSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user', 'name', 'brand', 'barcode', 'source',
             'servingSize', 'servingType',
-            'calories', 'protein', 'carbs', 'fat', 'fiber', 'sugar',
+            'calories', 'protein', 'carbs', 'fat', 'saturatedFat', 'fiber', 'sugar',
+            'sodium',
             'glycemicIndex', 'absorptionSpeed', 'satietyScore', 'proteinQuality',
             'insulinResponse', 'category'
         ]
@@ -95,6 +102,10 @@ class MealSerializer(serializers.ModelSerializer):
     totalCarbs = serializers.SerializerMethodField()
     totalFat = serializers.SerializerMethodField()
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._nutrition_totals_cache = {}
+
     class Meta:
         model = Meal
         fields = [
@@ -132,13 +143,16 @@ class MealSerializer(serializers.ModelSerializer):
             )
 
     def _nutrition_totals(self, meal):
+        if meal.pk in self._nutrition_totals_cache:
+            return self._nutrition_totals_cache[meal.pk]
+
         totals = {
             'calories': Decimal('0'),
             'protein': Decimal('0'),
             'carbs': Decimal('0'),
             'fat': Decimal('0'),
         }
-        for item in meal.food_items.select_related('food'):
+        for item in meal.food_items.all():
             if item.food.serving_size <= 0:
                 continue
             multiplier = item.grams / item.food.serving_size
@@ -146,7 +160,9 @@ class MealSerializer(serializers.ModelSerializer):
             totals['protein'] += item.food.protein * multiplier
             totals['carbs'] += item.food.carbs * multiplier
             totals['fat'] += item.food.fat * multiplier
-        return {key: float(round(value, 2)) for key, value in totals.items()}
+        result = {key: float(round(value, 2)) for key, value in totals.items()}
+        self._nutrition_totals_cache[meal.pk] = result
+        return result
 
     def get_totalCalories(self, meal):
         return self._nutrition_totals(meal)['calories']
@@ -206,12 +222,28 @@ class MealTemplateSerializer(serializers.ModelSerializer):
             )
 
 
+class NutritionCalculationItemSerializer(serializers.Serializer):
+    food_id = serializers.IntegerField(min_value=1)
+    grams = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        coerce_to_string=False,
+    )
+
+
 # Serializers for function-based views
 class CalorieCalculationRequestSerializer(serializers.Serializer):
     """Request serializer for calorie calculation endpoint"""
-    protein_g = serializers.FloatField(default=0)
-    carbs_g = serializers.FloatField(default=0)
-    fat_g = serializers.FloatField(default=0)
+    protein_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
+    carbs_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
+    fat_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
 
 
 class CalorieCalculationResponseSerializer(serializers.Serializer):
@@ -224,9 +256,15 @@ class CalorieCalculationResponseSerializer(serializers.Serializer):
 
 class CategoryDetectionRequestSerializer(serializers.Serializer):
     """Request serializer for category detection endpoint"""
-    protein_g = serializers.FloatField(default=0)
-    carbs_g = serializers.FloatField(default=0)
-    fat_g = serializers.FloatField(default=0)
+    protein_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
+    carbs_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
+    fat_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
 
 
 class CategoryDetectionResponseSerializer(serializers.Serializer):
@@ -239,11 +277,19 @@ class CategoryDetectionResponseSerializer(serializers.Serializer):
 
 class MetabolismInferenceRequestSerializer(serializers.Serializer):
     """Request serializer for metabolism inference endpoint"""
-    protein_g = serializers.FloatField(default=0)
-    carbs_g = serializers.FloatField(default=0)
-    fat_g = serializers.FloatField(default=0)
-    fiber_g = serializers.FloatField(default=0)
-    food_type = serializers.CharField(default="", allow_blank=True)
+    protein_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
+    carbs_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
+    fat_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
+    fiber_g = serializers.DecimalField(
+        max_digits=10, decimal_places=2, min_value=0, coerce_to_string=False, default=0
+    )
+    food_type = serializers.CharField(default="", allow_blank=True, max_length=255)
 
 
 class MetabolismInferenceResponseSerializer(serializers.Serializer):
@@ -257,7 +303,8 @@ class MetabolismInferenceResponseSerializer(serializers.Serializer):
 class NutritionCalculationRequestSerializer(serializers.Serializer):
     """Request serializer for nutrition calculation endpoint"""
     food_items = serializers.ListField(
-        child=serializers.DictField(),
+        child=NutritionCalculationItemSerializer(),
+        max_length=200,
         help_text="List of food items with food_id and grams"
     )
 
