@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartBar, faDumbbell, faAppleWhole, faBed, faBolt, faUser, faWeightScale, faRightFromBracket, faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
 import { Link, NavLink, useLocation, Routes, Route } from 'react-router-dom';
@@ -39,6 +40,21 @@ function App() {
   };
   const currentTab = getPathTab();
 
+  useEffect(() => {
+    const pageTitle =
+      location.pathname === '/login'
+        ? 'Sign in'
+        : location.pathname === '/register'
+          ? 'Create account'
+          : location.pathname.startsWith('/workouts')
+            ? 'Workouts'
+            : currentTab === 'dashboard'
+              ? 'Dashboard'
+              : tabs.find((tab) => tab.id === currentTab)?.label;
+
+    document.title = pageTitle ? `${pageTitle} | Fitness Tracker` : 'Fitness Tracker';
+  }, [currentTab, location.pathname]);
+
   // Auth pages have their own layout
   if (location.pathname === '/login' || location.pathname === '/register') {
     return (
@@ -61,7 +77,7 @@ function App() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-4">
-              <nav className="flex space-x-1">
+              <nav aria-label="Primary" className="flex space-x-1">
                 {tabs.map(tab => {
                   const path = tab.id === 'dashboard'
                     ? '/'
@@ -88,6 +104,7 @@ function App() {
                 <button
                   onClick={toggleDarkMode}
                   className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                   title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 >
                   <FontAwesomeIcon icon={darkMode ? faSun : faMoon} />
@@ -96,6 +113,7 @@ function App() {
                 <button
                   onClick={logout}
                   className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  aria-label="Logout"
                   title="Logout"
                 >
                   <FontAwesomeIcon icon={faRightFromBracket} />
@@ -108,6 +126,7 @@ function App() {
               <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-manipulation"
+                aria-label={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               >
                 <FontAwesomeIcon icon={darkMode ? faSun : faMoon} />
@@ -118,7 +137,10 @@ function App() {
       </header>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-bottom">
+      <nav
+        aria-label="Mobile"
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-bottom"
+      >
         <div className="flex items-center justify-around h-16">
           {tabs.map(tab => {
             const path = tab.id === 'dashboard'

@@ -19,7 +19,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Today's Summary</h2>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Today's Summary</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
