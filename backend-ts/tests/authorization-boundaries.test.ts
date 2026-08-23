@@ -497,6 +497,7 @@ describe('AuthorizationBoundaryTests', () => {
       rows: [],
     });
 
+    const planId = await counter('workout_plan');
     const response = await api.call('POST', '/api/workouts/plans/', {
       token: bobToken,
       body: { name: 'Leaky Plan', preset_ids: [1109] },
@@ -504,7 +505,7 @@ describe('AuthorizationBoundaryTests', () => {
 
     assert.equal(response.status, 400);
     assert.equal(await findByName('Leaky Plan'), undefined);
-    assert.equal((await partition('PLAN#1201')).length, 0);
+    assert.equal((await partition(`PLAN#${planId}`)).length, 0);
   });
 
   it('test_plan_creation_rejects_duplicate_preset_ids', async () => {
@@ -543,9 +544,12 @@ describe('AuthorizationBoundaryTests', () => {
 
     const presetId = await counter('preset');
     const normalRowId = await counter('preset_exercise');
-    await put([{
+    const collisionKey = {
       pk: `PRESET#${presetId}`,
       sk: `PRESET_EXERCISE#${normalRowId + 1}`,
+    };
+    await put([{
+      ...collisionKey,
       id: normalRowId + 1,
       entity_type: 'preset_exercise',
       collision: true,
@@ -565,6 +569,12 @@ describe('AuthorizationBoundaryTests', () => {
     const sourceItems = await presetPartition(1111);
     assert.equal(presetRows(sourceItems, 1111).length, 2);
     assert.equal(supersetRows(sourceItems, 1111).length, 1);
-    assert.equal((await presetPartition(presetId)).length, 0);
+    const targetItems = await presetPartition(presetId);
+    assert.deepEqual(
+      targetItems.filter((item) =>
+        item.pk !== collisionKey.pk || item.sk !== collisionKey.sk),
+      [],
+    );
+    assert.equal((await get(collisionKey))?.collision, true);
   });
 });
