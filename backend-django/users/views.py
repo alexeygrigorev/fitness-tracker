@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth.password_validation import validate_password
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import extend_schema
 from .models import User, ExerciseSettings
 from .serializers import (
     UserRegistrationRequestSerializer,
@@ -13,10 +13,16 @@ from .serializers import (
     UserProfileResponseSerializer,
     UserProfileUpdateRequestSerializer,
     ExerciseSettingsRequestSerializer,
+    ExerciseSettingsResponseSerializer,
+    LoginResponseSerializer,
 )
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    @extend_schema(
+        responses={200: LoginResponseSerializer},
+        description="Authenticate with a username and password and receive JWTs plus the user profile.",
+    )
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         if response.status_code == 200:
@@ -78,7 +84,7 @@ def me(request):
 
 
 @extend_schema(
-    request=UserProfileResponseSerializer,
+    request=UserProfileUpdateRequestSerializer,
     responses={200: UserProfileResponseSerializer},
     description="Update current user profile (supports dark_mode)"
 )
@@ -93,15 +99,8 @@ def update_profile(request):
 
 
 @extend_schema(
-    request={
-        'type': 'object',
-        'properties': {
-            'weight': {'type': 'number', 'nullable': True},
-            'reps': {'type': 'integer'},
-            'subSets': {'type': 'array', 'items': {'type': 'object'}}
-        }
-    },
-    responses={200: {}},
+    request=ExerciseSettingsRequestSerializer,
+    responses={200: ExerciseSettingsResponseSerializer},
     description="Update or create exercise settings for a specific exercise"
 )
 @api_view(['POST', 'PATCH'])
@@ -146,8 +145,17 @@ def exercise_settings_upsert(request, exercise_id):
         result['subSets'] = setting.sub_sets
 
     return Response(result)
-
-
+@extend_schema(
+    responses={
+        200: {
+            'type': 'object',
+            'additionalProperties': {
+                '$ref': '#/components/schemas/ExerciseSettingsResponse',
+            },
+        },
+    },
+    description="Get all exercise settings for the current user"
+)
 @api_view(['GET'])
 def exercise_settings_list(request):
     """Get all exercise settings for the current user."""

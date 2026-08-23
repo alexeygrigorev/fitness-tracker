@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.db import transaction, models
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import FoodItem, Meal, MealFoodItem, MealTemplate, MealTemplateFoodItem
 
@@ -164,15 +165,19 @@ class MealSerializer(serializers.ModelSerializer):
         self._nutrition_totals_cache[meal.pk] = result
         return result
 
+    @extend_schema_field(serializers.FloatField())
     def get_totalCalories(self, meal):
         return self._nutrition_totals(meal)['calories']
 
+    @extend_schema_field(serializers.FloatField())
     def get_totalProtein(self, meal):
         return self._nutrition_totals(meal)['protein']
 
+    @extend_schema_field(serializers.FloatField())
     def get_totalCarbs(self, meal):
         return self._nutrition_totals(meal)['carbs']
 
+    @extend_schema_field(serializers.FloatField())
     def get_totalFat(self, meal):
         return self._nutrition_totals(meal)['fat']
 
@@ -318,3 +323,14 @@ class NutritionCalculationResponseSerializer(serializers.Serializer):
     total_fiber_g = serializers.FloatField()
     total_sugar_g = serializers.FloatField()
     total_sodium_mg = serializers.FloatField()
+
+
+class MealDailyTotalsSerializer(serializers.Serializer):
+    date = serializers.DateField(format='%Y-%m-%d')
+    calories = serializers.FloatField()
+    protein_g = serializers.FloatField()
+    carbs_g = serializers.FloatField()
+    fat_g = serializers.FloatField()
+    fiber_g = serializers.FloatField()
+    sugar_g = serializers.FloatField()
+    sodium_mg = serializers.FloatField()

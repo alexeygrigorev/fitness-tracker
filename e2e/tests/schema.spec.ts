@@ -15,6 +15,11 @@ const FRONTEND_API_CALLS = [
   { method: 'POST', path: '/api/auth/login/', description: 'authApi.login' },
   { method: 'POST', path: '/api/auth/register/', description: 'authApi.register' },
   { method: 'GET', path: '/api/auth/me/', description: 'authApi.getMe' },
+  { method: 'PATCH', path: '/api/auth/me/update/', description: 'authApi.updateProfile' },
+
+  // Last-used exercise settings API
+  { method: 'GET', path: '/api/auth/exercise-settings/', description: 'lastUsedWeightsApi.getAll' },
+  { method: 'POST', path: '/api/auth/exercise-settings/{exercise_id}/', description: 'lastUsedWeightsApi.set' },
 
   // Exercises API
   { method: 'GET', path: '/api/workouts/exercises/', description: 'exercisesApi.getAll' },
@@ -29,6 +34,12 @@ const FRONTEND_API_CALLS = [
   { method: 'POST', path: '/api/workouts/sessions/', description: 'workoutsApi.create' },
   { method: 'DELETE', path: '/api/workouts/sessions/{id}/', description: 'workoutsApi.delete' },
   { method: 'PATCH', path: '/api/workouts/sessions/{id}/', description: 'workoutsApi.update' },
+  { method: 'POST', path: '/api/workouts/sessions/{id}/finish/', description: 'workoutsApi.finish' },
+  { method: 'PATCH', path: '/api/workouts/sessions/{id}/sets/{set_id}/', description: 'workoutsApi.completeSet' },
+  { method: 'DELETE', path: '/api/workouts/sessions/{id}/sets/{set_id}/completion/', description: 'workoutsApi.uncompleteSet' },
+  { method: 'POST', path: '/api/workouts/sets/', description: 'workoutsApi.addSet' },
+  { method: 'DELETE', path: '/api/workouts/sets/{set_id}/', description: 'workoutsApi.deleteSet' },
+  { method: 'GET', path: '/api/workouts/sessions/active/', description: 'workoutsApi.getActive' },
 
   // Workout Presets API
   { method: 'GET', path: '/api/workouts/presets/', description: 'workoutPresetsApi.getAll' },
@@ -37,6 +48,8 @@ const FRONTEND_API_CALLS = [
   { method: 'PATCH', path: '/api/workouts/presets/{id}/', description: 'workoutPresetsApi.update' },
   { method: 'DELETE', path: '/api/workouts/presets/{id}/', description: 'workoutPresetsApi.delete' },
   { method: 'POST', path: '/api/workouts/presets/{id}/start_workout/', description: 'workoutPresetsApi.startWorkout' },
+  { method: 'GET', path: '/api/workouts/presets/templates/', description: 'workoutPresetsApi.getTemplates' },
+  { method: 'POST', path: '/api/workouts/presets/create_from_template/', description: 'workoutPresetsApi.createFromTemplate' },
 
   // Workout Calculations API
   { method: 'POST', path: '/api/workouts/calculations/calculate-volume/', description: 'workoutCalculationsApi.calculateVolume' },
@@ -134,9 +147,10 @@ function validateJsonSchema(
       if (typeof value !== 'number' || !Number.isFinite(value)) {
         return [`${path} must be a finite number`];
       }
+      const numericValue = value as number;
       if (
-        (schema.minimum !== undefined && value < schema.minimum) ||
-        (schema.maximum !== undefined && value > schema.maximum)
+        (schema.minimum !== undefined && numericValue < schema.minimum) ||
+        (schema.maximum !== undefined && numericValue > schema.maximum)
       ) {
         return [
           `${path} must be between ${schema.minimum ?? -Infinity} and ${schema.maximum ?? Infinity}`,
@@ -145,9 +159,10 @@ function validateJsonSchema(
       break;
     case 'integer':
       if (!Number.isInteger(value)) return [`${path} must be an integer`];
+      const integerValue = value as number;
       if (
-        (schema.minimum !== undefined && value < schema.minimum) ||
-        (schema.maximum !== undefined && value > schema.maximum)
+        (schema.minimum !== undefined && integerValue < schema.minimum) ||
+        (schema.maximum !== undefined && integerValue > schema.maximum)
       ) {
         return [`${path} must be between ${schema.minimum ?? -Infinity} and ${schema.maximum ?? Infinity}`];
       }
@@ -204,7 +219,7 @@ test.describe('Schema Validation', () => {
   test.beforeAll(async () => {
     const suffix = `${Date.now()}-${randomUUID().slice(0, 8)}`;
     const username = `schema-contract-${suffix}`;
-    const password = `Contract-${randomUUID()}!x`;
+    const password = `${randomUUID()}!x`;
 
     const registration = await fetch(`${baseURL}/api/auth/register/`, {
       method: 'POST',
@@ -216,7 +231,10 @@ test.describe('Schema Validation', () => {
         password_confirm: password,
       }),
     });
-    expect(registration.status).toBe(201);
+    expect(
+      registration.status,
+      `registration failed: ${await registration.text()}`,
+    ).toBe(201);
 
     const login = await fetch(`${baseURL}/api/auth/login/`, {
       method: 'POST',
@@ -243,8 +261,8 @@ test.describe('Schema Validation', () => {
       // If path has a parameter, try common format variations
       if (!schemaPaths.has(call.path)) {
         const variations = [
-          call.path.replace('{id}', ':id'),     // DRF format
-          call.path.replace('{date_str}', ':date'),
+          call.path.replace(/\{[^}]+\}/g, ':id'), // DRF format
+          call.path.replace(/\{[^}]+\}/g, '{id}'),
         ];
         for (const variation of variations) {
           if (schemaPaths.has(variation)) {
@@ -257,7 +275,7 @@ test.describe('Schema Validation', () => {
       const pathOperation = schema.paths[matchedPath];
       const existsInSchema = pathOperation && pathOperation[call.method.toLowerCase()];
 
-      expect(existsInSchema).toBeTruthy();
+      expect(existsInSchema, `${call.method} ${call.path} (${call.description})`).toBeTruthy();
     }
   });
 
@@ -289,6 +307,191 @@ test.describe('Schema Validation', () => {
       expect(errors, errors.join('\n')).toEqual([]);
     });
   }
+
+  function documentedResponseSchema(
+    path: keyof typeof schema.paths,
+    method: 'get' | 'post' | 'patch' | 'delete',
+    status = 200,
+  ): OpenApiSchema {
+    const response = schema.paths[path]?.[method]?.responses?.[String(status)];
+    const responseSchema = response?.content?.['application/json']?.schema;
+    expect(responseSchema, `${method.toUpperCase()} ${String(path)} must document its ${status} response`).toBeDefined();
+    return responseSchema!;
+  }
+
+  async function authenticatedRequest(
+    path: string,
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+    body?: JsonValue,
+  ): Promise<Response> {
+    return fetch(`${baseURL}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  }
+
+  test('workout lifecycle responses match their documented schemas', async () => {
+    const marker = randomUUID();
+    const exerciseResponse = await authenticatedRequest('/api/workouts/exercises/', 'POST', {
+      name: `Schema lift ${marker}`,
+      category: 'isolation',
+      bodyweight: false,
+      muscleGroups: ['Chest'],
+      equipment: null,
+      instructions: [],
+    } satisfies JsonValue extends never ? never : Record<string, JsonValue>);
+    expect(exerciseResponse.status).toBe(201);
+    const exercise = (await exerciseResponse.json()) as { id: number };
+
+    const presetResponse = await authenticatedRequest('/api/workouts/presets/', 'POST', {
+      name: `Schema preset ${marker}`,
+      notes: null,
+      dayLabel: null,
+      tags: [],
+      is_public: false,
+      exercises: [{
+        exerciseId: exercise.id,
+        type: 'normal',
+        sets: 1,
+        dropdowns: null,
+        includeWarmup: false,
+        order: 0,
+      }],
+    } satisfies JsonValue extends never ? never : Record<string, JsonValue>);
+    expect(presetResponse.status).toBe(201);
+    const preset = (await presetResponse.json()) as { id: number };
+
+    const startResponse = await authenticatedRequest(
+      `/api/workouts/presets/${preset.id}/start_workout/`,
+      'POST',
+      {},
+    );
+    expect(startResponse.status).toBe(201);
+    const started = (await startResponse.json()) as {
+      session: { id: number };
+      sets: Array<{ id: number }>;
+    };
+    expect(started.sets).toHaveLength(1);
+    let errors = validateJsonSchema(
+      started,
+      documentedResponseSchema('/api/workouts/presets/{id}/start_workout/', 'post', 201),
+      schema,
+    );
+    expect(errors, errors.join('\n')).toEqual([]);
+
+    const sessionId = started.session.id;
+    const setId = started.sets[0]!.id;
+    const activeResponse = await authenticatedRequest('/api/workouts/sessions/active/', 'GET');
+    expect(activeResponse.status).toBe(200);
+    errors = validateJsonSchema(
+      (await activeResponse.json()) as JsonValue,
+      documentedResponseSchema('/api/workouts/sessions/active/', 'get'),
+      schema,
+    );
+    expect(errors, errors.join('\n')).toEqual([]);
+
+    const completeResponse = await authenticatedRequest(
+      `/api/workouts/sessions/${sessionId}/sets/${setId}/`,
+      'PATCH',
+      {},
+    );
+    expect(completeResponse.status).toBe(200);
+    errors = validateJsonSchema(
+      (await completeResponse.json()) as JsonValue,
+      documentedResponseSchema('/api/workouts/sessions/{id}/sets/{set_id}/', 'patch'),
+      schema,
+    );
+    expect(errors, errors.join('\n')).toEqual([]);
+
+    const uncompleteResponse = await authenticatedRequest(
+      `/api/workouts/sessions/${sessionId}/sets/${setId}/completion/`,
+      'DELETE',
+    );
+    expect(uncompleteResponse.status).toBe(200);
+    errors = validateJsonSchema(
+      (await uncompleteResponse.json()) as JsonValue,
+      documentedResponseSchema('/api/workouts/sessions/{id}/sets/{set_id}/completion/', 'delete'),
+      schema,
+    );
+    expect(errors, errors.join('\n')).toEqual([]);
+
+    const finishResponse = await authenticatedRequest(
+      `/api/workouts/sessions/${sessionId}/finish/`,
+      'POST',
+    );
+    expect(finishResponse.status).toBe(200);
+    errors = validateJsonSchema(
+      (await finishResponse.json()) as JsonValue,
+      documentedResponseSchema('/api/workouts/sessions/{id}/finish/', 'post'),
+      schema,
+    );
+    expect(errors, errors.join('\n')).toEqual([]);
+
+    await authenticatedRequest(`/api/workouts/presets/${preset.id}/`, 'DELETE');
+    await authenticatedRequest(`/api/workouts/exercises/${exercise.id}/`, 'DELETE');
+  });
+
+  test('nutrition day responses match their documented schemas', async () => {
+    const marker = randomUUID();
+    const day = '2026-08-23';
+    const foodResponse = await authenticatedRequest('/api/food/foods/', 'POST', {
+      name: `Schema oats ${marker}`,
+      brand: null,
+      category: 'carb',
+      servingSize: 100,
+      servingType: 'g',
+      calories: 100,
+      protein: 10,
+      carbs: 20,
+      fat: 5,
+      saturatedFat: null,
+      sugar: 2,
+      fiber: 3,
+      sodium: null,
+      glycemicIndex: null,
+      absorptionSpeed: null,
+      insulinResponse: null,
+      satietyScore: null,
+      proteinQuality: null,
+    } satisfies JsonValue extends never ? never : Record<string, JsonValue>);
+    expect(foodResponse.status).toBe(201);
+    const food = (await foodResponse.json()) as { id: number };
+
+    const mealResponse = await authenticatedRequest('/api/food/meals/', 'POST', {
+      name: `Schema meal ${marker}`,
+      mealType: 'breakfast',
+      date: day,
+      food_items: [{ foodId: food.id, grams: 100, order: 0 }],
+    } satisfies JsonValue extends never ? never : Record<string, JsonValue>);
+    expect(mealResponse.status).toBe(201);
+
+    const mealsResponse = await authenticatedRequest(`/api/food/meals/date/${day}/`, 'GET');
+    expect(mealsResponse.status).toBe(200);
+    let errors = validateJsonSchema(
+      (await mealsResponse.json()) as JsonValue,
+      documentedResponseSchema('/api/food/meals/date/{date_str}/', 'get'),
+      schema,
+    );
+    expect(errors, errors.join('\n')).toEqual([]);
+
+    const totalsResponse = await authenticatedRequest(
+      `/api/food/meals/daily/totals/${day}/`,
+      'GET',
+    );
+    expect(totalsResponse.status).toBe(200);
+    errors = validateJsonSchema(
+      (await totalsResponse.json()) as JsonValue,
+      documentedResponseSchema('/api/food/meals/daily/totals/{date_str}/', 'get'),
+      schema,
+    );
+    expect(errors, errors.join('\n')).toEqual([]);
+
+    await authenticatedRequest('/api/food/foods/' + food.id + '/', 'DELETE');
+  });
 
   test.describe('Health check', () => {
     test('should have /api/health/ endpoint', async () => {

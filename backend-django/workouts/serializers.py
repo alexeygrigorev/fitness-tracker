@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import Max, Q
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import (
     Exercise, WorkoutSet, WorkoutSession, WorkoutPreset,
@@ -237,6 +238,7 @@ class WorkoutSetSerializer(serializers.ModelSerializer):
             validated_data['set_order'] = 0 if last_order is None else last_order + 1
         return super().create(validated_data)
 
+    @extend_schema_field(serializers.DateTimeField(allow_null=True))
     def get_loggedAt(self, obj):
         """Always return completed_at, even if None."""
         return obj.completed_at
@@ -669,6 +671,48 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkoutPlan
         fields = '__all__'
+
+
+class TemplateCopyRequestSerializer(serializers.Serializer):
+    template_id = serializers.IntegerField(min_value=1)
+
+
+class StartedWorkoutRequestSerializer(serializers.Serializer):
+    startedAt = serializers.DateTimeField(required=False, allow_null=True)
+    bodyweight = serializers.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        min_value=0,
+        required=False,
+        allow_null=True,
+        coerce_to_string=False,
+    )
+
+
+class StartedWorkoutSessionSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    notes = serializers.CharField(allow_null=True)
+    bodyweight = serializers.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        allow_null=True,
+        coerce_to_string=False,
+    )
+    startedAt = serializers.DateTimeField()
+    endedAt = serializers.DateTimeField(allow_null=True)
+    user_id = serializers.IntegerField()
+    preset_id = serializers.IntegerField(allow_null=True)
+
+
+class StartedWorkoutResponseSerializer(serializers.Serializer):
+    session = StartedWorkoutSessionSerializer()
+    sets = WorkoutSetSerializer(many=True, read_only=True)
+
+
+class PlanUseResponseSerializer(serializers.Serializer):
+    message = serializers.CharField()
+    presets = WorkoutPresetSerializer(many=True, read_only=True)
 
 
 # Serializers for function-based views

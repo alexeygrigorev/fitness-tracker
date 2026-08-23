@@ -53,6 +53,12 @@ class ExerciseSettingsRequestSerializer(serializers.Serializer):
     subSets = ExerciseSubSetSerializer(many=True, required=False, max_length=20)
 
 
+class ExerciseSettingsResponseSerializer(serializers.Serializer):
+    weight = NonNegativeFloatField(max_value=9999.99, required=False, allow_null=True)
+    reps = serializers.IntegerField(min_value=0, max_value=10000)
+    subSets = ExerciseSubSetSerializer(many=True, required=False)
+
+
 class UserRegistrationResponseSerializer(serializers.Serializer):
     """Response serializer for user registration endpoint"""
     user = UserSerializer()
@@ -65,3 +71,9 @@ class UserProfileResponseSerializer(serializers.Serializer):
     username = serializers.CharField()
     email = serializers.EmailField()
     dark_mode = serializers.BooleanField()
+
+
+class LoginResponseSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+    user = UserSerializer()

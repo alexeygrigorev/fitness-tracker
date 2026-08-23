@@ -9,7 +9,7 @@ from django.db.models import Prefetch, Q
 from django.http import Http404
 from django.db import transaction
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from .models import (
     Exercise, WorkoutSession, WorkoutSet, WorkoutPreset,
     WorkoutPresetExercise, WorkoutPlan, WorkoutPlanPreset, SupersetExerciseItem
@@ -18,6 +18,8 @@ from .services import generate_sets_from_preset
 from .serializers import (
     ExerciseSerializer, WorkoutSetSerializer, WorkoutSessionSerializer,
     WorkoutPresetSerializer, WorkoutPlanSerializer,
+    PlanUseResponseSerializer, StartedWorkoutRequestSerializer,
+    StartedWorkoutResponseSerializer, TemplateCopyRequestSerializer,
     VolumeCalculationRequestSerializer, VolumeCalculationResponseSerializer,
     WorkoutSetUpdateSerializer,
 )
@@ -309,6 +311,18 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+@extend_schema_view(
+    finish=extend_schema(request=None, responses={200: WorkoutSessionSerializer}),
+    complete_set=extend_schema(
+        request=WorkoutSetUpdateSerializer,
+        responses={200: WorkoutSetSerializer},
+    ),
+    uncomplete_set=extend_schema(
+        request=None,
+        responses={200: WorkoutSetSerializer},
+    ),
+    active=extend_schema(responses={200: WorkoutSessionSerializer(many=True)}),
+)
 class WorkoutSessionViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutSessionSerializer
 
@@ -505,6 +519,17 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+@extend_schema_view(
+    templates=extend_schema(responses={200: WorkoutPresetSerializer(many=True)}),
+    create_from_template=extend_schema(
+        request=TemplateCopyRequestSerializer,
+        responses={201: WorkoutPresetSerializer},
+    ),
+    start_workout=extend_schema(
+        request=StartedWorkoutRequestSerializer,
+        responses={201: StartedWorkoutResponseSerializer},
+    ),
+)
 class WorkoutPresetViewSet(viewsets.ModelViewSet):
     serializer_class = WorkoutPresetSerializer
 
@@ -737,6 +762,12 @@ def calculate_volume(request):
     })
 
 
+@extend_schema_view(
+    use_plan=extend_schema(
+        request=None,
+        responses={201: PlanUseResponseSerializer},
+    ),
+)
 class WorkoutPlanViewSet(viewsets.ModelViewSet):
     """ViewSet for workout plans - users can create plans and 'use' them to copy presets."""
     serializer_class = WorkoutPlanSerializer

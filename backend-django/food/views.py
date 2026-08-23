@@ -6,10 +6,11 @@ from decimal import Decimal
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.db.models import Prefetch, Q
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from .models import FoodItem, Meal, MealFoodItem, MealTemplate, MealTemplateFoodItem
 from .serializers import (
     FoodItemSerializer, MealSerializer, MealTemplateSerializer,
+    MealDailyTotalsSerializer,
     CalorieCalculationRequestSerializer, CalorieCalculationResponseSerializer,
     CategoryDetectionRequestSerializer, CategoryDetectionResponseSerializer,
     MetabolismInferenceRequestSerializer, MetabolismInferenceResponseSerializer,
@@ -70,6 +71,10 @@ class FoodItemViewSet(viewsets.ModelViewSet):
         instance.delete()
         return Response(status=204)
 
+@extend_schema_view(
+    by_date=extend_schema(responses={200: MealSerializer(many=True)}),
+    daily_totals=extend_schema(responses={200: MealDailyTotalsSerializer}),
+)
 class MealViewSet(viewsets.ModelViewSet):
     serializer_class = MealSerializer
 
