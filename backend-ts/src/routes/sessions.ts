@@ -59,6 +59,19 @@ function sortSets(sets: WorkoutSetItem[]): WorkoutSetItem[] {
     left.set_order - right.set_order || left.id - right.id);
 }
 
+function normalizePositiveInteger(value: unknown): number | null {
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^[-+]?\d+$/.test(value.trim())
+      ? Number(value)
+      : Number.NaN;
+  return typeof parsed === 'number' &&
+    Number.isSafeInteger(parsed) &&
+    parsed >= 1
+    ? parsed
+    : null;
+}
+
 async function userWorkouts(
   context: RouteContext,
   userId: number,
@@ -478,6 +491,53 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
   });
 
   addRoute({
+    method: 'POST',
+    pattern: '/api/workouts/sets',
+    authRequired: true,
+    authBeforeMethod: true,
+    handle: async (context) => {
+      const user = await context.requireUser();
+      const input = typeof context.request.body === 'object' &&
+        context.request.body !== null && !Array.isArray(context.request.body)
+        ? context.request.body as RequestData
+        : {};
+      const sessionId = integerValue(input.session ?? input.sessionId, { min: 1 });
+      if (sessionId === null) {
+        throw new HttpError(400, { session: ['This field is required.'] });
+      }
+      const { session, sets } = await getSession(context, sessionId);
+      const exercise = await accessibleExercise(
+        context,
+        user.id,
+        input.exerciseId ?? input.exercise_id,
+      );
+      const fallbackOrder = sets.length === 0
+        ? 0
+        : sets[sets.length - 1].set_order + 1;
+      const prepared = preparedSetFromRequest(exercise, input, fallbackOrder);
+      const weight = prepared.weight;
+      if (weight !== null && weight !== undefined && weight < 0) {
+        throw new HttpError(400, { weight: ['Ensure this value is greater than or equal to 0.'] });
+      }
+      const setId = await context.repository.nextId('workout_set');
+      const item = generatedSet({
+        id: setId,
+        userId: session.user_id,
+        sessionId: session.id,
+        exercise,
+        setOrder: prepared.setOrder,
+        setType: prepared.setType,
+        ...(prepared.weight === undefined ? {} : { weight }),
+        reps: prepared.reps === undefined ? null : prepared.reps,
+        dropdownWeights: validateDropdownWeights(prepared.dropdownWeights),
+        ...(prepared.loggedAt ? { completedAt: prepared.loggedAt.toISOString() } : {}),
+      });
+      await context.repository.putNewItemsTransactionally([item]);
+      return jsonResponse(201, setResponse(item), context.cors);
+    },
+  });
+
+  addRoute({
     method: ['GET', 'PATCH', 'DELETE'],
     pattern: '/api/workouts/sets/:setId',
     authRequired: true,
@@ -495,6 +555,21 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
         context.request.body !== null && !Array.isArray(context.request.body)
         ? context.request.body as RequestData
         : {};
+      if ('session' in data || 'sessionId' in data) {
+        const requestedSession = normalizePositiveInteger(data.session ?? data.sessionId);
+        const workouts = await userWorkouts(context, current.user_id);
+        const target = workouts.sessions.find((item) =>
+          requestedSession !== null && item.id === requestedSession);
+        if (!target) {
+          throw new HttpError(400, { session: ['Invalid session'] });
+        }
+        const updated = {
+          ...applyValidatedUpdates(current, data),
+          session_id: target.id,
+        };
+        await context.repository.put(updated);
+        return jsonResponse(200, setResponse(updated), context.cors);
+      }
       const updated = applyValidatedUpdates(current, data);
       await context.repository.put(updated);
       return jsonResponse(200, setResponse(updated), context.cors);
