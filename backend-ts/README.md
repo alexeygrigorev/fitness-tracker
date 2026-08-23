@@ -26,8 +26,14 @@ built from the same bundled handler:
 
 ```sh
 sam build
-sam deploy --guided --parameter-overrides JwtSecret='<50+-character-secret>'
+sam deploy --guided --parameter-overrides \
+  JwtSecret='<50+-character-secret>' \
+  AllowedOrigins='https://fitness.example'
 ```
+
+Set `AllowedOrigins` to the exact comma-separated browser origins that call the
+API. A same-origin SPA needs no value; a local Vite frontend uses
+`http://localhost:5173`.
 
 The table retains data on stack updates/deletion. User IDs come from atomic
 counters so migrated SQLite IDs remain stable. Exercise settings are scoped to

@@ -33,14 +33,20 @@ COPY backend-django /app/backend
 RUN mkdir -p /app/web/dist
 COPY --from=frontend-builder /app/web/dist /app/web/dist
 
-# Collect admin and API documentation assets for WhiteNoise.
-RUN uv run python manage.py collectstatic --noinput
-
 # Create directory for database with proper permissions
 RUN mkdir -p /app/backend/db && chmod 700 /app/backend/db
 
 # Run migrations and start server
 ENV DJANGO_SETTINGS_MODULE=config.settings
+# Do not expose tracebacks when a deployment omits its configuration. The
+# runtime secret is supplied per deployment; this one exists only for
+# collectstatic and is not retained as an image environment variable.
+ENV DEBUG=false
+
+# Collect admin and API documentation assets for WhiteNoise.
+RUN SECRET_KEY=build-only-collectstatic-secret-value-with-at-least-fifty-characters DEBUG=false \
+    uv run --no-sync python manage.py collectstatic --noinput
+
 # Portable images default to direct HTTP. Fly opts into its trusted TLS proxy
 # header through fly.toml.
 ENV DJANGO_TRUST_PROXY_TLS=false

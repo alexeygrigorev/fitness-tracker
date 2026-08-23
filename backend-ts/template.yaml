@@ -30,36 +30,30 @@ Resources:
         Variables:
           TABLE_NAME: !Ref Table
           JWT_SECRET: !Ref JwtSecret
+          NODE_ENV: production
           ALLOWED_ORIGINS: !Ref AllowedOrigins
       Policies:
         - Statement:
-            - Effect: Allow
+            - Sid: TableRecords
+              Effect: Allow
               Action:
+                - dynamodb:DescribeTable
                 - dynamodb:GetItem
                 - dynamodb:PutItem
                 - dynamodb:UpdateItem
                 - dynamodb:DeleteItem
-                - dynamodb:Query
-                - dynamodb:BatchGetItem
+                - dynamodb:Scan
                 - dynamodb:TransactWriteItems
+              Resource: !GetAtt Table.Arn
+            - Sid: BaseTableAndIndexQueries
+              Effect: Allow
+              Action: dynamodb:Query
               Resource:
                 - !GetAtt Table.Arn
                 - !Sub '${Table.Arn}/index/*'
       FunctionUrlConfig:
         AuthType: NONE
         InvokeMode: BUFFERED
-        Cors:
-          AllowOrigins:
-            - '*'
-          AllowMethods:
-            - GET
-            - POST
-            - PATCH
-            - DELETE
-            - OPTIONS
-          AllowHeaders:
-            - Authorization
-            - Content-Type
 
   Table:
     Type: AWS::DynamoDB::Table

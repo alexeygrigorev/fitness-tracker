@@ -16,6 +16,8 @@ env/
 htmlcov/
 *.cover
 .hypothesis/
+backend-django/.venv/
+backend-django/db.sqlite3*
 
 # Django
 *.log

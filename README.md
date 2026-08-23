@@ -216,10 +216,13 @@ The Dockerfile builds a single container serving both the React frontend (static
 
 ```bash
 docker build -t fitness-tracker .
-docker run -d -p 8000:80 -v fitness-db:/app/backend/db fitness-tracker
+docker run -d -p 8000:80 -v fitness-db:/app/backend/db \
+  -e SECRET_KEY="$(openssl rand -base64 48)" \
+  -e DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
+  fitness-tracker
 ```
 
-For an HTTP-only local container run, also set `DEBUG=false`, a `SECRET_KEY` of at least 50 characters, `DJANGO_ALLOWED_HOSTS`, and `DJANGO_TRUST_PROXY_TLS=false`. Keep the last setting disabled unless a trusted reverse proxy strips client-supplied forwarding headers; Fly sets it explicitly for its TLS terminator and verifies that the `SECRET_KEY` secret exists before deploying.
+The image starts with `DEBUG=false`, so every deployment needs a random `SECRET_KEY` of at least 50 characters and its public hostname. For an HTTP-only local container run, leave `DJANGO_TRUST_PROXY_TLS=false`; enable it only for a trusted reverse proxy that strips client-supplied forwarding headers. Fly sets its exact host, trusted TLS proxy setting, and verifies that the `SECRET_KEY` secret exists before deploying.
 
 ## CI/CD
 

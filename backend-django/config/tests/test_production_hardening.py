@@ -1,6 +1,8 @@
 import json
 import os
+import re
 from pathlib import Path
+import tomllib
 from subprocess import run
 import sys
 from tempfile import TemporaryDirectory
@@ -14,6 +16,7 @@ from config.urls import serve_spa
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 PRODUCTION_SECRET = "production-secret-value-with-more-than-fifty-characters"
 
 
@@ -60,6 +63,29 @@ def load_settings(overrides):
 
 
 class ProductionSettingsTests(TestCase):
+    def test_fly_allowlist_contains_only_the_configured_application_host(self):
+        with (REPOSITORY_ROOT / "fly.toml").open("rb") as config_file:
+            config = tomllib.load(config_file)
+
+        application_host = f"{config['app']}.fly.dev"
+        self.assertEqual(config["env"]["DJANGO_ALLOWED_HOSTS"], application_host)
+        self.assertEqual(config["env"]["DJANGO_CSRF_TRUSTED_ORIGINS"], f"https://{application_host}")
+
+    def test_portable_image_defaults_to_non_debug_mode(self):
+        contents = (REPOSITORY_ROOT / "Dockerfile").read_text()
+        debug_directives = re.findall(r"^ENV DEBUG=(.+)$", contents, flags=re.MULTILINE)
+        collectstatic_commands = [
+            line
+            for line in contents.splitlines()
+            if re.match(r"^RUN\b", line) and "collectstatic" in line
+        ]
+
+        self.assertEqual(debug_directives, ["false"])
+        self.assertEqual(len(collectstatic_commands), 1)
+        self.assertIn("DEBUG=false", collectstatic_commands[0])
+        self.assertIn("SECRET_KEY=", collectstatic_commands[0])
+        self.assertIsNone(re.search(r"^ENV SECRET_KEY=", contents, flags=re.MULTILINE))
+
     def test_fly_proxy_enables_transport_hardening(self):
         values = load_settings(
             {
