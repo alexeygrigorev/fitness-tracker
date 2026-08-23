@@ -286,7 +286,12 @@ describe('AuthorizationBoundaryTests', () => {
     );
 
     assert.equal(response.status, 403);
-    assert.equal(await findByName('Shared But Unsafe', undefined), undefined);
+    const sessions = await api.documentClient.send(new ScanCommand({
+      TableName: api.tableName,
+      FilterExpression: 'user_id = :userId AND preset_id = :presetId',
+      ExpressionAttributeValues: { ':userId': bobId, ':presetId': 1102 },
+    }));
+    assert.deepEqual(sessions.Items, []);
   });
 
   it('test_cannot_start_private_foreign_preset', async () => {
@@ -467,7 +472,7 @@ describe('AuthorizationBoundaryTests', () => {
 
     assert.equal(response.status, 400);
     assert.equal(await findByName('Leaky Plan'), undefined);
-    assert.deepEqual(await partition('PLAN#1109'), []);
+    assert.equal((await partition('PLAN#1201')).length, 0);
   });
 
   it('test_plan_creation_rejects_duplicate_preset_ids', async () => {
