@@ -157,14 +157,15 @@ test('nutrition meals and templates persist nested foods through edit and reload
   test.setTimeout(90_000);
 
   const stamp = uniqueSuffix();
-  const session = await createSession(request, 'nutrition-owner');
-  const ownerHeaders = authHeaders(session.token);
+  let ownerHeaders: Headers | undefined;
   const initialFoodName = `Lifecycle Chicken ${stamp}`;
   const initialTemplateName = `Lifecycle Template ${stamp}`;
   const editedTemplateName = `Persisted Lunch ${stamp}`;
   const editedMealName = `Persisted Meal ${stamp}`;
 
   try {
+    const session = await createSession(request, 'nutrition-owner');
+    ownerHeaders = authHeaders(session.token);
     const food = await seedFood(request, ownerHeaders, initialFoodName);
     await authenticatePage(page, session);
 
@@ -361,6 +362,8 @@ test('nutrition meals and templates persist nested foods through edit and reload
       foodsAfterDelete.some((candidate) => candidate.name === initialFoodName),
     ).toBe(false);
   } finally {
-    await cleanupNutritionData(request, ownerHeaders);
+    if (ownerHeaders) {
+      await cleanupNutritionData(request, ownerHeaders);
+    }
   }
 });

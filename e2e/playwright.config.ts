@@ -38,15 +38,6 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  // Capture console logs from browser
-  beforeEach: async ({ page }, testInfo) => {
-    page.on('console', msg => {
-      if (msg.type() === 'error' || msg.type() === 'warn' || msg.text().includes('[DEBUG')) {
-        console.log(`[Browser ${msg.type()}] ${msg.text()}`);
-      }
-    });
-  },
-
   projects: [
     {
       name: 'chromium',

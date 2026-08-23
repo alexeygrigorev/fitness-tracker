@@ -6,6 +6,7 @@
  * by the frontend exists and follows the expected format.
  */
 
+import { randomUUID } from 'node:crypto';
 import { test, expect } from '@playwright/test';
 
 // All API calls made by the frontend
@@ -75,15 +76,155 @@ const FRONTEND_API_CALLS = [
   { method: 'POST', path: '/api/ai/analyze-meal/', description: 'analyzeMealWithAI' },
 ];
 
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+type OpenApiSchema = {
+  $ref?: string;
+  type?: 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object';
+  enum?: JsonValue[];
+  nullable?: boolean;
+  required?: string[];
+  properties?: Record<string, OpenApiSchema>;
+  items?: OpenApiSchema;
+  minimum?: number;
+  maximum?: number;
+};
+
+function resolveSchema(
+  schema: OpenApiSchema,
+  document: { components?: { schemas?: Record<string, OpenApiSchema> } },
+): OpenApiSchema {
+  if (!schema.$ref) {
+    return schema;
+  }
+
+  const referenceParts = schema.$ref.split('/');
+  const componentName = decodeURIComponent(referenceParts[referenceParts.length - 1]);
+  const resolved = document.components?.schemas?.[componentName];
+  expect(resolved, `Missing schema component: ${schema.$ref}`).toBeDefined();
+  return resolved!;
+}
+
+function validateJsonSchema(
+  value: JsonValue,
+  schemaInput: OpenApiSchema,
+  document: Parameters<typeof resolveSchema>[1],
+  path = 'response',
+): string[] {
+  const schema = resolveSchema(schemaInput, document);
+
+  if (value === null) {
+    return schema.nullable ? [] : [`${path} must not be null`];
+  }
+
+  switch (schema.type) {
+    case 'string':
+      if (typeof value !== 'string') return [`${path} must be a string`];
+      if (schema.enum && !schema.enum.includes(value)) {
+        return [`${path} must be one of: ${schema.enum.join(', ')}`];
+      }
+      break;
+    case 'number':
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        return [`${path} must be a finite number`];
+      }
+      if (
+        (schema.minimum !== undefined && value < schema.minimum) ||
+        (schema.maximum !== undefined && value > schema.maximum)
+      ) {
+        return [
+          `${path} must be between ${schema.minimum ?? -Infinity} and ${schema.maximum ?? Infinity}`,
+        ];
+      }
+      break;
+    case 'integer':
+      if (!Number.isInteger(value)) return [`${path} must be an integer`];
+      if (
+        (schema.minimum !== undefined && value < schema.minimum) ||
+        (schema.maximum !== undefined && value > schema.maximum)
+      ) {
+        return [`${path} must be between ${schema.minimum ?? -Infinity} and ${schema.maximum ?? Infinity}`];
+      }
+      break;
+    case 'boolean':
+      if (typeof value !== 'boolean') return [`${path} must be a boolean`];
+      break;
+    case 'array':
+      if (!Array.isArray(value)) return [`${path} must be an array`];
+      return value.flatMap((item, index) =>
+        validateJsonSchema(item, schema.items!, document, `${path}[${index}]`),
+      );
+    case 'object': {
+      if (typeof value !== 'object' || Array.isArray(value)) {
+        return [`${path} must be an object`];
+      }
+
+      const record = value as Record<string, JsonValue>;
+      const errors = (schema.required ?? [])
+        .filter((field) => !(field in record))
+        .map((field) => `${path}.${field} is required`);
+
+      for (const [field, fieldValue] of Object.entries(record)) {
+        const fieldSchema = schema.properties?.[field];
+        if (fieldSchema) {
+          errors.push(
+            ...validateJsonSchema(fieldValue, fieldSchema, document, `${path}.${field}`),
+          );
+        }
+      }
+
+      return errors;
+    }
+    default:
+      return [`${path} has an unsupported schema type`];
+  }
+
+  return [];
+}
+
 test.describe('Schema Validation', () => {
   let schema: any = null;
   const baseURL = process.env.BASE_URL || 'http://localhost:8000';
+
+  let authToken: string;
 
   test.beforeAll(async () => {
     // Fetch OpenAPI schema from backend
     const response = await fetch(`${baseURL}/api/schema/?format=json`);
     expect(response.ok).toBeTruthy();
     schema = await response.json();
+  });
+
+  test.beforeAll(async () => {
+    const suffix = `${Date.now()}-${randomUUID().slice(0, 8)}`;
+    const username = `schema-contract-${suffix}`;
+    const password = `Contract-${randomUUID()}!x`;
+
+    const registration = await fetch(`${baseURL}/api/auth/register/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username,
+        email: `${username}@example.com`,
+        password,
+        password_confirm: password,
+      }),
+    });
+    expect(registration.status).toBe(201);
+
+    const login = await fetch(`${baseURL}/api/auth/login/`, {
+      method: 'POST',
+      body: new URLSearchParams({ username, password }),
+    });
+    expect(login.status).toBe(200);
+
+    authToken = ((await login.json()) as { access: string }).access;
   });
 
   test('schema should be valid OpenAPI 3.x', async () => {
@@ -119,6 +260,35 @@ test.describe('Schema Validation', () => {
       expect(existsInSchema).toBeTruthy();
     }
   });
+
+  const aiContracts = [
+    ['/api/ai/analyze-food/', 'AiFoodAnalysis'],
+    ['/api/ai/analyze-meal/', 'AiMealAnalysis'],
+    ['/api/ai/analyze-exercise/', 'AiExerciseAnalysis'],
+  ] as const;
+
+  for (const [path, componentName] of aiContracts) {
+    test(`${path} returns its documented response schema`, async () => {
+      const response = await fetch(`${baseURL}${path}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ description: 'Chicken and rice' }),
+      });
+      expect(response.status).toBe(200);
+
+      const data = (await response.json()) as JsonValue;
+      const operation = schema.paths[path].post;
+      const responseSchemaRef =
+        operation.responses[200]?.content?.['application/json']?.schema?.$ref;
+      expect(responseSchemaRef).toBe(`#/components/schemas/${componentName}`);
+
+      const errors = validateJsonSchema(data, { $ref: responseSchemaRef }, schema);
+      expect(errors, errors.join('\n')).toEqual([]);
+    });
+  }
 
   test.describe('Health check', () => {
     test('should have /api/health/ endpoint', async () => {
