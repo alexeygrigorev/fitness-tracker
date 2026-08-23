@@ -418,7 +418,10 @@ describe('AuthorizationBoundaryTests', () => {
     });
 
     assert.equal(response.status, 400);
-    const moved = await get({ pk: 'SESSION#1301', sk: 'SET#1401' });
+    const moved = await get({
+      pk: `USER#${aliceId}`,
+      sk: 'WORKOUT_SET#00000000#1401',
+    });
     assert.equal(moved?.session_id, 1301);
   });
 
