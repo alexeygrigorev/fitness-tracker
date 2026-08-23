@@ -171,6 +171,20 @@ export class FitnessRepository {
     await this.client.send(new PutCommand({ TableName: this.tableName, Item: exercise }));
   }
 
+  async putAllTransactionally(items: readonly object[]): Promise<void> {
+    await this.transact(items.map((item) => ({
+      Put: { TableName: this.tableName, Item: item as DocumentItem },
+    })));
+  }
+
+  async deleteAllTransactionally(
+    keys: ReadonlyArray<Record<string, unknown>>,
+  ): Promise<void> {
+    await this.transact(keys.map((key) => ({
+      Delete: { TableName: this.tableName, Key: key },
+    })));
+  }
+
   async listExerciseSettings(userId: number): Promise<Record<string, object>> {
     const result = await this.client.send(
       new DocQueryCommand({
@@ -211,13 +225,13 @@ export class FitnessRepository {
     return this.getItem<T>(key);
   }
 
-  async put<T extends DocumentItem>(
+  async put<T extends object>(
     item: T,
     options: Omit<PutCommandInput, 'Item' | 'TableName'> = {},
   ): Promise<void> {
     await this.client.send(new PutCommand({
       TableName: this.tableName,
-      Item: item,
+      Item: item as DocumentItem,
       ...options,
     }));
   }
