@@ -1,18 +1,19 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartBar, faDumbbell, faAppleWhole, faBed, faBolt, faUser, faWeightScale, faRightFromBracket, faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
 import { Link, NavLink, useLocation, Routes, Route } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import Dashboard from './pages/Dashboard';
-import ExercisesPage from '@/workout/ExercisesPage';
-import NutritionPage from '@/food/NutritionPage';
-import SleepPage from '@/health/SleepPage';
-import MetabolismPage from '@/health/MetabolismPage';
-import Profile from './pages/Profile';
-import Weight from './pages/Weight';
-import LoginPage from '@/auth/LoginPage';
-import RegisterPage from '@/auth/RegisterPage';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ExercisesPage = lazy(() => import('@/workout/ExercisesPage'));
+const NutritionPage = lazy(() => import('@/food/NutritionPage'));
+const SleepPage = lazy(() => import('@/health/SleepPage'));
+const MetabolismPage = lazy(() => import('@/health/MetabolismPage'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Weight = lazy(() => import('./pages/Weight'));
+const LoginPage = lazy(() => import('@/auth/LoginPage'));
+const RegisterPage = lazy(() => import('@/auth/RegisterPage'));
 
 type Tab = 'dashboard' | 'exercises' | 'nutrition' | 'sleep' | 'metabolism' | 'profile' | 'weight';
 
@@ -55,13 +56,27 @@ function App() {
     document.title = pageTitle ? `${pageTitle} | Fitness Tracker` : 'Fitness Tracker';
   }, [currentTab, location.pathname]);
 
+  const routeFallback = (
+    <div
+      aria-busy="true"
+      className="flex h-64 items-center justify-center"
+    >
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400" />
+      <span className="sr-only">Loading...</span>
+    </div>
+  );
+
   // Auth pages have their own layout
   if (location.pathname === '/login' || location.pathname === '/register') {
     return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-      </Routes>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+        <Suspense fallback={routeFallback}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Routes>
+        </Suspense>
+      </div>
     );
   }
 
@@ -174,13 +189,15 @@ function App() {
 
       <main className="max-w-6xl mx-auto px-4 py-4 md:py-6">
         <ProtectedRoute>
-          {currentTab === 'dashboard' && <Dashboard />}
-          {location.pathname.startsWith('/workouts') && <ExercisesPage />}
-          {location.pathname.startsWith('/nutrition') && <NutritionPage />}
-          {currentTab === 'sleep' && <SleepPage />}
-          {currentTab === 'metabolism' && <MetabolismPage />}
-          {currentTab === 'weight' && <Weight />}
-          {currentTab === 'profile' && <Profile />}
+          <Suspense fallback={routeFallback}>
+            {currentTab === 'dashboard' && <Dashboard />}
+            {location.pathname.startsWith('/workouts') && <ExercisesPage />}
+            {location.pathname.startsWith('/nutrition') && <NutritionPage />}
+            {currentTab === 'sleep' && <SleepPage />}
+            {currentTab === 'metabolism' && <MetabolismPage />}
+            {currentTab === 'weight' && <Weight />}
+            {currentTab === 'profile' && <Profile />}
+          </Suspense>
         </ProtectedRoute>
       </main>
     </div>
