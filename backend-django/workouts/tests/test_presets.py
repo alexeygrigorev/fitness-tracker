@@ -650,6 +650,42 @@ class TestCreatePresetWithExercisesViaAPI(TestCase):
         self.assertEqual(exercises[2]["exerciseId"], self.bench_press.id)
         self.assertEqual(exercises[2]["order"], 2)
 
+    def test_partial_update_without_exercises_preserves_rows(self):
+        """A scalar-only PATCH must not replace the existing exercise list."""
+        squat = Exercise.objects.create(name="Squat", is_bodyweight=False)
+        preset = WorkoutPreset.objects.create(user=self.user, name="Lower Day")
+        WorkoutPresetExercise.objects.create(
+            preset=preset,
+            exercise=self.bench_press,
+            type="normal",
+            sets=2,
+            include_warmup=True,
+            order=0,
+        )
+        WorkoutPresetExercise.objects.create(
+            preset=preset,
+            exercise=squat,
+            type="dropdown",
+            sets=1,
+            dropdowns=3,
+            order=1,
+        )
+
+        response = self.client.patch(
+            reverse("workoutpreset-detail", kwargs={"pk": preset.id}),
+            {"name": "Renamed Lower Day", "dayLabel": "Wednesday"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        exercises = response.data["exercises"]
+        self.assertEqual(len(exercises), 2)
+        self.assertEqual(exercises[0]["exerciseId"], self.bench_press.id)
+        self.assertEqual(exercises[0]["sets"], 2)
+        self.assertEqual(exercises[0]["includeWarmup"], True)
+        self.assertEqual(exercises[1]["exerciseId"], squat.id)
+        self.assertEqual(exercises[1]["dropdowns"], 3)
+
 
 class TestCreatePresetWithSuperset(TestCase):
     """Test creating a preset with superset exercises via API."""
