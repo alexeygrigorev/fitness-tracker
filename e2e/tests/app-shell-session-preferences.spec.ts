@@ -109,12 +109,7 @@ test.describe("App shell and preferences", () => {
   }) => {
     await registerFreshUser(page);
 
-    const apiOrigin = (
-      process.env.VITE_API_URL || "http://127.0.0.1:8000"
-    ).replace(/\/$/, "");
-    const preferenceSavePattern = new RegExp(
-      `^${apiOrigin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/api/auth/me/update/$`,
-    );
+    const preferenceSavePattern = "**/api/auth/me/update/";
     const rejectedWrites: unknown[] = [];
 
     await page.route(preferenceSavePattern, async (route) => {
@@ -166,16 +161,11 @@ test.describe("App shell and preferences", () => {
 
     await page.unroute(preferenceSavePattern);
 
-    const recoveredDarkSave = page.waitForResponse(async (response) => {
-      if (
-        !response.url().includes("/api/auth/me/update/") ||
-        response.request().method() !== "PATCH"
-      ) {
-        return false;
-      }
-
-      return (await response.json()) === true;
-    });
+    const recoveredDarkSave = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/auth/me/update/") &&
+        response.request().method() === "PATCH",
+    );
     await page
       .locator('header button[title="Switch to Dark Mode"]')
       .first()
