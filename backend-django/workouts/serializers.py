@@ -54,6 +54,62 @@ class EquipmentNameField(serializers.CharField):
 UNSET = object()
 
 
+class DropdownWeightSerializer(serializers.Serializer):
+    weight = serializers.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        min_value=0,
+        allow_null=True,
+        required=False,
+        coerce_to_string=False,
+    )
+    reps = serializers.IntegerField(min_value=0, required=False, default=0)
+
+
+class DropdownWeightsField(serializers.JSONField):
+    """Restrict persisted drop-set payloads to bounded numeric rows."""
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault('allow_null', True)
+        super().__init__(**kwargs)
+
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        if value is None:
+            return None
+        if not isinstance(value, list):
+            raise serializers.ValidationError('Must be a list of drop sets')
+        if len(value) > 20:
+            raise serializers.ValidationError('Too many drop sets')
+        serializer = DropdownWeightSerializer(data=value, many=True)
+        serializer.is_valid(raise_exception=True)
+        return [
+            {
+                'weight': None if row.get('weight') is None else float(row['weight']),
+                'reps': row.get('reps', 0),
+            }
+            for row in serializer.validated_data
+        ]
+
+
+class WorkoutSetUpdateSerializer(serializers.Serializer):
+    weight = serializers.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        min_value=0,
+        allow_null=True,
+        required=False,
+        coerce_to_string=False,
+    )
+    reps = serializers.IntegerField(
+        min_value=0,
+        max_value=10000,
+        allow_null=True,
+        required=False,
+    )
+    dropdownWeights = DropdownWeightsField(required=False)
+
+
 class ExerciseSerializer(serializers.ModelSerializer):
     bodyweight = BodyweightField(required=False)
     muscleGroups = MuscleGroupNamesField(required=False)
@@ -150,13 +206,21 @@ class WorkoutSetSerializer(serializers.ModelSerializer):
 
     exerciseId = AccessibleExercisePrimaryKeyField(source='exercise')
     exerciseName = serializers.ReadOnlyField(source='exercise.name')  # Include exercise name for fallback matching
-    set_order = serializers.IntegerField(required=False, min_value=0)
+    set_order = serializers.IntegerField(required=False, min_value=0, max_value=10000)
     # Use a custom method field to ensure loggedAt is always included
     loggedAt = serializers.SerializerMethodField()
-    dropdownWeights = serializers.JSONField(source='dropdown_weights', required=False)
-    setType = serializers.CharField(source='set_type')
+    dropdownWeights = DropdownWeightsField(source='dropdown_weights', required=False)
+    setType = serializers.ChoiceField(choices=WorkoutSet.SET_TYPES, source='set_type')
     # Return weight as a number (not string) - use Decimal with coerce_to_string=False
-    weight = serializers.DecimalField(max_digits=6, decimal_places=2, allow_null=True, required=False, coerce_to_string=False)
+    weight = serializers.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        min_value=0,
+        allow_null=True,
+        required=False,
+        coerce_to_string=False,
+    )
+    reps = serializers.IntegerField(min_value=0, max_value=10000, allow_null=True, required=False)
 
     def validate_session(self, value):
         request = self.context.get('request')
@@ -608,10 +672,37 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
 
 
 # Serializers for function-based views
+class ExerciseIdentifierField(serializers.CharField):
+    """Preserve caller IDs while rejecting complex or oversized values."""
+
+    def to_internal_value(self, data):
+        if isinstance(data, bool) or not isinstance(data, (str, int)):
+            self.fail('invalid')
+        value = super().to_internal_value(str(data)).strip()
+        if not value:
+            self.fail('blank')
+        return data if isinstance(data, int) else value
+
+
+class VolumeSetSerializer(serializers.Serializer):
+    weight_lbs = serializers.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        min_value=0,
+        coerce_to_string=False,
+        default=0,
+    )
+    reps = serializers.IntegerField(min_value=0, max_value=10000, default=0)
+    exercise_id = ExerciseIdentifierField(required=False, default="unknown", max_length=100)
+
+
 class VolumeCalculationRequestSerializer(serializers.Serializer):
     """Request serializer for volume calculation endpoint"""
     sets = serializers.ListField(
-        child=serializers.DictField(),
+        child=VolumeSetSerializer(),
+        max_length=10000,
+        required=False,
+        default=list,
         help_text="List of sets with weight_lbs, reps, and exercise_id"
     )
 

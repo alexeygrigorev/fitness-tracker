@@ -18,8 +18,28 @@ from .services import generate_sets_from_preset
 from .serializers import (
     ExerciseSerializer, WorkoutSetSerializer, WorkoutSessionSerializer,
     WorkoutPresetSerializer, WorkoutPlanSerializer,
-    VolumeCalculationRequestSerializer, VolumeCalculationResponseSerializer
+    VolumeCalculationRequestSerializer, VolumeCalculationResponseSerializer,
+    WorkoutSetUpdateSerializer,
 )
+
+
+def _validated_set_updates(request):
+    payload = {
+        key: request.data[key]
+        for key in ('weight', 'reps', 'dropdownWeights')
+        if key in request.data
+    }
+    serializer = WorkoutSetUpdateSerializer(data=payload)
+    serializer.is_valid(raise_exception=True)
+    validated = serializer.validated_data
+    updates = {}
+    if 'weight' in validated:
+        updates['weight'] = validated['weight']
+    if 'reps' in validated:
+        updates['reps'] = validated['reps']
+    if 'dropdownWeights' in validated:
+        updates['dropdown_weights'] = validated['dropdownWeights']
+    return updates
 
 def model_to_dict(instance):
     """Convert model instance to dict, handling related objects and date formatting."""
@@ -268,18 +288,8 @@ class WorkoutSetViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         from django.utils import timezone
 
-        # First, update any fields provided in the request (weight, reps, dropdownWeights)
-        field_mapping = {
-            'dropdownWeights': 'dropdown_weights',
-        }
-
-        allowed_fields = {"weight", "reps", "dropdownWeights"}
-        for k, v in request.data.items():
-            if k not in allowed_fields:
-                continue
-            # Map camelCase to snake_case
-            field_name = field_mapping.get(k, k)
-            setattr(obj, field_name, v)
+        for field_name, value in _validated_set_updates(request).items():
+            setattr(obj, field_name, value)
 
         # Then mark as complete
         obj.completed_at = timezone.now()
@@ -445,17 +455,8 @@ class WorkoutSessionViewSet(viewsets.ModelViewSet):
         except WorkoutSet.DoesNotExist:
             return Response({"error": "Set not found in this session"}, status=404)
 
-        # Update optional fields
-        field_mapping = {
-            'dropdownWeights': 'dropdown_weights',
-        }
-
-        allowed_fields = {"weight", "reps", "dropdownWeights"}
-        for k, v in request.data.items():
-            if k not in allowed_fields:
-                continue
-            field_name = field_mapping.get(k, k)
-            setattr(workout_set, field_name, v)
+        for field_name, value in _validated_set_updates(request).items():
+            setattr(workout_set, field_name, value)
 
         # Mark as complete
         workout_set.completed_at = timezone.now()
@@ -710,23 +711,23 @@ class WorkoutPresetViewSet(viewsets.ModelViewSet):
 )
 @api_view(["POST"])
 def calculate_volume(request):
-    sets = request.data.get("sets", [])
+    request_serializer = VolumeCalculationRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    sets = request_serializer.validated_data["sets"]
     total_volume = 0
     volume_by_exercise = {}
 
     for set_item in sets:
-        weight = set_item.get("weight_lbs", 0) or 0
-        reps = set_item.get("reps", 0) or 0
-        set_volume = weight * reps
+        set_volume = float(set_item["weight_lbs"] * set_item["reps"])
         total_volume += set_volume
 
-        exercise_id = set_item.get("exercise_id", "unknown")
+        exercise_id = set_item["exercise_id"]
         if exercise_id not in volume_by_exercise:
             volume_by_exercise[exercise_id] = 0
         volume_by_exercise[exercise_id] += set_volume
 
     return Response({
-        "total_volume": total_volume,
+        "total_volume": float(total_volume),
         "volume_by_exercise": volume_by_exercise
     })
 
