@@ -7,5 +7,5 @@ urlpatterns = [
     path('me/', me, name='me'),
     path('me/update/', update_profile, name='update_profile'),
     path('exercise-settings/', exercise_settings_list, name='exercise_settings_list'),
-    path('exercise-settings/<str:exercise_id>/', exercise_settings_upsert, name='exercise_settings_upsert'),
+    path('exercise-settings/<int:exercise_id>/', exercise_settings_upsert, name='exercise_settings_upsert'),
 ]

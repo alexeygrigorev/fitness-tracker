@@ -1,13 +1,18 @@
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth.password_validation import validate_password
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .models import User, ExerciseSettings
 from .serializers import (
     UserRegistrationRequestSerializer,
     UserRegistrationResponseSerializer,
-    UserProfileResponseSerializer
+    UserProfileResponseSerializer,
+    UserProfileUpdateRequestSerializer,
+    ExerciseSettingsRequestSerializer,
 )
 
 
@@ -32,21 +37,31 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 @api_view(['POST'])
 @permission_classes([permissions.AllowAny])
 def register(request):
-    username = request.data.get('username')
-    email = request.data.get('email')
-    password = request.data.get('password')
-    password_confirm = request.data.get('password_confirm')
+    request_serializer = UserRegistrationRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    data = request_serializer.validated_data
+    username = data['username']
+    email = data['email']
+    password = data['password']
 
-    if not username or not email or not password:
-        return Response({'error': 'Missing required fields'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if password != password_confirm:
+    if password != data['password_confirm']:
         return Response({'error': 'Password fields did not match.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_password(password, user=User(username=username, email=email))
+    except DjangoValidationError as exc:
+        return Response({'error': ' '.join(exc.messages)}, status=status.HTTP_400_BAD_REQUEST)
 
     if User.objects.filter(username=username).exists():
         return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = User.objects.create_user(username=username, email=email, password=password)
+    if User.objects.filter(email=email).exists():
+        return Response({'error': 'Account already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.create_user(username=username, email=email, password=password)
+    except IntegrityError:
+        return Response({'error': 'Account already exists'}, status=status.HTTP_400_BAD_REQUEST)
     return Response({
         'user': {'id': user.id, 'username': user.username, 'email': user.email, 'dark_mode': user.dark_mode},
         'message': 'User created successfully'
@@ -70,10 +85,10 @@ def me(request):
 @api_view(['PATCH'])
 def update_profile(request):
     """Update user profile fields like dark_mode preference."""
-    dark_mode = request.data.get('dark_mode')
-    if dark_mode is not None:
-        request.user.dark_mode = bool(dark_mode)
-        request.user.save()
+    serializer = UserProfileUpdateRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    request.user.dark_mode = serializer.validated_data['dark_mode']
+    request.user.save()
     return Response({'id': request.user.id, 'username': request.user.username, 'email': request.user.email, 'dark_mode': request.user.dark_mode})
 
 
@@ -92,15 +107,21 @@ def update_profile(request):
 @api_view(['POST', 'PATCH'])
 def exercise_settings_upsert(request, exercise_id):
     """Update or create exercise settings for a specific exercise."""
+    from django.db.models import Q
     from workouts.models import Exercise
 
-    weight = request.data.get('weight')
-    reps = request.data.get('reps', 10)
-    sub_sets = request.data.get('subSets')
+    request_serializer = ExerciseSettingsRequestSerializer(data=request.data)
+    request_serializer.is_valid(raise_exception=True)
+    data = request_serializer.validated_data
+    weight = data.get('weight')
+    reps = data['reps']
+    sub_sets = data.get('subSets')
 
     # Get the Exercise object
     try:
-        exercise = Exercise.objects.get(id=exercise_id)
+        exercise = Exercise.objects.filter(
+            Q(user__isnull=True) | Q(user=request.user)
+        ).get(id=exercise_id)
     except Exercise.DoesNotExist:
         return Response({'error': 'Exercise not found'}, status=status.HTTP_404_NOT_FOUND)
 
