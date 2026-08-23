@@ -3,8 +3,7 @@
   "lockedAt": "2026-08-23",
   "pythonBaselineCommit": "3030309",
   "pythonCommittedTestClasses": 22,
-  "pythonCommittedTestMethods": 138,
-  "knownInFlightAdditionalTestMethods": 2,
+  "pythonCommittedTestMethods": 140,
   "minimumCurrentTestMethods": 140,
   "target": {
     "language": "typescript",

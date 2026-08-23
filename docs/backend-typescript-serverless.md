@@ -33,10 +33,10 @@ path, and Python-only tooling be removed.
 ## Parity Lock
 
 `docs/backend-parity-lock.json` is the machine-readable control file. Its
-current committed baseline is 22 Python test classes and 138 test methods at
-commit `3030309`; the working reliability lane adds two AI tests, bringing the
-minimum current count to 140. The final manifest must inventory every test that
-exists immediately before Python deletion, not merely this historical minimum.
+current committed baseline is 22 Python test classes and 140 passing test
+methods at the reliability-lane commit `a45e087`. The final manifest must
+inventory every test that exists immediately before Python deletion, not merely
+this historical minimum.
 
 ## Deletion Gates
 
