@@ -90,8 +90,9 @@ export default function Weight() {
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Log New Weight</h3>
           <div className="flex gap-4 items-end">
             <div>
-              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Weight (kg)</label>
+              <label htmlFor="weight-value" className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Weight (kg)</label>
               <input
+                id="weight-value"
                 type="number"
                 value={newWeight}
                 onChange={e => setNewWeight(e.target.value)}
@@ -102,8 +103,9 @@ export default function Weight() {
               />
             </div>
             <div className="flex-1">
-              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Notes (optional)</label>
+              <label htmlFor="weight-notes" className="block text-sm text-gray-500 dark:text-gray-400 mb-1">Notes (optional)</label>
               <input
+                id="weight-notes"
                 type="text"
                 value={newNotes}
                 onChange={e => setNewNotes(e.target.value)}
@@ -207,6 +209,7 @@ export default function Weight() {
                         <button
                           onClick={() => handleDeleteEntry(entry.id)}
                           className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                          aria-label={`Delete weight entry from ${entry.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`}
                         >
                           <FontAwesomeIcon icon={faTrash} />
                         </button>

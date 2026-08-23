@@ -71,8 +71,9 @@ export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutP
       {/* Name and Day Label */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preset Name *</label>
+          <label htmlFor="preset-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preset Name *</label>
           <input
+            id="preset-name"
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
@@ -83,8 +84,9 @@ export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutP
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day of Week</label>
+          <label htmlFor="preset-day" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Day of Week</label>
           <select
+            id="preset-day"
             value={dayLabel}
             onChange={e => setDayLabel(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
@@ -98,8 +100,9 @@ export default function WorkoutPresetForm({ preset, onSave, onCancel }: WorkoutP
 
       {/* Type */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+        <label htmlFor="preset-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
         <select
+          id="preset-type"
           value={workoutType}
           onChange={e => setWorkoutType(e.target.value as WorkoutTag | '')}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"

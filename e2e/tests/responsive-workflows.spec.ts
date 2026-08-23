@@ -24,7 +24,7 @@ test.describe('Mobile workout workflows', () => {
     await login(page);
     await page.goto('/workouts');
 
-    const bottomNavigation = page.locator('nav.md\\:hidden');
+    const bottomNavigation = page.getByRole('navigation', { name: 'Mobile' });
     const desktopNavigation = page.locator('header nav');
     await expect(bottomNavigation).toBeVisible();
     await expect(desktopNavigation).toBeHidden();

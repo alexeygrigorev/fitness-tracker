@@ -9,6 +9,14 @@ export interface SetForm {
   subSets?: Array<{ weight: number; reps: number; completed?: boolean }>;
 }
 
+const getSetActionLabel = (item: SetItem) => {
+  const setName = item.setType === 'warmup'
+    ? 'warmup'
+    : `set ${item.setNumber}`;
+
+  return `${item.exerciseName} ${setName}`;
+};
+
 interface SetRowProps {
   item: SetItem;
   isEditing: boolean;
@@ -49,6 +57,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
             <input
               type="number"
               value={setForm.subSets?.[idx]?.weight ?? subSet.weight ?? ''}
+              aria-label={`${getSetActionLabel(item)} ${subSet.label} weight`}
               onChange={(e) => {
                 const newWeight = parseFloat(e.target.value) || 0;
                 const currentSubSets = setForm.subSets || allSubSets.map(s => ({ weight: s.weight, reps: s.reps }));
@@ -66,6 +75,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
             <input
               type="number"
               value={setForm.subSets?.[idx]?.reps ?? subSet.reps ?? ''}
+              aria-label={`${getSetActionLabel(item)} ${subSet.label} reps`}
               onChange={(e) => {
                 const newReps = parseInt(e.target.value) || 0;
                 const currentSubSets = setForm.subSets || allSubSets.map(s => ({ weight: s.weight, reps: s.reps }));
@@ -107,6 +117,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
                 onClick={() => { onUncompleteSet(); onCloseSetForm(); }}
                 className="px-3 py-1.5 text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors touch-manipulation"
                 title="Uncomplete this set"
+                aria-label={`Uncomplete ${getSetActionLabel(item)}`}
               >
                 Uncomplete
               </button>
@@ -133,6 +144,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
             onClick={onDeleteSet}
             className="px-2 py-1.5 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors text-sm ml-2"
             title="Delete set"
+            aria-label={`Delete ${getSetActionLabel(item)}`}
           >
             <FontAwesomeIcon icon={faTrash} />
           </button>
@@ -155,6 +167,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
           <input
             type="number"
             value={setForm.reps}
+            aria-label={`${getSetActionLabel(item)} reps`}
             onChange={(e) => onSetFormChange({ ...setForm, reps: parseInt(e.target.value) || 0 })}
             placeholder="reps"
             className="w-16 sm:w-20 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
@@ -189,6 +202,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
             <input
               type="number"
               value={setForm.weight ?? ''}
+              aria-label={`${getSetActionLabel(item)} weight`}
               onChange={(e) => onSetFormChange({ ...setForm, weight: parseFloat(e.target.value) || undefined })}
               placeholder="kg"
               className="w-16 sm:w-20 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
@@ -201,6 +215,7 @@ function SetEditForm({ item, setForm, onSetFormChange, onSubmitSet, onCloseSetFo
         <input
           type="number"
           value={setForm.reps}
+          aria-label={`${getSetActionLabel(item)} reps`}
           onChange={(e) => onSetFormChange({ ...setForm, reps: parseInt(e.target.value) || 0 })}
           placeholder="reps"
           className="w-16 sm:w-20 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
@@ -243,6 +258,7 @@ function EditFormActions({ item, onSubmitSet, onUncompleteSet, onCloseSetForm, o
           onClick={() => { onUncompleteSet(); onCloseSetForm(); }}
           className="px-3 py-2 text-sm text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors touch-manipulation"
           title="Uncomplete this set"
+          aria-label={`Uncomplete ${getSetActionLabel(item)}`}
         >
           Uncomplete
         </button>
@@ -261,6 +277,7 @@ function EditFormActions({ item, onSubmitSet, onUncompleteSet, onCloseSetForm, o
         onClick={onDeleteSet}
         className="px-2 py-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors touch-manipulation"
         title="Delete set"
+        aria-label={`Delete ${getSetActionLabel(item)}`}
       >
         <FontAwesomeIcon icon={faTrash} className="text-sm" />
       </button>
@@ -308,6 +325,7 @@ export default function SetRow({ item, isEditing, setForm, onOpenSetForm, onSubm
 
   // Common set number display
   const setNumberDisplay = item.setType === 'warmup' ? null : <div className="text-sm text-gray-500 dark:text-gray-400">Set {item.setNumber}</div>;
+  const rowLabel = getSetActionLabel(item);
 
   return (
     <div
@@ -331,9 +349,15 @@ export default function SetRow({ item, isEditing, setForm, onOpenSetForm, onSubm
         />
       ) : (
         <div
-          onClick={() => onOpenSetForm(item)}
-          className="w-full p-3 sm:p-4 flex items-center justify-between gap-2"
+          className="relative w-full overflow-hidden rounded-lg"
         >
+          <button
+            type="button"
+            onClick={() => onOpenSetForm(item)}
+            className="absolute inset-0 z-0 w-full rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            aria-label={`Edit ${rowLabel}`}
+          />
+          <div className="pointer-events-none relative z-10 w-full p-3 sm:p-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
             <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 text-sm ${
               item.completed
@@ -365,7 +389,7 @@ export default function SetRow({ item, isEditing, setForm, onOpenSetForm, onSubm
               </div>
             )}
 
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="pointer-events-auto flex items-center gap-1 shrink-0">
               {!item.completed ? (
                 <span className="hidden sm:block text-sm text-gray-400 dark:text-gray-500 italic">
                   {item.setType === 'warmup' ? 'Click to complete' : 'Click to fill'}
@@ -376,6 +400,7 @@ export default function SetRow({ item, isEditing, setForm, onOpenSetForm, onSubm
                   onClick={(e) => { e.stopPropagation(); onUncompleteSet(); }}
                   className="px-2 sm:px-3 py-1.5 text-xs text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors touch-manipulation"
                   title="Uncomplete this set"
+                  aria-label={`Uncomplete ${rowLabel}`}
                 >
                   Uncomplete
                 </button>
@@ -385,6 +410,7 @@ export default function SetRow({ item, isEditing, setForm, onOpenSetForm, onSubm
                 onClick={(e) => { e.stopPropagation(); onDeleteSet(); }}
                 className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors touch-manipulation"
                 title="Delete set"
+                aria-label={`Delete ${rowLabel}`}
               >
                 <FontAwesomeIcon icon={faTrash} className="text-xs" />
               </button>
@@ -397,6 +423,7 @@ export default function SetRow({ item, isEditing, setForm, onOpenSetForm, onSubm
               <CompletedDataDisplay item={item} />
             </div>
           )}
+        </div>
         </div>
       )}
     </div>

@@ -84,6 +84,7 @@ export default function Profile() {
                     <input
                       type="number"
                       value={editForm.weight}
+                      aria-label="Weight"
                       onChange={e => setEditForm({ ...editForm, weight: Number(e.target.value) })}
                       className="w-24 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1"
                       step="0.1"
@@ -100,6 +101,7 @@ export default function Profile() {
                     <input
                       type="number"
                       value={editForm.height}
+                      aria-label="Height"
                       onChange={e => setEditForm({ ...editForm, height: Number(e.target.value) })}
                       className="w-24 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1"
                     />
@@ -115,6 +117,7 @@ export default function Profile() {
                     <input
                       type="number"
                       value={editForm.age}
+                      aria-label="Age"
                       onChange={e => setEditForm({ ...editForm, age: Number(e.target.value) })}
                       className="w-20 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1"
                     />
@@ -143,6 +146,7 @@ export default function Profile() {
                 <label className="text-sm text-gray-500 dark:text-gray-400">Primary Goal</label>
                 {isEditing ? (
                   <select
+                    aria-label="Primary Goal"
                     value={editForm.goal}
                     onChange={e => setEditForm({ ...editForm, goal: e.target.value as UserProfile['goal'] })}
                     className="ml-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded px-3 py-1"
@@ -164,6 +168,7 @@ export default function Profile() {
                   <input
                     type="number"
                     value={editForm.weeklyWorkouts}
+                    aria-label="Weekly Workouts Target"
                     onChange={e => setEditForm({ ...editForm, weeklyWorkouts: Number(e.target.value) })}
                     className="ml-2 w-20 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded px-2 py-1"
                   />

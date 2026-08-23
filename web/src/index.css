@@ -23,6 +23,18 @@ body {
   min-height: 100vh;
 }
 
+/* Keep a visible entry point for keyboard users on every page. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+#main-content:focus-visible {
+  outline: none;
+}
+
 /* Dark mode - subtle neutral theme */
 html.dark body {
   background-color: #1a1a1a;

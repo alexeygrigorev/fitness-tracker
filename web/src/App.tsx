@@ -17,14 +17,21 @@ const RegisterPage = lazy(() => import('@/auth/RegisterPage'));
 
 type Tab = 'dashboard' | 'exercises' | 'nutrition' | 'sleep' | 'metabolism' | 'profile' | 'weight';
 
-const tabs = [
-  { id: 'dashboard' as Tab, label: 'Dashboard', icon: faChartBar },
-  { id: 'exercises' as Tab, label: 'Workouts', icon: faDumbbell },
-  { id: 'nutrition' as Tab, label: 'Nutrition', icon: faAppleWhole },
-  { id: 'weight' as Tab, label: 'Weight', icon: faWeightScale },
-  { id: 'sleep' as Tab, label: 'Sleep', icon: faBed },
-  { id: 'metabolism' as Tab, label: 'Metabolism', icon: faBolt },
-  { id: 'profile' as Tab, label: 'Profile', icon: faUser },
+type NavigationTab = {
+  id: Tab;
+  label: string;
+  shortLabel?: string;
+  icon: typeof faChartBar;
+};
+
+const tabs: NavigationTab[] = [
+  { id: 'dashboard', label: 'Dashboard', shortLabel: 'Home', icon: faChartBar },
+  { id: 'exercises', label: 'Workouts', shortLabel: 'Train', icon: faDumbbell },
+  { id: 'nutrition', label: 'Nutrition', shortLabel: 'Food', icon: faAppleWhole },
+  { id: 'weight', label: 'Weight', icon: faWeightScale },
+  { id: 'sleep', label: 'Sleep', icon: faBed },
+  { id: 'metabolism', label: 'Metabolism', shortLabel: 'Meta', icon: faBolt },
+  { id: 'profile', label: 'Profile', icon: faUser },
 ];
 
 function App() {
@@ -81,7 +88,13 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 pb-16 md:pb-0">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 pb-16 lg:pb-0">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-white"
+      >
+        Skip to main content
+      </a>
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-200 sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4">
@@ -91,7 +104,7 @@ function App() {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-4">
               <nav aria-label="Primary" className="flex space-x-1">
                 {tabs.map(tab => {
                   const path = tab.id === 'dashboard'
@@ -124,7 +137,9 @@ function App() {
                 >
                   <FontAwesomeIcon icon={darkMode ? faSun : faMoon} />
                 </button>
-                <span className="text-sm text-gray-600 dark:text-gray-300">{user?.username}</span>
+                <span className="inline-block max-w-28 truncate align-middle text-sm text-gray-600 dark:text-gray-300">
+                  {user?.username}
+                </span>
                 <button
                   onClick={logout}
                   className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -137,7 +152,7 @@ function App() {
             </div>
 
             {/* Mobile: Dark mode toggle only */}
-            <div className="flex md:hidden">
+            <div className="flex lg:hidden">
               <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors touch-manipulation"
@@ -154,7 +169,7 @@ function App() {
       {/* Mobile Bottom Navigation */}
       <nav
         aria-label="Mobile"
-        className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-bottom"
+        className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-40 safe-area-bottom"
       >
         <div className="flex items-center justify-around h-16">
           {tabs.map(tab => {
@@ -168,6 +183,8 @@ function App() {
               <NavLink
                 key={tab.id}
                 to={path}
+                aria-label={tab.label}
+                title={tab.label}
                 className={({ isActive: navActive }) =>
                   `flex flex-col items-center justify-center w-full h-full px-1 transition-colors touch-manipulation ${
                     navActive
@@ -180,14 +197,21 @@ function App() {
                   icon={tab.icon}
                   className={`text-lg mb-1 ${isActive ? 'scale-110' : ''}`}
                 />
-                <span className="text-[10px] leading-tight">{tab.label}</span>
+                <span className="text-[10px] leading-tight">
+                  <span className="hidden min-[400px]:inline">{tab.label}</span>
+                  <span className="min-[400px]:hidden">{tab.shortLabel ?? tab.label}</span>
+                </span>
               </NavLink>
             );
           })}
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-4 py-4 md:py-6">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="max-w-6xl mx-auto px-4 py-4 md:py-6 focus:outline-none"
+      >
         <ProtectedRoute>
           <Suspense fallback={routeFallback}>
             {currentTab === 'dashboard' && <Dashboard />}
