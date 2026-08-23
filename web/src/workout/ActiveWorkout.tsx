@@ -1,7 +1,13 @@
 // ActiveWorkout.tsx - Clean implementation for active workout session
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faTrash, faChevronDown, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import {
+  faPlus,
+  faTrash,
+  faChevronDown,
+  faChevronRight,
+  faTriangleExclamation,
+} from '@fortawesome/free-solid-svg-icons';
 import { workoutsApi, lastUsedWeightsApi } from '../api';
 import { ExercisePicker } from './ExerciseSelector';
 import SetRow, { type SetForm } from '../components/SetRow';
@@ -10,7 +16,7 @@ import {
   type SetItem,
   type LastUsedData
 } from './setItems';
-import type { WorkoutSession, Exercise } from '../types';
+import type { WorkoutSession, WorkoutSet, Exercise } from '../types';
 
 interface ActiveWorkoutProps {
   session: WorkoutSession;
@@ -19,6 +25,10 @@ interface ActiveWorkoutProps {
   onCancel: () => void;
   onDelete: (workoutId: number) => void;
 }
+
+const getActionErrorMessage = (error: unknown, fallback: string) => (
+  error instanceof Error && error.message ? error.message : fallback
+);
 
 // Get exercise info from ID
 const getExerciseInfo = (exerciseId: number, exercises: Exercise[]) => {
@@ -49,6 +59,7 @@ export default function ActiveWorkout({
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [setForm, setSetForm] = useState<SetForm>({ reps: 10 });
   const [loading, setLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [showAllIncomplete, setShowAllIncomplete] = useState(false);
   const [showAllCompleted, setShowAllCompleted] = useState(false);
@@ -181,6 +192,7 @@ export default function ActiveWorkout({
     if (!item) return;
 
     setLoading(true);
+    setActionError(null);
 
     try {
       const setId = parseInt(item.id);
@@ -199,27 +211,16 @@ export default function ActiveWorkout({
         requestData.reps = setForm.reps;
       }
 
-      // Call API to complete the set
-      await workoutsApi.completeSet(session.id, setId, requestData);
-
-      // Update local state - properly convert SetItem to WorkoutSet format
+      // The response is authoritative: it contains the values actually persisted.
+      const updatedSet = await workoutsApi.completeSet(
+        session.id,
+        setId,
+        requestData,
+      ) as WorkoutSet;
       setSetItems(prev => prev.map(s => {
         if (s.id === editingSetId) {
-          // For dropdown sets, convert subSets to dropdownWeights
-          const backendSet: any = {
-            id: parseInt(s.id),
-            exerciseId: s.exerciseId,
-            exerciseName: s.exerciseName,
-            setType: s.setType,
-            weight: s.setType === 'dropdown' ? (s as any).weight : s.showWeightInput ? (s as any).weight : undefined,
-            reps: (s as any).reps || requestData.reps,
-            loggedAt: new Date().toISOString()
-          };
-          if (s.setType === 'dropdown') {
-            backendSet.dropdownWeights = (s as any).subSets || requestData.dropdownWeights;
-          }
           return createSetItemFromBackend(
-            backendSet,
+            updatedSet,
             s.exerciseName,
             s.setNumber
           );
@@ -232,7 +233,11 @@ export default function ActiveWorkout({
       if (setForm.weight !== undefined) lastUsedData.weight = setForm.weight;
       if (setForm.subSets) lastUsedData.subSets = setForm.subSets;
 
-      await lastUsedWeightsApi.set(String(item.exerciseId), lastUsedData);
+      try {
+        await lastUsedWeightsApi.set(String(item.exerciseId), lastUsedData);
+      } catch (error) {
+        console.error('Failed to update last used weights:', error);
+      }
 
       setLastUsedWeights(prev => ({
         ...prev,
@@ -242,6 +247,7 @@ export default function ActiveWorkout({
       closeSetForm();
     } catch (error) {
       console.error('Failed to complete set:', error);
+      setActionError(getActionErrorMessage(error, 'Unable to save the set. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -256,29 +262,18 @@ export default function ActiveWorkout({
     if (!item) return;
 
     setLoading(true);
+    setActionError(null);
 
     try {
       const setId = parseInt(item.id);
-      await workoutsApi.uncompleteSet(session.id, setId);
-
-      // Update local state - properly convert SetItem to WorkoutSet format
+      const updatedSet = await workoutsApi.uncompleteSet(
+        session.id,
+        setId,
+      ) as WorkoutSet;
       setSetItems(prev => prev.map(s => {
         if (s.id === targetId) {
-          // For dropdown sets, convert subSets to dropdownWeights
-          const backendSet: any = {
-            id: parseInt(s.id),
-            exerciseId: s.exerciseId,
-            exerciseName: s.exerciseName,
-            setType: s.setType,
-            weight: s.setType === 'dropdown' ? (s as any).weight : s.showWeightInput ? (s as any).weight : undefined,
-            reps: (s as any).reps,
-            loggedAt: null
-          };
-          if (s.setType === 'dropdown') {
-            backendSet.dropdownWeights = (s as any).subSets;
-          }
           return createSetItemFromBackend(
-            backendSet,
+            updatedSet,
             s.exerciseName,
             s.setNumber
           );
@@ -289,6 +284,7 @@ export default function ActiveWorkout({
       closeSetForm();
     } catch (error) {
       console.error('Failed to uncomplete set:', error);
+      setActionError(getActionErrorMessage(error, 'Unable to uncomplete the set. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -303,6 +299,7 @@ export default function ActiveWorkout({
     if (!item) return;
 
     setLoading(true);
+    setActionError(null);
 
     try {
       const setId = parseInt(item.id);
@@ -313,6 +310,7 @@ export default function ActiveWorkout({
       closeSetForm();
     } catch (error) {
       console.error('Failed to delete set:', error);
+      setActionError(getActionErrorMessage(error, 'Unable to delete the set. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -323,6 +321,7 @@ export default function ActiveWorkout({
     if (!session.id) return;
 
     setLoading(true);
+    setActionError(null);
 
     try {
       // Get last used data for this exercise
@@ -359,6 +358,7 @@ export default function ActiveWorkout({
       setSetItems(prev => [...prev, newItem]);
     } catch (error) {
       console.error('Failed to add set:', error);
+      setActionError(getActionErrorMessage(error, 'Unable to add the set. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -372,6 +372,7 @@ export default function ActiveWorkout({
     if (!exercise) return;
 
     setLoading(true);
+    setActionError(null);
 
     try {
       const lastUsed = lastUsedWeights[exerciseId];
@@ -397,6 +398,7 @@ export default function ActiveWorkout({
       setExerciseSearch('');
     } catch (error) {
       console.error('Failed to add exercise:', error);
+      setActionError(getActionErrorMessage(error, 'Unable to add the exercise. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -407,12 +409,14 @@ export default function ActiveWorkout({
     if (!session.id) return;
 
     setLoading(true);
+    setActionError(null);
 
     try {
       const response = await workoutsApi.finish(session.id);
       onComplete(response);
     } catch (error) {
       console.error('Failed to finish workout:', error);
+      setActionError(getActionErrorMessage(error, 'Unable to finish the workout. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -424,12 +428,14 @@ export default function ActiveWorkout({
     if (!confirm('Are you sure you want to delete this workout?')) return;
 
     setLoading(true);
+    setActionError(null);
 
     try {
       await workoutsApi.delete(session.id);
       onDelete(session.id);
     } catch (error) {
       console.error('Failed to delete workout:', error);
+      setActionError(getActionErrorMessage(error, 'Unable to delete the workout. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -460,6 +466,17 @@ export default function ActiveWorkout({
           </button>
         </div>
       </div>
+
+      {actionError && (
+        <div
+          id="active-workout-error"
+          role="alert"
+          className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm"
+        >
+          <FontAwesomeIcon icon={faTriangleExclamation} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span>{actionError}</span>
+        </div>
+      )}
 
       {/* Show more completed sets button */}
       {completedSets.length > 2 && (
