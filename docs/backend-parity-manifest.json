@@ -32,12 +32,12 @@
       "typecheckCommand": "cd backend-ts && npm run typecheck",
       "integrationCommand": "cd backend-ts && npm run test:integration",
       "buildCommand": "cd backend-ts && npm run build",
-      "integrationResult": "90 passed; 0 failed",
+      "integrationResult": "96 passed; 0 failed",
       "passing": true,
       "verifiedAt": "2026-08-23"
     },
-    "translatedTargetsPending": 57,
-    "translatedTargetsApprovedOrPassing": 84
+    "translatedTargetsPending": 51,
+    "translatedTargetsApprovedOrPassing": 90
   },
   "contractRequirements": {
     "preserveTrailingSlashes": true,
@@ -56,8 +56,8 @@
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 65,
-    "translatedTargetsApprovedOrPassing": 76,
+    "translatedTargetsPending": 51,
+    "translatedTargetsApprovedOrPassing": 90,
     "nextAction": "Implement the pending backend-ts targets and replace their statuses with verified results or recorded approved equivalents."
   },
   "entries": [
@@ -675,7 +675,7 @@
       "intent": "Bodyweight Exercise Creates Correct Sets",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestGenerateSets#test_bodyweight_exercise_creates_correct_sets",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-078",
@@ -683,7 +683,7 @@
       "intent": "Dropdown Exercise Creates Working And Drop Sets",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestGenerateSets#test_dropdown_exercise_creates_working_and_drop_sets",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-079",
@@ -691,7 +691,7 @@
       "intent": "Normal Exercise Creates Correct Sets",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestGenerateSets#test_normal_exercise_creates_correct_sets",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-080",
@@ -699,7 +699,7 @@
       "intent": "Normal Exercise With Warmup",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestGenerateSets#test_normal_exercise_with_warmup",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-081",
@@ -707,7 +707,7 @@
       "intent": "Superset Creates Round Robin Sets",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestGenerateSets#test_superset_creates_round_robin_sets",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-082",
@@ -715,7 +715,7 @@
       "intent": "Superset With Warmup",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestGenerateSets#test_superset_with_warmup",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-083",
