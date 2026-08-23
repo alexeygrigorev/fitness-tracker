@@ -17,13 +17,22 @@ export interface UserItem {
   date_joined?: string;
 }
 
+export type ExerciseCategory = 'compound' | 'isolation' | 'cardio';
+
 export interface ExerciseItem {
   pk: string;
   sk: string;
   id: number;
   user_id?: number | null;
   name?: string;
+  muscle_groups?: string[];
+  equipment_name?: string | null;
+  category?: ExerciseCategory;
+  instructions: unknown;
+  is_compound?: boolean;
   is_bodyweight?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ExerciseSettingsItem {

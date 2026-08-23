@@ -32,12 +32,12 @@
       "typecheckCommand": "cd backend-ts && npm run typecheck",
       "integrationCommand": "cd backend-ts && npm run test:integration",
       "buildCommand": "cd backend-ts && npm run build",
-      "integrationResult": "69 passed; 0 failed",
+      "integrationResult": "82 passed; 0 failed",
       "passing": true,
       "verifiedAt": "2026-08-23"
     },
-    "translatedTargetsPending": 78,
-    "translatedTargetsApprovedOrPassing": 63
+    "translatedTargetsPending": 65,
+    "translatedTargetsApprovedOrPassing": 76
   },
   "contractRequirements": {
     "preserveTrailingSlashes": true,
@@ -56,8 +56,8 @@
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 92,
-    "translatedTargetsApprovedOrPassing": 49,
+    "translatedTargetsPending": 65,
+    "translatedTargetsApprovedOrPassing": 76,
     "nextAction": "Implement the pending backend-ts targets and replace their statuses with verified results or recorded approved equivalents."
   },
   "entries": [
@@ -571,7 +571,7 @@
       "intent": "Anyone Can View Common Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestCommonExercises#test_anyone_can_view_common_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-065",
@@ -579,7 +579,7 @@
       "intent": "Common Exercise Has No User",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestCommonExercises#test_common_exercise_has_no_user",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-066",
@@ -587,7 +587,7 @@
       "intent": "User Cannot Delete Common Exercise",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestCommonExercises#test_user_cannot_delete_common_exercise",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-067",
@@ -595,7 +595,7 @@
       "intent": "User Cannot Modify Common Exercise",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestCommonExercises#test_user_cannot_modify_common_exercise",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-068",
@@ -603,7 +603,7 @@
       "intent": "Create Exercise Assigns To Authenticated User",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestUserExercises#test_create_exercise_assigns_to_authenticated_user",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-069",
@@ -611,7 +611,7 @@
       "intent": "Owner Can Delete Their Exercise",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestUserExercises#test_owner_can_delete_their_exercise",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-070",
@@ -619,7 +619,7 @@
       "intent": "Owner Can Modify Their Exercise",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestUserExercises#test_owner_can_modify_their_exercise",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-071",
@@ -627,7 +627,7 @@
       "intent": "Owner Can View Their Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestUserExercises#test_owner_can_view_their_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-072",
@@ -635,7 +635,7 @@
       "intent": "User Cannot Delete Another Users Exercise",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestUserExercises#test_user_cannot_delete_another_users_exercise",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-073",
@@ -643,7 +643,7 @@
       "intent": "User Cannot Modify Another Users Exercise",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestUserExercises#test_user_cannot_modify_another_users_exercise",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-074",
@@ -651,7 +651,7 @@
       "intent": "User Exercise Has Owner",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestUserExercises#test_user_exercise_has_owner",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-075",
@@ -659,7 +659,7 @@
       "intent": "List Shows All Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestExerciseListFiltering#test_list_shows_all_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-076",
@@ -667,7 +667,7 @@
       "intent": "Unauthenticated Can See Common Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/exercises.test.ts#TestExerciseListFiltering#test_unauthenticated_can_see_common_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-077",

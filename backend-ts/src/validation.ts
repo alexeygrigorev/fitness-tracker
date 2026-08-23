@@ -1,4 +1,5 @@
 import type { JsonObject } from './types.js';
+import type { ExerciseCategory } from './types.js';
 import { HttpError } from './types.js';
 
 export class ValidationFailure extends HttpError {
@@ -208,6 +209,138 @@ export interface ExerciseSettingsInput {
   weight?: number | null;
   reps: number;
   subSets?: Array<{ weight?: number | null; reps: number }>;
+}
+
+export interface ExerciseInput {
+  name?: string;
+  muscleGroups?: string[];
+  equipment?: string | null;
+  instructions?: unknown;
+  bodyweight?: boolean;
+  category?: ExerciseCategory;
+}
+
+function requiredTrimmedString(
+  errors: JsonObject,
+  data: JsonObject,
+  field: string,
+  maxLength?: number,
+): string | undefined {
+  if (!(field in data)) {
+    addError(errors, field, 'This field is required.');
+    return undefined;
+  }
+  const value = data[field];
+  if (typeof value !== 'string') {
+    addError(errors, field, 'A valid string is required.');
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    addError(errors, field, 'This field may not be blank.');
+    return undefined;
+  }
+  if (maxLength !== undefined && trimmed.length > maxLength) {
+    addError(errors, field, `Ensure this field has no more than ${maxLength} characters.`);
+    return undefined;
+  }
+  return trimmed;
+}
+
+export function validateExercise(data: unknown, partial = false): ExerciseInput {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    throw new ValidationFailure({ detail: ['Invalid request body.'] });
+  }
+
+  const source = { ...(data as JsonObject) };
+  if ('is_bodyweight' in source && !('bodyweight' in source)) {
+    source.bodyweight = source.is_bodyweight;
+  }
+  if ('is_compound' in source && !('category' in source)) {
+    source.category = source.is_compound ? 'compound' : 'isolation';
+  }
+
+  const errors: JsonObject = {};
+  const name = partial && !('name' in source)
+    ? undefined
+    : requiredTrimmedString(errors, source, 'name', 255);
+
+  let muscleGroups: string[] | undefined;
+  if ('muscleGroups' in source) {
+    if (!Array.isArray(source.muscleGroups)) {
+      addError(errors, 'muscleGroups', 'Expected a list of items but got type "str".');
+    } else if (source.muscleGroups.some((value) => value === null)) {
+      addError(errors, 'muscleGroups', 'This field may not be null.');
+    } else {
+      muscleGroups = [];
+      for (const value of source.muscleGroups) {
+        if (typeof value !== 'string') {
+          addError(errors, 'muscleGroups', 'Not a valid string.');
+          continue;
+        }
+        const normalized = value.trim();
+        if (!normalized) {
+          addError(errors, 'muscleGroups', 'This field may not be blank.');
+          continue;
+        }
+        if (!muscleGroups.some((existing) =>
+          existing.toLowerCase() === normalized.toLowerCase()
+        )) {
+          muscleGroups.push(normalized);
+        }
+      }
+    }
+  }
+
+  let equipment: string | null | undefined;
+  if ('equipment' in source) {
+    if (source.equipment === null) {
+      equipment = null;
+    } else if (typeof source.equipment !== 'string') {
+      addError(errors, 'equipment', 'A valid string is required.');
+    } else {
+      equipment = source.equipment.trim();
+    }
+  }
+
+  let bodyweight: boolean | undefined;
+  if ('bodyweight' in source) {
+    if (typeof source.bodyweight !== 'boolean') {
+      addError(errors, 'bodyweight', 'Must be a valid boolean.');
+    } else {
+      bodyweight = source.bodyweight;
+    }
+  }
+
+  let category: ExerciseCategory | undefined;
+  if ('category' in source) {
+    if (
+      source.category !== 'compound' &&
+      source.category !== 'isolation' &&
+      source.category !== 'cardio'
+    ) {
+      addError(
+        errors,
+        'category',
+        `"${String(source.category)}" is not a valid choice.`,
+      );
+    } else {
+      category = source.category;
+    }
+  }
+
+  const instructions = 'instructions' in source ? source.instructions : undefined;
+  failIfErrors(errors);
+
+  return {
+    ...(name !== undefined ? { name } : {}),
+    ...(muscleGroups !== undefined ? { muscleGroups } : {}),
+    ...(equipment !== undefined ? { equipment } : {}),
+    ...(bodyweight !== undefined ? { bodyweight } : {}),
+    ...(category !== undefined ? { category } : {}),
+    ...(instructions !== undefined ? { instructions } : {}),
+  };
 }
 
 export function validateExerciseSettings(data: unknown): ExerciseSettingsInput {

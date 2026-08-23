@@ -63,6 +63,7 @@ export class FitnessRepository {
       await this.client.send(new DescribeTableCommand({ TableName: this.tableName }));
       return true;
     } catch {
+      // Any startup/connectivity failure means the API is not ready yet.
       return false;
     }
   }
@@ -196,6 +197,19 @@ export class FitnessRepository {
     await this.transact(keys.map((key) => ({
       Delete: { TableName: this.tableName, Key: key },
     })));
+  }
+
+  async listExercises(userId?: number): Promise<ExerciseItem[]> {
+    const items = await this.scan<ExerciseItem>({
+      FilterExpression: '#sk = :sk AND (#owner = :null OR #owner = :user)',
+      ExpressionAttributeNames: { '#sk': 'sk', '#owner': 'user_id' },
+      ExpressionAttributeValues: {
+        ':sk': 'METADATA',
+        ':null': null,
+        ':user': userId ?? -1,
+      },
+    });
+    return items.sort((left, right) => left.id - right.id);
   }
 
   async listExerciseSettings(userId: number): Promise<Record<string, object>> {

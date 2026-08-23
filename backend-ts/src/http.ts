@@ -146,7 +146,7 @@ export function corsHeaders(
   }
   return {
     'access-control-allow-origin': origin,
-    'access-control-allow-methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+    'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'access-control-allow-headers': 'Authorization, Content-Type',
     vary: 'Origin',
   };
