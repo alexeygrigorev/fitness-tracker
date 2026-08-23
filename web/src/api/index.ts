@@ -666,14 +666,6 @@ export const foodCalculationsApi = {
     });
     return handleResponse(response);
   },
-  calculateNutrition: async (foodItems: Array<{ food_id: string | number; servings: number }>) => {
-    const response = await fetch(`${API_BASE}/api/food/calculations/calculate-nutrition/`, {
-      method: 'POST',
-      headers: await getHeaders(),
-      body: JSON.stringify({ food_items: foodItems }),
-    });
-    return handleResponse(response);
-  }
 };
 
 // Sleep API (not implemented in backend yet)

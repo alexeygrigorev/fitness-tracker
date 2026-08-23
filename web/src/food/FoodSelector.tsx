@@ -14,17 +14,9 @@ interface AggregateMetabolism {
   satietyScore: number | null;
 }
 
-type LegacyMealFoodItem = MealFoodItem & { servings?: number };
-
-// Older records used portions instead of the gram-based API format.
 const resolveGrams = (selected: MealFoodItem, food: FoodItem): number => {
   if (typeof selected.grams === 'number' && Number.isFinite(selected.grams)) {
     return Math.max(0, selected.grams);
-  }
-
-  const servings = (selected as LegacyMealFoodItem).servings;
-  if (typeof servings === 'number' && Number.isFinite(servings)) {
-    return Math.max(0, servings * food.servingSize);
   }
 
   return food.servingSize;

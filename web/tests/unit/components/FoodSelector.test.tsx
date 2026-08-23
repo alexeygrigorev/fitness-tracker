@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FoodSelector from '@/food/FoodSelector';
-import type { FoodItem, MealFoodItem } from '@/types';
+import type { FoodItem } from '@/types';
 
 const food: FoodItem = {
   id: '1',
@@ -42,17 +42,17 @@ describe('FoodSelector', () => {
     expect(handleChange).toHaveBeenCalledWith([{ foodId: food.id, grams: 150 }]);
   });
 
-  it('adds a serving to legacy portion records without producing NaN grams', async () => {
+  it('falls back to one serving when grams are invalid', async () => {
     const user = userEvent.setup();
     const handleChange = vi.fn();
-    const legacySelection = { foodId: food.id, servings: 2 } as unknown as MealFoodItem;
+    const invalidSelection = { foodId: food.id, grams: Number.NaN };
 
     render(
-      <FoodSelector selectedFoods={[legacySelection]} onChange={handleChange} foods={[food]} />,
+      <FoodSelector selectedFoods={[invalidSelection]} onChange={handleChange} foods={[food]} />,
     );
 
     await user.click(screen.getByRole('button', { name: `Add ${food.name}` }));
 
-    expect(handleChange).toHaveBeenCalledWith([{ foodId: food.id, grams: 300 }]);
+    expect(handleChange).toHaveBeenCalledWith([{ foodId: food.id, grams: 200 }]);
   });
 });
