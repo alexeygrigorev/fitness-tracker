@@ -5,13 +5,25 @@ import type { DailySummary } from '../types';
 export default function Dashboard() {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     dailySummaryApi.getSummary(new Date()).then(data => {
       setSummary(data);
       setLoading(false);
+    }).catch((caughtError) => {
+      setError(caughtError instanceof Error ? caughtError.message : 'Failed to load summary');
+      setLoading(false);
     });
   }, []);
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-900/20 dark:text-red-300">
+        {error}
+      </div>
+    );
+  }
 
   if (loading || !summary) {
     return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div></div>;

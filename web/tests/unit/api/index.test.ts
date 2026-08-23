@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  dailySummaryApi,
   exercisesApi,
   foodApi,
   mealTemplatesApi,
   mealsApi,
   workoutsApi,
 } from '@/api';
+import type { WorkoutSession } from '@/types';
 
 const fetchMock = vi.fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>();
 
@@ -249,6 +251,121 @@ describe('API adapter', () => {
           foods: [{ foodId: '31', grams: 15 }],
         },
       ]);
+    });
+  });
+
+  describe('daily summary', () => {
+    it('aggregates authenticated meals and same-day workout sets', async () => {
+      const localEvening = new Date(2026, 0, 2, 23, 30);
+      const todaysWorkout: WorkoutSession = {
+        id: 31,
+        name: 'Push day',
+        startedAt: new Date(2026, 0, 2, 8).toISOString(),
+        endedAt: new Date(2026, 0, 2, 9).toISOString(),
+        sets: [
+          {
+            id: 1,
+            exerciseId: 7,
+            setType: 'normal',
+            weight: 100,
+            reps: 8,
+            loggedAt: new Date(2026, 0, 2, 8, 5).toISOString(),
+          },
+          {
+            id: 2,
+            exerciseId: 7,
+            setType: 'dropdown',
+            weight: 60,
+            reps: 10,
+            dropdownWeights: [
+              { weight: 50, reps: 8 },
+            ],
+            loggedAt: new Date(2026, 0, 2, 8, 10).toISOString(),
+          },
+          {
+            id: 3,
+            exerciseId: 7,
+            setType: 'bodyweight',
+            reps: 12,
+            loggedAt: new Date(2026, 0, 2, 8, 15).toISOString(),
+          },
+          {
+            id: 4,
+            exerciseId: 7,
+            setType: 'normal',
+            weight: 90,
+            reps: 8,
+            loggedAt: null,
+          },
+          {
+            id: 5,
+            exerciseId: 7,
+            setType: 'warmup',
+            reps: 10,
+            loggedAt: new Date(2026, 0, 2, 8).toISOString(),
+          },
+        ],
+      };
+      const yesterdaysWorkout: WorkoutSession = {
+        id: 30,
+        name: 'Yesterday',
+        startedAt: new Date(2026, 0, 1, 8).toISOString(),
+        endedAt: null,
+        sets: [],
+      };
+
+      fetchMock
+        .mockResolvedValueOnce(
+          jsonResponse([
+            {
+              id: 11,
+              name: 'Lunch',
+              food_items: [{ foodId: 4, grams: 100 }],
+            },
+          ]),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({ calories: 720.5, protein_g: 45.25 }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse([yesterdaysWorkout, todaysWorkout]),
+        );
+
+      const summary = await dailySummaryApi.getSummary(localEvening);
+
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        1,
+        '/api/food/meals/date/2026-01-02/',
+        expect.anything(),
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        '/api/food/meals/daily/totals/2026-01-02/',
+        expect.anything(),
+      );
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        3,
+        '/api/workouts/sessions/',
+        expect.anything(),
+      );
+      expect(summary.meals).toEqual([
+        {
+          id: '11',
+          name: 'Lunch',
+          foods: [{ foodId: '4', grams: 100 }],
+        },
+      ]);
+      expect(summary.totalCalories).toBe(720.5);
+      expect(summary.totalProtein).toBe(45.25);
+      expect(summary.workouts).toEqual([
+        {
+          ...todaysWorkout,
+          totalVolume: 1800,
+        },
+      ]);
+      expect(summary.totalVolume).toBe(1800);
+      expect(summary.sleep).toBeUndefined();
+      expect(summary.metabolism).toBeNull();
     });
   });
 });

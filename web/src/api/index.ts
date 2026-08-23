@@ -75,6 +75,37 @@ interface CreateMealRequest {
   source?: Meal['source'];
 }
 
+interface DailyNutritionTotals {
+  calories: number;
+  protein_g: number;
+}
+
+function roundMeasurement(value: number): number {
+  return Number(value.toFixed(2));
+}
+
+function calculateWorkoutVolume(workout: WorkoutSession): number {
+  return workout.sets.reduce((total, workoutSet) => {
+    if (workoutSet.setType === 'warmup' || workoutSet.loggedAt == null) {
+      return total;
+    }
+
+    let setVolume =
+      Number(workoutSet.weight ?? 0) * Number(workoutSet.reps ?? 0);
+
+    if (workoutSet.setType === 'dropdown') {
+      setVolume += (workoutSet.dropdownWeights ?? []).reduce(
+        (dropdownTotal, dropdown) =>
+          dropdownTotal +
+          Number(dropdown.weight ?? 0) * Number(dropdown.reps ?? 0),
+        0,
+      );
+    }
+
+    return total + setVolume;
+  }, 0);
+}
+
 function normalizeMealRecord(record: SerializedMealRecord): Meal {
   const { food_items: foodItems, ...frontendRecord } = record;
   const foods = (foodItems ?? []).map((item) => ({
@@ -259,7 +290,7 @@ export const exercisesApi = {
 
 // Workouts API
 export const workoutsApi = {
-  getAll: async () => {
+  getAll: async (): Promise<WorkoutSession[]> => {
     const response = await fetch(`${API_BASE}/api/workouts/sessions/`, {
       headers: await getHeaders(),
     });
@@ -560,7 +591,7 @@ export const mealsApi = {
     const meal = await handleResponse(response);
     return normalizeMealRecord(meal);
   },
-  getByDate: async (date: Date) => {
+  getByDate: async (date: Date): Promise<Meal[]> => {
     const dateStr = toDateKey(date);
     const response = await fetch(`${API_BASE}/api/food/meals/date/${dateStr}/`, {
       headers: await getHeaders(),
@@ -568,7 +599,7 @@ export const mealsApi = {
     const meals = await handleResponse(response);
     return meals.map(normalizeMealRecord);
   },
-  getDailyTotals: async (date: Date) => {
+  getDailyTotals: async (date: Date): Promise<DailyNutritionTotals> => {
     const dateStr = toDateKey(date);
     const response = await fetch(`${API_BASE}/api/food/meals/daily/totals/${dateStr}/`, {
       headers: await getHeaders(),
@@ -705,16 +736,47 @@ export const lastUsedWeightsApi = {
   },
 };
 
-// Daily Summary (not implemented in backend yet)
+// Sleep and metabolism still have frontend-only APIs, so those summary fields
+// remain empty until corresponding backend records exist.
 export const dailySummaryApi = {
-  getSummary: async (date: Date): Promise<DailySummary> => ({
-    date,
-    workouts: [],
-    meals: [],
-    sleep: undefined,
-    metabolism: null,
-    totalCalories: 0,
-    totalProtein: 0,
-    totalVolume: 0
-  })
+  getSummary: async (date: Date): Promise<DailySummary> => {
+    const [meals, dailyTotals, allWorkouts] = await Promise.all([
+      mealsApi.getByDate(date),
+      mealsApi.getDailyTotals(date),
+      workoutsApi.getAll(),
+    ]);
+    const workouts = allWorkouts
+      .filter((workout) => {
+        const startedAt = new Date(workout.startedAt);
+        return (
+          startedAt.getFullYear() === date.getFullYear() &&
+          startedAt.getMonth() === date.getMonth() &&
+          startedAt.getDate() === date.getDate()
+        );
+      })
+      .sort((first, second) =>
+        new Date(second.startedAt).getTime() -
+        new Date(first.startedAt).getTime(),
+      )
+      .map((workout) => {
+        const totalVolume = roundMeasurement(calculateWorkoutVolume(workout));
+        return { ...workout, totalVolume };
+      });
+
+    return {
+      date,
+      workouts,
+      meals,
+      sleep: undefined,
+      metabolism: null,
+      totalCalories: Number(dailyTotals.calories),
+      totalProtein: Number(dailyTotals.protein_g),
+      totalVolume: roundMeasurement(
+        workouts.reduce(
+          (total, workout) => total + (workout.totalVolume ?? 0),
+          0,
+        ),
+      ),
+    };
+  },
 };
