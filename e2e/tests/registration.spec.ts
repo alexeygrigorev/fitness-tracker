@@ -6,7 +6,7 @@ test.describe('User Registration', () => {
     const timestamp = Date.now();
     const username = `e2euser_${timestamp}`;
     const email = `e2e_${timestamp}@example.com`;
-    const password = 'testpass123';
+    const password = 'e2e-registration-pass-123';
 
     // Navigate to registration page
     await page.goto('/register');
@@ -18,7 +18,7 @@ test.describe('User Registration', () => {
     // Fill in the registration form
     await page.getByPlaceholder('Choose a username').fill(username);
     await page.getByPlaceholder('your@email.com').fill(email);
-    await page.getByPlaceholder('At least 6 characters', { exact: true }).fill(password);
+    await page.getByLabel('Password', { exact: true }).fill(password);
     await page.getByPlaceholder('Confirm your password').fill(password);
 
     // Wait a moment for form to stabilize
@@ -59,7 +59,7 @@ test.describe('User Registration', () => {
 
     await page.getByPlaceholder('Choose a username').fill(username);
     await page.getByPlaceholder('your@email.com').fill(email);
-    await page.getByPlaceholder('At least 6 characters', { exact: true }).fill('password123');
+    await page.getByLabel('Password', { exact: true }).fill('password123');
     await page.getByPlaceholder('Confirm your password').fill('different123');
 
     await page.getByRole('button', { name: 'Sign up' }).click();
@@ -80,7 +80,7 @@ test.describe('User Registration', () => {
 
     await page.getByPlaceholder('Choose a username').fill(username);
     await page.getByPlaceholder('your@email.com').fill(email);
-    await page.getByPlaceholder('At least 6 characters', { exact: true }).fill('short');
+    await page.getByLabel('Password', { exact: true }).fill('short');
     await page.getByPlaceholder('Confirm your password').fill('short');
 
     const button = page.getByRole('button', { name: 'Sign up' });

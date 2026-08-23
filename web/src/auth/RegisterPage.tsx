@@ -8,20 +8,23 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [confirmPasswordInvalid, setConfirmPasswordInvalid] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setConfirmPasswordInvalid(false);
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      setConfirmPasswordInvalid(true);
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -38,7 +41,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4 transition-colors duration-200">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4 transition-colors duration-200">
       <div className="max-w-md w-full">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 transition-colors duration-200">
           <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-gray-100 mb-6">
@@ -49,7 +52,11 @@ export default function RegisterPage() {
           </h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm">
+            <div
+              id="register-error"
+              role="alert"
+              className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md text-red-700 dark:text-red-300 text-sm"
+            >
               {error}
             </div>
           )}
@@ -95,9 +102,9 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="At least 6 characters"
+                placeholder="At least 8 characters"
               />
             </div>
 
@@ -111,6 +118,8 @@ export default function RegisterPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
+                aria-invalid={confirmPasswordInvalid || undefined}
+                aria-describedby={error ? 'register-error' : undefined}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Confirm your password"
               />
@@ -133,6 +142,6 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
