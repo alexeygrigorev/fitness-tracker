@@ -13,6 +13,8 @@ import { registerHealthRoutes } from './routes/health.js';
 import { registerExerciseRoutes } from './routes/exercises.js';
 import { registerSessionRoutes } from './routes/sessions.js';
 import { registerPresetRoutes } from './routes/presets.js';
+import { registerPlanRoutes } from './routes/plans.js';
+import { registerWorkoutCalculationRoutes } from './routes/workout-calculations.js';
 import { registerNutritionRoutes } from './routes/nutrition.js';
 import { registerAiRoutes } from './routes/ai.js';
 
@@ -58,6 +60,8 @@ async function handleApi(
   registerExerciseRoutes((route) => router.add(route));
   registerSessionRoutes((route) => router.add(route));
   registerPresetRoutes((route) => router.add(route));
+  registerPlanRoutes((route) => router.add(route));
+  registerWorkoutCalculationRoutes((route) => router.add(route));
   registerNutritionRoutes((route) => router.add(route));
   registerAiRoutes((route) => router.add(route));
   return router.handle({
