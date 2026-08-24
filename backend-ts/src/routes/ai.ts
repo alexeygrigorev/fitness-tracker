@@ -490,57 +490,6 @@ async function resolveMealIngredients(
   );
 }
 
-async function createFood(context: RouteContext): Promise<ApiResponse> {
-  const user = await context.requireUser();
-  const input = assertJsonObject(context.request.body);
-  const errors: JsonObject = {};
-  const name = requiredString(errors, input, 'name', 255);
-  const servingSize = requiredNumber(errors, input, 'servingSize', 0.01);
-  const servingType = requiredString(errors, input, 'servingType', 50);
-  const calories = requiredNumber(errors, input, 'calories', 0);
-  const protein = requiredNumber(errors, input, 'protein', 0);
-  const carbs = requiredNumber(errors, input, 'carbs', 0);
-  const fat = requiredNumber(errors, input, 'fat', 0);
-  const saturatedFat = optionalNullableNumber(errors, input, 'saturatedFat');
-  const sugar = requiredNumber(errors, input, 'sugar', 0);
-  const fiber = requiredNumber(errors, input, 'fiber', 0);
-  const sodium = optionalNullableNumber(errors, input, 'sodium');
-  const brand = optionalBrand(input, errors);
-  if (Object.keys(errors).length > 0) {
-    throw new ValidationFailure(errors);
-  }
-
-  const id = await context.repository.nextId('food');
-  const food = {
-    pk: `USER#${user.id}`,
-    sk: `FOOD#${id}`,
-    id,
-    user_id: user.id,
-    name: name as string,
-    ...(brand === undefined || brand === null ? {} : { brand }),
-    barcode: null,
-    source: 'user' as const,
-    serving_size: servingSize as number,
-    serving_unit: servingType as string,
-    calories: calories as number,
-    protein: protein as number,
-    carbs: carbs as number,
-    fat: fat as number,
-    saturated_fat: saturatedFat ?? null,
-    fiber: fiber as number,
-    sugar: sugar as number,
-    sodium: sodium ?? null,
-    category: typeof input.category === 'string' && input.category !== '' ? input.category : null,
-    glycemic_index: typeof input.glycemicIndex === 'number' ? input.glycemicIndex : null,
-    absorption_speed: typeof input.absorptionSpeed === 'string' && input.absorptionSpeed !== '' ? input.absorptionSpeed : null,
-    insulin_response: typeof input.insulinResponse === 'number' ? input.insulinResponse : null,
-    satiety_score: typeof input.satietyScore === 'number' ? input.satietyScore : null,
-    protein_quality: typeof input.proteinQuality === 'number' ? input.proteinQuality : null,
-  } satisfies FoodItemItem;
-  await context.repository.put(food);
-  return jsonResponse(201, foodResponse(food), context.cors);
-}
-
 export function registerAiRoutes(addRoute: (route: RouteDefinition) => void): void {
   addRoute({
     method: 'POST',
@@ -659,13 +608,4 @@ export function registerAiRoutes(addRoute: (route: RouteDefinition) => void): vo
     },
   });
 
-  // This narrow write path preserves the AI-created food contract until the
-  // nutrition lane's complete FoodItem CRUD is merged.
-  addRoute({
-    method: 'POST',
-    pattern: '/api/food/foods',
-    authRequired: true,
-    authBeforeMethod: true,
-    handle: createFood,
-  });
 }
