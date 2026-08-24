@@ -81,7 +81,7 @@
     "replacementBackend": "backend-ts-lambda",
     "keepOldBackendUntilTypeScriptParity": true,
     "deleteDjangoAndDeploymentJungleOnlyAfterDeletionGatePassed": true,
-    "pythonBackendDirectory": "backend/",
+    "pythonBackendDirectory": "backend-django/",
     "legacyDeploymentFiles": [
       "Dockerfile",
       "fly.toml"
