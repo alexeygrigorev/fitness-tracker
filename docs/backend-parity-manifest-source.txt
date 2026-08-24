@@ -13,6 +13,8 @@ config/tests/test_openapi_contracts.py::OpenApiContractTests::test_documented_pr
 config/tests/test_openapi_contracts.py::OpenApiContractTests::test_documented_user_and_settings_contracts_match_responses
 config/tests/test_openapi_contracts.py::OpenApiContractTests::test_documented_workout_lifecycle_contracts_match_responses
 config/tests/test_production_hardening.py::ProductionSettingsTests::test_debug_keeps_local_browser_origins
+config/tests/test_production_hardening.py::ProductionSettingsTests::test_fly_allowlist_contains_only_the_configured_application_host
+config/tests/test_production_hardening.py::ProductionSettingsTests::test_portable_image_defaults_to_non_debug_mode
 config/tests/test_production_hardening.py::ProductionSettingsTests::test_fly_proxy_enables_transport_hardening
 config/tests/test_production_hardening.py::ProductionSettingsTests::test_portable_direct_http_mode_does_not_redirect_health_checks
 config/tests/test_production_hardening.py::ProductionSettingsTests::test_short_production_secret_is_rejected
@@ -140,4 +142,4 @@ workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_uncomplete_set_v
 workouts/tests/test_workout_flow.py::TestSimplifiedSetAPI::test_workout_flow_new_api
 workouts/tests/test_workout_flow.py::TestE2ECompleteScenario::test_complete_e2e_scenario
 
-141 tests collected in 0.20s
+143 tests collected in 0.36s
