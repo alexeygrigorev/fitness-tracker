@@ -750,6 +750,10 @@ export function buildMigrationItems(input: unknown): BuiltMigrationItems {
     });
   }
   for (const meal of tables.meals) {
+    const foodItemIds = tables.meal_food_items
+      .filter((item) => item.meal_id === meal.id)
+      .map((item) => item.id)
+      .sort((left, right) => left - right);
     items.push({
       pk: `USER#${meal.user_id}`,
       sk: `MEAL#${meal.id}`,
@@ -763,6 +767,7 @@ export function buildMigrationItems(input: unknown): BuiltMigrationItems {
       event_time: meal.event_time ?? null,
       notes: meal.notes ?? null,
       source: meal.source,
+      food_item_ids: foodItemIds,
     });
   }
   for (const item of tables.meal_food_items) {
@@ -779,6 +784,10 @@ export function buildMigrationItems(input: unknown): BuiltMigrationItems {
     });
   }
   for (const template of tables.meal_templates) {
+    const foodItemIds = tables.meal_template_food_items
+      .filter((item) => item.template_id === template.id)
+      .map((item) => item.id)
+      .sort((left, right) => left - right);
     items.push({
       pk: `USER#${template.user_id}`,
       sk: `MEAL_TEMPLATE#${template.id}`,
@@ -790,6 +799,7 @@ export function buildMigrationItems(input: unknown): BuiltMigrationItems {
       notes: template.notes ?? null,
       created_at: template.created_at ?? null,
       updated_at: template.updated_at ?? null,
+      food_item_ids: foodItemIds,
     });
   }
   for (const item of tables.meal_template_food_items) {
