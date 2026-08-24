@@ -10,13 +10,13 @@
         "id": "ai-integration",
         "agent": "parity_ai_integration_v1",
         "branch": "parity/ai-integration",
-        "status": "in-progress"
+        "status": "verification-only"
       },
       {
         "id": "cross-domain-security",
         "agent": "parity_cross_domain_security_v1",
         "branch": "parity/cross-domain-security",
-        "status": "in-progress"
+        "status": "verification-only"
       },
       {
         "id": "exercises-library",
@@ -50,12 +50,12 @@
       }
     ],
     "verifiedBaseline": {
-      "integrationResult": "140 passed; 0 failed",
+      "integrationResult": "161 passed; 0 failed",
       "typecheck": "passed",
       "productionBuild": "passed",
       "verifiedAt": "2026-08-24"
     },
-    "cutoverRule": "Keep backend-django serving until TypeScript reaches 141/141 manifest parity and every gate in backend-parity-lock.json passes.",
+    "cutoverRule": "Keep backend-django serving until TypeScript reaches 143/143 manifest parity and every gate in backend-parity-lock.json passes.",
     "activeWave": [
       {
         "id": "nutrition",
@@ -97,7 +97,7 @@
       }
     ]
   },
-  "totalTargets": 141,
+  "totalTargets": 143,
   "lanes": [
     {
       "id": "ai-integration",
