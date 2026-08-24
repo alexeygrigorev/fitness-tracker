@@ -549,15 +549,11 @@ describe('TestSimplifiedSetAPI', () => {
 
 describe('TestDropdownWeights', () => {
   let dropdownPreset: number;
-  let pushPreset: number;
-  let legPreset: number;
 
   before(async () => {
     dropdownPreset = await createPreset('Dropdown Test', [
       normalRow(31, BENCH, 0, { type: 'dropdown', dropdowns: 2 }),
     ]);
-    pushPreset = await createPreset('Push Day', [normalRow(32, BENCH, 0)]);
-    legPreset = await createPreset('Leg Day', [normalRow(33, SQUATS, 0)]);
   });
 
   it('test_start_workout_creates_dropdown_weights', async () => {
@@ -634,6 +630,16 @@ describe('TestDropdownWeights', () => {
     await api.call('POST', `/api/workouts/sets/${normalSet.id}/complete/`, { token });
     const active = (await activeSessions(token))[0];
     assert.equal(active.sets.filter((set: any) => set.loggedAt).length, 2);
+  });
+});
+
+describe('TestMultipleActiveSessions', () => {
+  let pushPreset: number;
+  let legPreset: number;
+
+  before(async () => {
+    pushPreset = await createPreset('Push Day', [normalRow(32, BENCH, 0)]);
+    legPreset = await createPreset('Leg Day', [normalRow(33, SQUATS, 0)]);
   });
 
   it('test_multiple_active_sessions', async () => {
