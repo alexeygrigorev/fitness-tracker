@@ -67,6 +67,7 @@ workouts/tests/test_exercises.py::TestCommonExercises::test_anyone_can_view_comm
 workouts/tests/test_exercises.py::TestCommonExercises::test_common_exercise_has_no_user
 workouts/tests/test_exercises.py::TestCommonExercises::test_user_cannot_delete_common_exercise
 workouts/tests/test_exercises.py::TestCommonExercises::test_user_cannot_modify_common_exercise
+workouts/tests/test_exercises.py::TestEquipmentCaseParity::test_equipment_case_variants_reuse_deterministically
 workouts/tests/test_exercises.py::TestExerciseListFiltering::test_list_shows_all_exercises
 workouts/tests/test_exercises.py::TestExerciseListFiltering::test_unauthenticated_can_see_common_exercises
 workouts/tests/test_exercises.py::TestUserExercises::test_create_exercise_assigns_to_authenticated_user

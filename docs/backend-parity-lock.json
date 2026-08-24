@@ -7,8 +7,8 @@
   "minimumCurrentTestMethods": 143,
   "currentInventory": {
     "pythonSourceCommit": "e1790d5",
-    "testClasses": 32,
-    "testMethods": 143,
+    "testClasses": 33,
+    "testMethods": 144,
     "manifestPath": "docs/backend-parity-manifest.json",
     "manifestSnapshotPath": "docs/backend-parity-manifest-source.txt"
   },
@@ -171,7 +171,8 @@
       {
         "id": "case-insensitive-equipment-duplicates",
         "requiredBehavior": "Exercise equipment lookup cannot raise duplicate-object errors when seed data contains case variants; both backends must use deterministic case-insensitive reuse.",
-        "status": "open"
+        "status": "fixed_verified",
+        "verifiedAt": "2026-08-24"
       },
       {
         "id": "clean-machine-e2e-environment",

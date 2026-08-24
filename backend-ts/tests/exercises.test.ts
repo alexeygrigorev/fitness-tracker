@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { GetCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { after, before, describe, it } from 'node:test';
 import {
   registerAndLogin,
@@ -215,6 +219,109 @@ describe('TestUserExercises', () => {
       Key: { pk: 'EXERCISE#203', sk: 'METADATA' },
     }));
     assert.ok(stored.Item);
+  });
+});
+
+describe('TestEquipmentCaseParity', () => {
+  let owner: Awaited<ReturnType<typeof registerAndLogin>>;
+
+  before(async () => {
+    if (!api) {
+      api = await startTestApi();
+    }
+    owner = await registerAndLogin(api, 'equipment-case-owner');
+    await Promise.all([
+      api.documentClient.send(new PutCommand({
+        TableName: api.tableName,
+        Item: {
+          pk: 'TAXONOMY#EQUIPMENT',
+          sk: 'ID#301',
+          entity_type: 'equipment',
+          id: 301,
+          name: 'Kettlebell',
+        },
+      })),
+      api.documentClient.send(new PutCommand({
+        TableName: api.tableName,
+        Item: {
+          pk: 'TAXONOMY#EQUIPMENT',
+          sk: 'ID#302',
+          entity_type: 'equipment',
+          id: 302,
+          name: 'kettlebell',
+        },
+      })),
+    ]);
+  });
+
+  it('test_equipment_case_variants_reuse_deterministically', async () => {
+    const created = await api.call('POST', '/api/workouts/exercises/', {
+      body: {
+        name: 'Case Variant Exercise',
+        equipment: ' KeTtLeBeLl ',
+      },
+      token: owner.accessToken,
+    });
+    assert.equal(created.status, 201);
+    assert.equal(created.body.equipment, 'Kettlebell');
+
+    const updated = await api.call(
+      'PATCH',
+      `/api/workouts/exercises/${created.body.id}/`,
+      {
+        body: { equipment: 'kettleBELL' },
+        token: owner.accessToken,
+      },
+    );
+    assert.equal(updated.status, 200);
+    assert.equal(updated.body.equipment, 'Kettlebell');
+
+    const newEquipmentFirst = await api.call(
+      'POST',
+      '/api/workouts/exercises/',
+      {
+        body: { name: 'Sandbag First Spelling', equipment: 'Loaded Sandbag' },
+        token: owner.accessToken,
+      },
+    );
+    assert.equal(newEquipmentFirst.status, 201);
+    assert.equal(newEquipmentFirst.body.equipment, 'Loaded Sandbag');
+
+    const newEquipmentVariant = await api.call(
+      'POST',
+      '/api/workouts/exercises/',
+      {
+        body: {
+          name: 'Sandbag Case Variant',
+          equipment: 'loaded sandbag',
+        },
+        token: owner.accessToken,
+      },
+    );
+    assert.equal(newEquipmentVariant.status, 201);
+    assert.equal(newEquipmentVariant.body.equipment, 'Loaded Sandbag');
+
+    const result = await api.documentClient.send(new QueryCommand({
+      TableName: api.tableName,
+      KeyConditionExpression: 'pk = :pk',
+      ExpressionAttributeValues: { ':pk': 'TAXONOMY#EQUIPMENT' },
+      ConsistentRead: true,
+    }));
+    const equipmentNames = (result.Items ?? [])
+      .filter((item: any) => item.entity_type === 'equipment')
+      .map((item: any) => String(item.name));
+    assert.equal(
+      equipmentNames.filter((name: string) =>
+        name.toLowerCase() === 'kettlebell'
+      ).length,
+      2,
+    );
+    assert.deepEqual(
+      equipmentNames.filter((name: string) =>
+        name.toLowerCase() === 'loaded sandbag'
+      ),
+      ['Loaded Sandbag'],
+    );
   });
 });
 

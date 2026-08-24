@@ -38,6 +38,14 @@ export type TransactionOperations = NonNullable<
 
 type NutritionParentRecord = MealRecord | MealTemplateRecord;
 
+interface EquipmentTaxonomyItem {
+  pk: string;
+  sk: string;
+  entity_type: 'equipment';
+  id: number;
+  name: string;
+}
+
 const DYNAMODB_TRANSACTION_LIMIT = 100;
 
 export interface ExerciseSettingsInput {
@@ -211,6 +219,40 @@ export class FitnessRepository {
 
   getExercise(id: number): Promise<ExerciseItem | undefined> {
     return this.getItem<ExerciseItem>({ pk: `EXERCISE#${id}`, sk: 'METADATA' });
+  }
+
+  /**
+   * Migrated exercises flatten the Django equipment foreign key, but migrated
+   * taxonomy rows remain authoritative for deterministic case-insensitive reuse.
+   */
+  async resolveEquipmentName(rawName: string): Promise<string> {
+    const name = rawName.trim();
+    if (!name) return '';
+
+    const equipmentItems = await this.queryPartition<EquipmentTaxonomyItem>({
+      partitionKey: 'TAXONOMY#EQUIPMENT',
+      sortPrefix: 'ID#',
+      consistentRead: true,
+    });
+    const normalized = name.toLowerCase();
+    const existing = equipmentItems
+      .filter((item) => item.entity_type === 'equipment' && typeof item.name === 'string')
+      .sort((left, right) => left.id - right.id)
+      .find((item) => item.name.toLowerCase() === normalized);
+    if (existing) return existing.name;
+
+    const id = await this.nextId('equipment');
+    const item: EquipmentTaxonomyItem = {
+      pk: 'TAXONOMY#EQUIPMENT',
+      sk: `ID#${id}`,
+      entity_type: 'equipment',
+      id,
+      name,
+    };
+    await this.put(item, {
+      ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+    });
+    return item.name;
   }
 
   async putExercise(exercise: ExerciseItem): Promise<void> {
@@ -907,6 +949,7 @@ export class FitnessRepository {
     partitionKey: string;
     sortPrefix?: string;
     scanIndexForward?: boolean;
+    consistentRead?: boolean;
   }): Promise<T[]> {
     const values: Record<string, unknown> = { ':pk': input.partitionKey };
     let expression = 'pk = :pk';
@@ -919,6 +962,7 @@ export class FitnessRepository {
       KeyConditionExpression: expression,
       ExpressionAttributeValues: values,
       ScanIndexForward: input.scanIndexForward ?? true,
+      ...(input.consistentRead ? { ConsistentRead: true } : {}),
     });
   }
 

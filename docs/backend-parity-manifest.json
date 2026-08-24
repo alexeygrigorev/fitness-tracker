@@ -12,9 +12,9 @@
   "liveInventory": {
     "command": "cd backend-django && uv run pytest --collect-only -q | grep '::' | LC_ALL=C sort",
     "snapshotPath": "docs/backend-parity-manifest-source.txt",
-    "snapshotSha256": "e35bfe8ffb5e6cf6fb9cc65dd33bd645aede55200cf6893e19c4771b5bedf1ca",
-    "testClasses": 32,
-    "testMethods": 143,
+    "snapshotSha256": "ad35744e0f2a4e28ef4dc01a036614d56a82e74ddc43c8187bce912d798e38e2",
+    "testClasses": 33,
+    "testMethods": 144,
     "sourceCommit": "e1790d5"
   },
   "verification": {
@@ -37,7 +37,7 @@
       "verifiedAt": "2026-08-24"
     },
     "translatedTargetsPending": 0,
-    "translatedTargetsApprovedOrPassing": 143
+    "translatedTargetsApprovedOrPassing": 144
   },
   "contractRequirements": {
     "preserveTrailingSlashes": true,
@@ -57,7 +57,7 @@
     "allTranslatedTestsPass": true,
     "deletionGatePassed": false,
     "translatedTargetsPending": 0,
-    "translatedTargetsApprovedOrPassing": 143,
+    "translatedTargetsApprovedOrPassing": 144,
     "nextAction": "Complete frontend/E2E, artifact, security, sandbox, and cutover deletion gates."
   },
   "entries": [
@@ -1203,6 +1203,14 @@
       "intent": "Portable Image Defaults To Non Debug Mode",
       "domain": "platform",
       "targetTestId": "backend-ts/tests/runtime-hardening.test.ts#ProductionSettingsTests#test_portable_image_defaults_to_non_debug_mode",
+      "translationStatus": "passing"
+    },
+    {
+      "id": "pmv2-144",
+      "pythonTestId": "workouts/tests/test_exercises.py::TestEquipmentCaseParity::test_equipment_case_variants_reuse_deterministically",
+      "intent": "Equipment Case Variants Reuse Deterministically",
+      "domain": "workouts",
+      "targetTestId": "backend-ts/tests/exercises.test.ts#TestEquipmentCaseParity#test_equipment_case_variants_reuse_deterministically",
       "translationStatus": "passing"
     }
   ],

@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
-from workouts.models import Exercise
+from workouts.models import Equipment, Exercise
 from users.models import User
 
 
@@ -157,6 +157,62 @@ class TestUserExercises(TestCase):
 
         # Verify exercise still exists
         self.assertTrue(Exercise.objects.filter(id=self.user2_exercise.id).exists())
+
+
+class TestEquipmentCaseParity(TestCase):
+    """Equipment lookup must survive legacy seed rows differing only by case."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username="equipment-user",
+            email="equipment-user@test.com",
+            password="pass",
+        )
+        self.exercise = Exercise.objects.create(
+            name="Case Variant Exercise",
+            user=self.user,
+        )
+        Equipment.objects.create(name="Kettlebell")
+        Equipment.objects.create(name="kettlebell")
+
+    def test_equipment_case_variants_reuse_deterministically(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            reverse("exercise-list"),
+            {"name": "New Case Variant Exercise", "equipment": " KeTtLeBeLl "},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["equipment"], "Kettlebell")
+
+        update_response = self.client.patch(
+            reverse("exercise-detail", kwargs={"pk": self.exercise.id}),
+            {"equipment": "kettleBELL"},
+            format="json",
+        )
+        self.assertEqual(update_response.status_code, 200)
+        self.assertEqual(update_response.data["equipment"], "Kettlebell")
+
+        new_first = self.client.post(
+            reverse("exercise-list"),
+            {"name": "Sandbag First Spelling", "equipment": "Loaded Sandbag"},
+            format="json",
+        )
+        self.assertEqual(new_first.status_code, 201)
+        self.assertEqual(new_first.data["equipment"], "Loaded Sandbag")
+
+        new_variant = self.client.post(
+            reverse("exercise-list"),
+            {"name": "Sandbag Case Variant", "equipment": "loaded sandbag"},
+            format="json",
+        )
+        self.assertEqual(new_variant.status_code, 201)
+        self.assertEqual(new_variant.data["equipment"], "Loaded Sandbag")
+        self.assertCountEqual(
+            Equipment.objects.values_list("name", flat=True),
+            ["Kettlebell", "kettlebell", "Loaded Sandbag"],
+        )
 
 
 class TestExerciseListFiltering(TestCase):

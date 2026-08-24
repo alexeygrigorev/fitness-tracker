@@ -55,6 +55,11 @@ class EquipmentNameField(serializers.CharField):
 UNSET = object()
 
 
+def resolve_equipment(name):
+    """Reuse the lowest-ID row when legacy seed data has casing duplicates."""
+    return Equipment.objects.filter(name__iexact=name).order_by('id').first()
+
+
 class DropdownWeightSerializer(serializers.Serializer):
     weight = serializers.DecimalField(
         max_digits=6,
@@ -155,10 +160,9 @@ class ExerciseSerializer(serializers.ModelSerializer):
         else:
             equipment_name = equipment_name.strip()
             if equipment_name:
-                equipment, _ = Equipment.objects.get_or_create(
-                    name__iexact=equipment_name,
-                    defaults={'name': equipment_name},
-                )
+                equipment = resolve_equipment(equipment_name)
+                if equipment is None:
+                    equipment = Equipment.objects.create(name=equipment_name)
                 exercise.equipment = equipment
             else:
                 exercise.equipment = None

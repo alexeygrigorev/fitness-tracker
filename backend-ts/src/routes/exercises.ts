@@ -68,6 +68,9 @@ async function createExercise(context: RouteContext) {
   const user = await context.requireUser();
   const input = validateExercise(context.request.body);
   const id = await context.repository.nextId('exercise');
+  const equipment = typeof input.equipment === 'string' && input.equipment !== ''
+    ? await context.repository.resolveEquipmentName(input.equipment)
+    : null;
   const category = input.category ?? 'isolation';
   const now = timestamp();
   const exercise: ExerciseItem = {
@@ -77,9 +80,7 @@ async function createExercise(context: RouteContext) {
     user_id: user.id,
     name: input.name ?? '',
     muscle_groups: input.muscleGroups ?? [],
-    equipment_name: input.equipment === undefined || input.equipment === ''
-      ? null
-      : input.equipment,
+    equipment_name: equipment,
     category,
     instructions: input.instructions ?? [],
     is_compound: category === 'compound',
@@ -99,7 +100,11 @@ async function updateExercise(context: RouteContext, id: number, partial: boolea
   const category = input.category ?? existing.category ?? 'isolation';
   const equipment = input.equipment === undefined
     ? existing.equipment_name ?? null
-    : (input.equipment === '' ? null : input.equipment);
+    : (
+      typeof input.equipment === 'string' && input.equipment !== ''
+        ? await context.repository.resolveEquipmentName(input.equipment)
+        : null
+    );
   const muscleGroups = input.muscleGroups === undefined
     ? existing.muscle_groups ?? []
     : input.muscleGroups;
