@@ -118,7 +118,7 @@ describe('ProductionSettingsTests', () => {
 
     assert.match(policy, /dynamodb:DescribeTable/);
     assert.match(policy, /dynamodb:Scan/);
-    assert.doesNotMatch(policy, /dynamodb:BatchGetItem/);
+    assert.match(policy, /dynamodb:BatchGetItem/);
   });
 
   it('test_portable_lambda_defaults_to_production_mode', async () => {
