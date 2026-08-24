@@ -121,6 +121,65 @@
       }
     ]
   },
+  "runtimeContractAuditDecision": {
+    "status": "open",
+    "recordedAt": "2026-08-24",
+    "requiredBeforeDeletionGate": true,
+    "findings": [
+      {
+        "id": "missing-documented-workout-routes",
+        "requiredOperations": [
+          "POST /api/workouts/calculations/calculate-volume/",
+          "GET /api/workouts/plans/{id}/",
+          "GET /api/workouts/sets/",
+          "PATCH /api/workouts/sessions/{id}/",
+          "PUT /api/workouts/sessions/{id}/",
+          "PUT /api/workouts/sets/{id}/"
+        ],
+        "requiredBehavior": "Every exported OpenAPI operation has an equivalent TypeScript Lambda implementation with Django-compatible authorization, validation, response shape, and status codes.",
+        "status": "open"
+      },
+      {
+        "id": "use-plan-method-drift",
+        "requiredBehavior": "The documented POST plan use operation works and undocumented runtime GET behavior does not replace it unless product evidence proves a compatibility requirement.",
+        "status": "open"
+      },
+      {
+        "id": "workout-explicit-null-alias-drift",
+        "requiredBehavior": "Preferred-key null values are treated as present rather than falling through to snake_case aliases.",
+        "affectedAliases": [
+          "setType/set_type",
+          "dropdownWeights/dropdown_weights",
+          "exerciseId/exercise_id",
+          "preset_id/preset",
+          "session/sessionId"
+        ],
+        "status": "open"
+      },
+      {
+        "id": "workout-delete-body-inconsistency",
+        "requiredBehavior": "Workout delete responses match Django DRF bodyless 204 semantics where applicable.",
+        "status": "open"
+      }
+    ]
+  },
+  "e2eInfrastructureAuditDecision": {
+    "status": "open",
+    "recordedAt": "2026-08-24",
+    "requiredBeforeDeletionGate": true,
+    "findings": [
+      {
+        "id": "case-insensitive-equipment-duplicates",
+        "requiredBehavior": "Exercise equipment lookup cannot raise duplicate-object errors when seed data contains case variants; both backends must use deterministic case-insensitive reuse.",
+        "status": "open"
+      },
+      {
+        "id": "clean-machine-e2e-environment",
+        "requiredBehavior": "The active Playwright suite starts against a deterministic seeded database, isolated ports, consistent API URL, and CI-aligned reporter/output paths.",
+        "status": "open"
+      }
+    ]
+  },
   "migrationStrategy": {
     "status": "locked",
     "approach": "parallel-parity-then-cutover",
