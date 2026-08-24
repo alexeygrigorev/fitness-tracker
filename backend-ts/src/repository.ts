@@ -4,6 +4,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
+  BatchGetCommand as DocBatchGetCommand,
   DeleteCommand as DocDeleteCommand,
   GetCommand,
   PutCommand,
@@ -20,8 +21,12 @@ import type {
   TransactWriteCommandInput,
 } from '@aws-sdk/lib-dynamodb';
 import type {
+  FoodItemRecord,
   ExerciseItem,
   ExerciseSettingsItem,
+  MealRecord,
+  MealTemplateRecord,
+  NestedFoodItemRecord,
   UserItem,
 } from './types.js';
 import { HttpError } from './types.js';
@@ -30,6 +35,8 @@ export type DocumentItem = Record<string, unknown>;
 export type TransactionOperations = NonNullable<
   TransactWriteCommandInput['TransactItems']
 >;
+
+const DYNAMODB_TRANSACTION_LIMIT = 100;
 
 export interface ExerciseSettingsInput {
   weight?: number | null;
@@ -66,6 +73,40 @@ export class FitnessRepository {
       // Any startup/connectivity failure means the API is not ready yet.
       return false;
     }
+  }
+
+  async batchGet<T = DocumentItem>(
+    keys: ReadonlyArray<Record<string, unknown>>,
+  ): Promise<T[]> {
+    const items: T[] = [];
+    let pendingKeys = [...keys];
+    for (let attempt = 0; pendingKeys.length > 0 && attempt < 10; attempt += 1) {
+      const batches = Array.from(
+        { length: Math.ceil(pendingKeys.length / 100) },
+        (_, index) => pendingKeys.slice(index * 100, (index + 1) * 100),
+      );
+      pendingKeys = [];
+      const results = await Promise.all(batches.map((batchKeys) =>
+        this.client.send(new DocBatchGetCommand({
+          RequestItems: { [this.tableName]: { Keys: batchKeys } },
+        }))
+      ));
+
+      for (const result of results) {
+        items.push(...((result.Responses?.[this.tableName] ?? []) as T[]));
+        const unprocessed = result.UnprocessedKeys?.[this.tableName]?.Keys ?? [];
+        pendingKeys.push(...(unprocessed as Array<Record<string, unknown>>));
+      }
+
+      if (pendingKeys.length > 0) {
+        await new Promise((resolve) => setTimeout(resolve, Math.min(25 * (attempt + 1), 100)));
+      }
+    }
+
+    if (pendingKeys.length > 0) {
+      throw new Error('DynamoDB batch read left unprocessed keys');
+    }
+    return items;
   }
 
   async nextId(entity: string): Promise<number> {
@@ -172,6 +213,353 @@ export class FitnessRepository {
 
   async putExercise(exercise: ExerciseItem): Promise<void> {
     await this.client.send(new PutCommand({ TableName: this.tableName, Item: exercise }));
+  }
+
+  async getFood(id: number, userId?: number): Promise<FoodItemRecord | undefined> {
+    const keys = [{ pk: 'CANONICAL_FOODS', sk: `FOOD#${id}` }];
+    if (userId !== undefined) {
+      keys.push({ pk: `USER#${userId}`, sk: `FOOD#${id}` });
+    }
+    const foods = await this.batchGet<FoodItemRecord>(keys);
+    return foods.find((food) => food.user_id === null || food.user_id === userId);
+  }
+
+  async listFoods(userId?: number): Promise<FoodItemRecord[]> {
+    const foods = await Promise.all([
+      this.queryPartition<FoodItemRecord>({
+        partitionKey: 'CANONICAL_FOODS',
+        sortPrefix: 'FOOD#',
+      }),
+      ...(userId === undefined ? [] : [
+        this.queryPartition<FoodItemRecord>({
+          partitionKey: `USER#${userId}`,
+          sortPrefix: 'FOOD#',
+        }),
+      ]),
+    ]);
+
+    const foodsById = new Map<number, FoodItemRecord>();
+    for (const food of foods.flat()) {
+      if (
+        typeof food.id !== 'number' ||
+        !(food.source === 'canonical' || food.user_id === userId)
+      ) {
+        continue;
+      }
+      foodsById.set(food.id, food);
+    }
+    return [...foodsById.values()].sort((left, right) => left.id - right.id);
+  }
+
+  async saveFood(food: FoodItemRecord): Promise<void> {
+    await this.put(food, {
+      ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+    });
+  }
+
+  async replaceFood(food: FoodItemRecord): Promise<void> {
+    await this.put(food, {
+      ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+    });
+  }
+
+  async deleteFood(food: FoodItemRecord): Promise<void> {
+    await this.delete({ pk: food.pk, sk: food.sk }, {
+      ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+    });
+  }
+
+  async getMeal(id: number, userId: number): Promise<MealRecord | undefined> {
+    const meal = await this.getItem<MealRecord>({
+      pk: `USER#${userId}`,
+      sk: `MEAL#${id}`,
+    });
+    return meal?.user_id === userId ? meal : undefined;
+  }
+
+  async listMeals(userId: number): Promise<MealRecord[]> {
+    const meals = await this.queryPartition<MealRecord>({
+      partitionKey: `USER#${userId}`,
+      sortPrefix: 'MEAL#',
+    });
+    return meals.filter((meal) => (
+      meal.entity_type === 'meal' && meal.user_id === userId
+    ))
+      .sort((left, right) => left.id - right.id);
+  }
+
+  async getMealTemplate(
+    id: number,
+    userId: number,
+  ): Promise<MealTemplateRecord | undefined> {
+    const template = await this.getItem<MealTemplateRecord>({
+      pk: `USER#${userId}`,
+      sk: `MEAL_TEMPLATE#${id}`,
+    });
+    return template?.user_id === userId ? template : undefined;
+  }
+
+  async listMealTemplates(userId: number): Promise<MealTemplateRecord[]> {
+    const templates = await this.queryPartition<MealTemplateRecord>({
+        partitionKey: `USER#${userId}`,
+        sortPrefix: 'MEAL_TEMPLATE#',
+    });
+    return templates.filter((template) => (
+      template.entity_type === 'meal_template' && template.user_id === userId
+    ))
+      .sort((left, right) => left.id - right.id);
+  }
+
+  async accessibleFoods(
+    ids: Iterable<number>,
+    userId?: number,
+  ): Promise<Map<number, FoodItemRecord>> {
+    const uniqueIds = [...new Set(ids)].sort((left, right) => left - right);
+    if (uniqueIds.length === 0) return new Map();
+    const keys = uniqueIds.flatMap((id) => {
+      const candidates = [
+        { pk: 'CANONICAL_FOODS', sk: `FOOD#${id}` },
+      ];
+      if (userId !== undefined) {
+        candidates.push({ pk: `USER#${userId}`, sk: `FOOD#${id}` });
+      }
+      return candidates;
+    });
+    const foods = await this.batchGet<FoodItemRecord>(keys);
+    const result = new Map<number, FoodItemRecord>();
+    for (const food of foods) {
+      if ((food.user_id === null || food.user_id === userId) && !result.has(food.id)) {
+        result.set(food.id, food);
+      }
+    }
+    return result;
+  }
+
+  async getNutritionItems(
+    kind: 'meal' | 'template',
+    parentId: number,
+    itemIds: ReadonlyArray<number>,
+  ): Promise<NestedFoodItemRecord[]> {
+    if (itemIds.length === 0) return [];
+    const prefix = kind === 'meal' ? 'MEAL#' : 'MEAL_TEMPLATE#';
+    const sortPrefix = kind === 'meal' ? 'MEAL_FOOD_ITEM#' : 'TEMPLATE_FOOD_ITEM#';
+    const parentField = kind === 'meal' ? 'meal_id' : 'template_id';
+    const keys = [...new Set(itemIds)].map((itemId) => ({
+      pk: `${prefix}${parentId}`,
+      sk: `${sortPrefix}${itemId}`,
+    }));
+    const items = await this.batchGet<NestedFoodItemRecord>(keys);
+    return items
+      .filter((item) => item[parentField] === parentId)
+      .sort((left, right) => left.order - right.order || left.id - right.id);
+  }
+
+  async getNutritionItemsForParents(
+    kind: 'meal' | 'template',
+    parents: ReadonlyArray<{ id: number; food_item_ids: ReadonlyArray<number> }>,
+  ): Promise<Map<number, NestedFoodItemRecord[]>> {
+    const result = new Map<number, NestedFoodItemRecord[]>(
+      parents.map(({ id }) => [id, []]),
+    );
+    const prefix = kind === 'meal' ? 'MEAL#' : 'MEAL_TEMPLATE#';
+    const sortPrefix = kind === 'meal' ? 'MEAL_FOOD_ITEM#' : 'TEMPLATE_FOOD_ITEM#';
+    const parentField = kind === 'meal' ? 'meal_id' : 'template_id';
+    const keysByParent = new Map<string, number>();
+    for (const parent of parents) {
+      for (const itemId of new Set(parent.food_item_ids)) {
+        keysByParent.set(`${prefix}${parent.id}|${sortPrefix}${itemId}`, parent.id);
+      }
+    }
+    if (keysByParent.size === 0) return result;
+    const keys = [...keysByParent.keys()].map((key) => {
+      const [pk, sk] = key.split('|');
+      return { pk, sk };
+    });
+    const items = await this.batchGet<NestedFoodItemRecord>(keys);
+    for (const item of items) {
+      const parentId = item[parentField];
+      const expectedParentId = keysByParent.get(`${item.pk}|${item.sk}`);
+      if (typeof parentId !== 'number' || parentId !== expectedParentId) continue;
+      result.get(parentId)?.push(item);
+    }
+    for (const parentItems of result.values()) {
+      parentItems.sort((left, right) => left.order - right.order || left.id - right.id);
+    }
+    return result;
+  }
+
+  async saveMealWithItems(
+    meal: MealRecord,
+    items: ReadonlyArray<NestedFoodItemRecord>,
+  ): Promise<void> {
+    await this.transact(this.nutritionCreateOperations(meal, items));
+  }
+
+  async replaceMealWithItems(
+    meal: MealRecord,
+    previousItemIds: ReadonlyArray<number>,
+    items: ReadonlyArray<NestedFoodItemRecord>,
+  ): Promise<void> {
+    await this.transact(
+      this.nutritionReplaceOperations('meal', meal, previousItemIds, items),
+    );
+  }
+
+  async deleteMealWithItems(meal: MealRecord): Promise<void> {
+    await this.deleteNutritionItemsAndParent(
+      'meal',
+      meal,
+      meal.food_item_ids,
+    );
+  }
+
+  async saveMealTemplateWithItems(
+    template: MealTemplateRecord,
+    items: ReadonlyArray<NestedFoodItemRecord>,
+  ): Promise<void> {
+    await this.transact(this.nutritionCreateOperations(template, items));
+  }
+
+  async replaceMealTemplateWithItems(
+    template: MealTemplateRecord,
+    previousItemIds: ReadonlyArray<number>,
+    items: ReadonlyArray<NestedFoodItemRecord>,
+  ): Promise<void> {
+    await this.transact(
+      this.nutritionReplaceOperations(
+        'template',
+        template,
+        previousItemIds,
+        items,
+      ),
+    );
+  }
+
+  async deleteMealTemplateWithItems(template: MealTemplateRecord): Promise<void> {
+    await this.deleteNutritionItemsAndParent(
+      'template',
+      template,
+      template.food_item_ids,
+    );
+  }
+
+  private async deleteNutritionItemsAndParent(
+    kind: 'meal' | 'template',
+    parent: MealRecord | MealTemplateRecord,
+    itemIds: ReadonlyArray<number>,
+  ): Promise<void> {
+    const itemOperations = this.nutritionItemDeleteOperations(
+      kind,
+      parent.id,
+      itemIds,
+    );
+    const parentOperation: TransactionOperations[number] = {
+      Delete: {
+        TableName: this.tableName,
+        Key: { pk: parent.pk, sk: parent.sk },
+      },
+    };
+
+    if (itemOperations.length + 1 <= DYNAMODB_TRANSACTION_LIMIT) {
+      await this.transact([...itemOperations, parentOperation]);
+      return;
+    }
+
+    // Child deletes are idempotent. Keeping the parent until every bounded
+    // chunk succeeds leaves a failed cascade retryable instead of half-deleted.
+    for (
+      let index = 0;
+      index < itemOperations.length;
+      index += DYNAMODB_TRANSACTION_LIMIT
+    ) {
+      await this.transact(itemOperations.slice(
+        index,
+        index + DYNAMODB_TRANSACTION_LIMIT,
+      ));
+    }
+    await this.transact([parentOperation]);
+  }
+
+  private nutritionCreateOperations(
+    parent: MealRecord | MealTemplateRecord,
+    items: ReadonlyArray<NestedFoodItemRecord>,
+  ): TransactionOperations {
+    if (items.length + 1 > DYNAMODB_TRANSACTION_LIMIT) {
+      throw new HttpError(400, {
+        food_items: ['Ensure this field has no more than 99 elements.'],
+      });
+    }
+    return [
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: parent,
+          ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+        },
+      },
+      ...items.map((item) => ({
+        Put: {
+          TableName: this.tableName,
+          Item: item,
+          ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+        },
+      })),
+    ];
+  }
+
+  private nutritionReplaceOperations(
+    kind: 'meal' | 'template',
+    parent: MealRecord | MealTemplateRecord,
+    previousItemIds: ReadonlyArray<number>,
+    items: ReadonlyArray<NestedFoodItemRecord>,
+  ): TransactionOperations {
+    const newItemIds = new Set(items.map(({ id }) => id));
+    const removedItemIds = [...new Set(previousItemIds)]
+      .filter((itemId) => !newItemIds.has(itemId));
+    const changedItems = items.filter((item) =>
+      !new Set(previousItemIds).has(item.id));
+    if (
+      changedItems.length + removedItemIds.length + 1 >
+      DYNAMODB_TRANSACTION_LIMIT
+    ) {
+      throw new HttpError(400, {
+        food_items: ['Ensure this field has no more than 99 elements.'],
+      });
+    }
+    return [
+      {
+        Put: {
+          TableName: this.tableName,
+          Item: parent,
+          ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+        },
+      },
+      ...this.nutritionItemDeleteOperations(kind, parent.id, removedItemIds),
+      ...changedItems.map((item) => ({
+        Put: {
+          TableName: this.tableName,
+          Item: item,
+          ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+        },
+      })),
+    ];
+  }
+
+  private nutritionItemDeleteOperations(
+    kind: 'meal' | 'template',
+    parentId: number,
+    itemIds: ReadonlyArray<number>,
+  ): TransactionOperations {
+    const prefix = kind === 'meal' ? 'MEAL#' : 'MEAL_TEMPLATE#';
+    const sortPrefix = kind === 'meal'
+      ? 'MEAL_FOOD_ITEM#'
+      : 'TEMPLATE_FOOD_ITEM#';
+    return [...new Set(itemIds)].map((itemId) => ({
+      Delete: {
+        TableName: this.tableName,
+        Key: { pk: `${prefix}${parentId}`, sk: `${sortPrefix}${itemId}` },
+      },
+    }));
   }
 
   async putAllTransactionally(items: readonly object[]): Promise<void> {
