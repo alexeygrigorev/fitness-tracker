@@ -723,7 +723,7 @@
       "intent": "Bench Press With Warmup And Dropdown Sets",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestComprehensiveScenarios#test_bench_press_with_warmup_and_dropdown_sets",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-084",
@@ -731,7 +731,7 @@
       "intent": "Full Push Day Scenario",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestComprehensiveScenarios#test_full_push_day_scenario",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-085",
@@ -739,7 +739,7 @@
       "intent": "Superset Dips And Bend Over Rows",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestComprehensiveScenarios#test_superset_dips_and_bend_over_rows",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-086",
@@ -747,7 +747,7 @@
       "intent": "Full Push Day Workout Via Api",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestStartWorkoutIntegration#test_full_push_day_workout_via_api",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-087",
@@ -755,7 +755,7 @@
       "intent": "Create Preset Then Get Includes Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestPresetExercisesInAPI#test_create_preset_then_get_includes_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-088",
@@ -763,7 +763,7 @@
       "intent": "Get Preset Detail Includes Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestPresetExercisesInAPI#test_get_preset_detail_includes_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-089",
@@ -771,7 +771,7 @@
       "intent": "List Presets Includes Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestPresetExercisesInAPI#test_list_presets_includes_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-090",
@@ -779,7 +779,7 @@
       "intent": "Superset Exercise Includes Superset Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestPresetExercisesInAPI#test_superset_exercise_includes_superset_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-091",
@@ -787,7 +787,7 @@
       "intent": "Preset Includes Last Used Weights",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestPresetLastUsedWeights#test_preset_includes_last_used_weights",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-092",
@@ -795,7 +795,7 @@
       "intent": "Create Preset With Exercises In Single Request",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestCreatePresetWithExercisesViaAPI#test_create_preset_with_exercises_in_single_request",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-093",
@@ -803,7 +803,7 @@
       "intent": "Create Preset With Multiple Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestCreatePresetWithExercisesViaAPI#test_create_preset_with_multiple_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-094",
@@ -811,7 +811,7 @@
       "intent": "Partial Update Without Exercises Preserves Rows",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestCreatePresetWithExercisesViaAPI#test_partial_update_without_exercises_preserves_rows",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-095",
@@ -819,7 +819,7 @@
       "intent": "Create Preset With Superset All Without Warmup",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestCreatePresetWithSuperset#test_create_preset_with_superset_all_without_warmup",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-096",
@@ -827,7 +827,7 @@
       "intent": "Create Preset With Superset Exercises",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/presets.test.ts#TestCreatePresetWithSuperset#test_create_preset_with_superset_exercises",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-097",
@@ -835,7 +835,7 @@
       "intent": "List Templates Returns Template Presets",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPresetTemplates#test_list_templates_returns_template_presets",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-098",
@@ -843,7 +843,7 @@
       "intent": "Template Preset Cannot Be Deleted",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPresetTemplates#test_template_preset_cannot_be_deleted",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-099",
@@ -851,7 +851,7 @@
       "intent": "Template Preset Cannot Be Modified",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/templates-and-plans.test.ts#TestPresetTemplates#test_template_preset_cannot_be_modified",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-100",
@@ -971,7 +971,7 @@
       "intent": "Frontend Warmup Detection",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/warmup-dropdown-preset.test.ts#TestWarmupDropdownPreset#test_frontend_warmup_detection",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-115",
@@ -979,7 +979,7 @@
       "intent": "Warmup Set Can Be Completed",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/warmup-dropdown-preset.test.ts#TestWarmupDropdownPreset#test_warmup_set_can_be_completed",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-116",
@@ -987,7 +987,7 @@
       "intent": "Warmup Set Has Correct Type",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/warmup-dropdown-preset.test.ts#TestWarmupDropdownPreset#test_warmup_set_has_correct_type",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-117",
@@ -995,7 +995,7 @@
       "intent": "Warmup Set Serialization",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/warmup-dropdown-preset.test.ts#TestWarmupDropdownPreset#test_warmup_set_serialization",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-118",
@@ -1003,7 +1003,7 @@
       "intent": "Bodyweight Exercise With Warmup Creates Warmup Type",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/warmup-dropdown-preset.test.ts#TestBodyweightWarmup#test_bodyweight_exercise_with_warmup_creates_warmup_type",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-119",
@@ -1011,7 +1011,7 @@
       "intent": "Bodyweight Superset With Warmup Creates Warmup Type",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/warmup-dropdown-preset.test.ts#TestBodyweightWarmup#test_bodyweight_superset_with_warmup_creates_warmup_type",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-120",
