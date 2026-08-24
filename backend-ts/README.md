@@ -18,11 +18,14 @@ npm ci
 npm run typecheck
 npm run test:integration
 npm run build
+npm run verify:artifact
 ```
 
 Integration tests launch official DynamoDB Local, so Java must be installed.
 They invoke the real handler against an in-memory table. The SAM artifact is
-built from the same bundled handler:
+built from the same bundled handler. The artifact verifier builds that payload
+again and checks the handler export, source-map metadata, packaged-file
+inventory, and database-unreachable health fallback:
 
 ```sh
 sam build
