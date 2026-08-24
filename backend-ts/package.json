@@ -8,6 +8,7 @@
   },
   "files": [
     "dist",
+    "frontend",
     "openapi.json"
   ],
   "scripts": {
@@ -15,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "build:bundle": "tsc --noEmit && esbuild src/lambda.ts --bundle --platform=node --target=node24 --format=cjs --sourcemap --outfile=dist/lambda.cjs",
     "build": "npm run clean && npm run build:bundle",
+    "build:cutover": "npm run build && node scripts/prepare-frontend-build.mjs",
     "prepack": "npm run build:bundle",
     "build:test": "tsc -p tsconfig.test.json",
     "test": "npm run test:integration",
