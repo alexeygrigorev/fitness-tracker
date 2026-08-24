@@ -32,8 +32,16 @@
       "typecheckCommand": "cd backend-ts && npm run typecheck",
       "integrationCommand": "cd backend-ts && npm run test:integration",
       "buildCommand": "cd backend-ts && npm run build",
-      "integrationResult": "142 passed; 0 failed",
+      "integrationResult": "143 passed; 0 failed",
       "passing": true,
+      "verifiedAt": "2026-08-24"
+    },
+    "frontendCutoverArtifact": {
+      "buildCommand": "cd backend-ts && npm run build:cutover",
+      "packagingCommand": "sam build --template template.yaml --build-dir .tmp/sam-build-cjs",
+      "result": "SAM build succeeded; the packaged CommonJS Lambda handler returned the SPA entrypoint and hashed JavaScript asset.",
+      "passing": true,
+      "activeTrafficServingBackend": "backend-django",
       "verifiedAt": "2026-08-24"
     },
     "translatedTargetsPending": 14,
@@ -55,6 +63,7 @@
   "gateStatus": {
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
+    "frontendCutoverConfigured": true,
     "deletionGatePassed": false,
     "translatedTargetsPending": 14,
     "translatedTargetsApprovedOrPassing": 129,

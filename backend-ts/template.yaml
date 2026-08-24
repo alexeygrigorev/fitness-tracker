@@ -7,6 +7,10 @@ Parameters:
     Type: String
     NoEcho: true
     MinLength: 50
+  FrontendBuild:
+    Type: String
+    Default: /var/task/frontend
+    Description: Absolute Lambda path to the packaged SPA build.
   AllowedOrigins:
     Type: String
     Default: ''
@@ -17,7 +21,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
-      Handler: dist/lambda.handler
+      Handler: dist/lambda.cjs.handler
       Runtime: nodejs24.x
       Architectures:
         - arm64
@@ -31,6 +35,7 @@ Resources:
           TABLE_NAME: !Ref Table
           JWT_SECRET: !Ref JwtSecret
           NODE_ENV: production
+          FRONTEND_BUILD: !Ref FrontendBuild
           ALLOWED_ORIGINS: !Ref AllowedOrigins
       Policies:
         - Statement:

@@ -6,10 +6,16 @@
   "engines": {
     "node": ">=24"
   },
+  "files": [
+    "dist",
+    "frontend",
+    "openapi.json"
+  ],
   "scripts": {
     "clean": "node scripts/clean.mjs",
     "typecheck": "tsc --noEmit",
-    "build": "npm run clean && tsc --noEmit && esbuild src/lambda.ts --bundle --platform=node --target=node24 --format=cjs --sourcemap --outfile=dist/lambda.js",
+    "build": "npm run clean && tsc --noEmit && esbuild src/lambda.ts --bundle --platform=node --target=node24 --format=cjs --sourcemap --outfile=dist/lambda.cjs",
+    "build:cutover": "npm run build && node scripts/prepare-frontend-build.mjs",
     "build:test": "tsc -p tsconfig.test.json",
     "test": "npm run test:integration",
     "test:integration": "npm run build:test && find .tmp/ts-build/tests -type f -name '*.test.js' -print0 | xargs -0 node --test --test-concurrency=1",
