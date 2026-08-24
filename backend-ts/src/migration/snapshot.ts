@@ -749,6 +749,23 @@ export function buildMigrationItems(input: unknown): BuiltMigrationItems {
       ...nutritionFields(food),
     });
   }
+
+  const mealItemsByMeal = new Map<number, Array<{
+    id: number;
+    food_id: number;
+    grams: number;
+    order: number;
+  }>>();
+  for (const item of tables.meal_food_items) {
+    const entries = mealItemsByMeal.get(item.meal_id) ?? [];
+    entries.push({
+      id: item.id,
+      food_id: item.food_id,
+      grams: item.grams,
+      order: item.order,
+    });
+    mealItemsByMeal.set(item.meal_id, entries);
+  }
   for (const meal of tables.meals) {
     items.push({
       pk: `USER#${meal.user_id}`,
@@ -763,6 +780,7 @@ export function buildMigrationItems(input: unknown): BuiltMigrationItems {
       event_time: meal.event_time ?? null,
       notes: meal.notes ?? null,
       source: meal.source,
+      food_items: structuredClone(mealItemsByMeal.get(meal.id) ?? []),
     });
   }
   for (const item of tables.meal_food_items) {
@@ -778,6 +796,23 @@ export function buildMigrationItems(input: unknown): BuiltMigrationItems {
       order: item.order,
     });
   }
+
+  const templateItemsByTemplate = new Map<number, Array<{
+    id: number;
+    food_id: number;
+    grams: number;
+    order: number;
+  }>>();
+  for (const item of tables.meal_template_food_items) {
+    const entries = templateItemsByTemplate.get(item.template_id) ?? [];
+    entries.push({
+      id: item.id,
+      food_id: item.food_id,
+      grams: item.grams,
+      order: item.order,
+    });
+    templateItemsByTemplate.set(item.template_id, entries);
+  }
   for (const template of tables.meal_templates) {
     items.push({
       pk: `USER#${template.user_id}`,
@@ -790,6 +825,7 @@ export function buildMigrationItems(input: unknown): BuiltMigrationItems {
       notes: template.notes ?? null,
       created_at: template.created_at ?? null,
       updated_at: template.updated_at ?? null,
+      food_items: structuredClone(templateItemsByTemplate.get(template.id) ?? []),
     });
   }
   for (const item of tables.meal_template_food_items) {
