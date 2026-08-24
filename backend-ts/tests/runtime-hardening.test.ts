@@ -246,3 +246,36 @@ describe('SpaCacheTests', () => {
     }
   });
 });
+
+describe('FrontendCutoverTests', () => {
+  it('configures the Lambda artifact for the packaged SPA', async () => {
+    const template = await readFile(`${process.cwd()}/template.yaml`, 'utf8');
+    const parameters = template.slice(
+      template.indexOf('Parameters:'),
+      template.indexOf('Resources:'),
+    );
+    const variables = template.slice(
+      template.indexOf('        Variables:'),
+      template.indexOf('      Policies:'),
+    );
+    const project = JSON.parse(
+      await readFile(`${process.cwd()}/package.json`, 'utf8'),
+    ) as { files?: string[]; scripts?: Record<string, string> };
+    const functionConfig = template.slice(
+      template.indexOf('  Api:'),
+      template.indexOf('  Table:'),
+    );
+
+    assert.match(
+      parameters,
+      /FrontendBuild:\r?\n\s*Type:\s*String\r?\n\s*Default:\s*\/var\/task\/frontend/,
+    );
+    assert.match(variables, /FRONTEND_BUILD:\s*!Ref FrontendBuild/);
+    assert.match(functionConfig, /Handler:\s*dist\/lambda\.cjs\.handler/);
+    assert.ok(project.files?.includes('frontend'));
+    assert.equal(
+      project.scripts?.['build:cutover'],
+      'npm run build && node scripts/prepare-frontend-build.mjs',
+    );
+  });
+});
