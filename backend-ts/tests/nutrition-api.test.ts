@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
-import { GetCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { after, before, describe, it } from 'node:test';
-import type { FoodItemRecord } from '../src/types.js';
+import { FitnessRepository } from '../src/repository.js';
+import type {
+  FoodItemRecord,
+  MealRecord,
+  MealTemplateRecord,
+  NestedFoodItemRecord,
+} from '../src/types.js';
 import {
   registerAndLogin,
   startTestApi,
@@ -26,7 +37,7 @@ function foodKey(userId: number): string {
 
   interface FoodOverrides extends Partial<Omit<
     FoodItemRecord,
-    'pk' | 'sk' | 'id' | 'name'
+    'id' | 'name'
   >> {}
 
   async function makeFood(
@@ -152,6 +163,78 @@ function foodKey(userId: number): string {
         Item: item,
       }));
     }
+  }
+
+  interface StaleWriterFixture {
+    food: FoodItemRecord;
+    parent: MealRecord | MealTemplateRecord;
+    oldIngredientId: number;
+    survivingIngredientId: number;
+    staleIngredient: NestedFoodItemRecord;
+  }
+
+  async function prepareStaleWriter(
+    kind: 'meal' | 'template',
+    parentId: number,
+    name: string,
+  ): Promise<StaleWriterFixture> {
+    const food = await makeFood(`${kind} stale writer food`);
+    const items = [
+      { food_id: food.id, grams: 10 },
+      { food_id: food.id, grams: 20 },
+    ];
+    if (kind === 'meal') {
+      await seedMeal(parentId, ownerId, name, '2026-08-24', items);
+    } else {
+      await seedTemplate(parentId, ownerId, name, 'lunch', items);
+    }
+
+    const storedParent = await api.documentClient.send(new GetCommand({
+      TableName: api.tableName,
+      Key: {
+        pk: `USER#${ownerId}`,
+        sk: kind === 'meal' ? `MEAL#${parentId}` : `MEAL_TEMPLATE#${parentId}`,
+      },
+    }));
+    const parent = storedParent.Item as MealRecord | MealTemplateRecord;
+    const [oldIngredientId, survivingIngredientId] = parent.food_item_ids;
+    await api.documentClient.send(new UpdateCommand({
+      TableName: api.tableName,
+      Key: { pk: parent.pk, sk: parent.sk },
+      UpdateExpression: 'SET food_item_ids = :survivor',
+      ExpressionAttributeValues: { ':survivor': [survivingIngredientId] },
+    }));
+
+    const staleIngredientId = ++nextNestedId;
+    return {
+      food,
+      parent,
+      oldIngredientId,
+      survivingIngredientId,
+      staleIngredient: kind === 'meal' ? {
+        pk: `MEAL#${parentId}`,
+        sk: `MEAL_FOOD_ITEM#${staleIngredientId}`,
+        entity_type: 'meal_food_item',
+        id: staleIngredientId,
+        meal_id: parentId,
+        food_id: food.id,
+        grams: 999,
+        order: 99,
+      } : {
+        pk: `MEAL_TEMPLATE#${parentId}`,
+        sk: `TEMPLATE_FOOD_ITEM#${staleIngredientId}`,
+        entity_type: 'meal_template_food_item',
+        id: staleIngredientId,
+        template_id: parentId,
+        food_id: food.id,
+        grams: 999,
+        order: 99,
+      },
+    };
+  }
+
+  function isConcurrentWriteRejection(error: unknown): boolean {
+    return (error as { name?: string }).name === 'TransactionCanceledException';
   }
 
   function mealPayload(foodId: number, overrides: Record<string, unknown> = {}) {
@@ -631,6 +714,152 @@ function foodKey(userId: number): string {
     });
     assert.deepEqual(meals.body, []);
     assert.deepEqual(templates.body, []);
+  });
+
+  it('test_food_deletion_cascades_meals_and_templates', async () => {
+    const deletedFood = await makeFood('Cascade Deleted Food');
+    const retainedFood = await makeFood('Cascade Retained Food');
+    await seedMeal(7500, ownerId, 'Cascade Meal', '2026-08-24', [
+      { food_id: deletedFood.id, grams: 100 },
+      { food_id: retainedFood.id, grams: 200 },
+    ]);
+
+    const response = await api.call(
+      'DELETE',
+      `/api/food/foods/${deletedFood.id}/`,
+      { token: ownerToken },
+    );
+    assert.equal(response.status, 204);
+    const removedFood = await api.documentClient.send(new GetCommand({
+      TableName: api.tableName,
+      Key: { pk: deletedFood.pk, sk: deletedFood.sk },
+    }));
+    assert.equal(removedFood.Item, undefined);
+
+    const mealIngredients = await api.documentClient.send(new QueryCommand({
+      TableName: api.tableName,
+      KeyConditionExpression: 'pk = :parent',
+      ExpressionAttributeValues: { ':parent': 'MEAL#7500' },
+    }));
+    assert.equal(mealIngredients.Items?.length, 1);
+    assert.equal(mealIngredients.Items?.[0]?.food_id, retainedFood.id);
+    const meal = await api.documentClient.send(new GetCommand({
+      TableName: api.tableName,
+      Key: { pk: `USER#${ownerId}`, sk: 'MEAL#7500' },
+    }));
+    assert.equal(meal.Item?.food_item_ids.length, 1);
+
+    const canonicalFood = await makeFood('Canonical Cascade Food', {
+      pk: 'CANONICAL_FOODS',
+      user_id: null,
+      source: 'canonical',
+    });
+    const retainedCanonicalFood = await makeFood('Canonical Retained Food');
+    await seedMeal(7501, ownerId, 'Canonical Cascade Meal', '2026-08-24', [
+      { food_id: canonicalFood.id, grams: 50 },
+      { food_id: retainedCanonicalFood.id, grams: 75 },
+    ]);
+    await seedTemplate(7502, ownerId, 'Canonical Cascade Template', 'snack', [
+      { food_id: canonicalFood.id, grams: 25 },
+      { food_id: retainedCanonicalFood.id, grams: 35 },
+    ]);
+
+    const repository = new FitnessRepository(api.tableName, api.endpoint);
+    await repository.deleteFood(canonicalFood);
+    const removedCanonical = await api.documentClient.send(new GetCommand({
+      TableName: api.tableName,
+      Key: { pk: canonicalFood.pk, sk: canonicalFood.sk },
+    }));
+    assert.equal(removedCanonical.Item, undefined);
+    for (const parentKey of [
+      { pk: `USER#${ownerId}`, sk: 'MEAL#7501' },
+      { pk: `USER#${ownerId}`, sk: 'MEAL_TEMPLATE#7502' },
+    ]) {
+      const parent = await api.documentClient.send(new GetCommand({
+        TableName: api.tableName,
+        Key: parentKey,
+      }));
+      assert.equal(parent.Item?.food_item_ids.length, 1);
+    }
+  });
+
+  it('test_nested_updates_reject_stale_parent_pointers', async () => {
+    const meal = await prepareStaleWriter('meal', 7600, 'Stale Meal');
+    const repository = new FitnessRepository(api.tableName, api.endpoint);
+    const staleMeal: MealRecord = {
+      ...(meal.parent as MealRecord),
+      name: 'Loser Writer',
+      food_item_ids: [meal.staleIngredient.id],
+    };
+    await assert.rejects(
+      repository.replaceMealWithItems(
+        staleMeal,
+        [meal.oldIngredientId],
+        [meal.staleIngredient],
+      ),
+      isConcurrentWriteRejection,
+    );
+    const persistedMeal = await api.documentClient.send(new GetCommand({
+      TableName: api.tableName,
+      Key: { pk: `USER#${ownerId}`, sk: 'MEAL#7600' },
+    }));
+    assert.deepEqual(persistedMeal.Item?.food_item_ids, [
+      meal.survivingIngredientId,
+    ]);
+    const oldMealIngredient = await api.documentClient.send(new GetCommand({
+      TableName: api.tableName,
+      Key: {
+        pk: 'MEAL#7600',
+        sk: `MEAL_FOOD_ITEM#${meal.oldIngredientId}`,
+      },
+    }));
+    const stagedMealIngredient = await api.documentClient.send(new GetCommand({
+      TableName: api.tableName,
+      Key: { pk: 'MEAL#7600', sk: meal.staleIngredient.sk },
+    }));
+    assert.notEqual(oldMealIngredient.Item, undefined);
+    assert.equal(stagedMealIngredient.Item, undefined);
+
+    const template = await prepareStaleWriter(
+      'template',
+      7601,
+      'Stale Template',
+    );
+    const staleTemplate: MealTemplateRecord = {
+      ...(template.parent as MealTemplateRecord),
+      name: 'Loser Template Writer',
+      food_item_ids: [template.staleIngredient.id],
+    };
+    await assert.rejects(
+      repository.replaceMealTemplateWithItems(
+        staleTemplate,
+        [template.oldIngredientId],
+        [template.staleIngredient],
+      ),
+      isConcurrentWriteRejection,
+    );
+    const persistedTemplate = await api.documentClient.send(new GetCommand({
+      TableName: api.tableName,
+      Key: { pk: `USER#${ownerId}`, sk: 'MEAL_TEMPLATE#7601' },
+    }));
+    assert.deepEqual(persistedTemplate.Item?.food_item_ids, [
+      template.survivingIngredientId,
+    ]);
+    const oldTemplateIngredient = await api.documentClient.send(new GetCommand({
+      TableName: api.tableName,
+      Key: {
+        pk: 'MEAL_TEMPLATE#7601',
+        sk: `TEMPLATE_FOOD_ITEM#${template.oldIngredientId}`,
+      },
+    }));
+    const stagedTemplateIngredient = await api.documentClient.send(
+      new GetCommand({
+        TableName: api.tableName,
+        Key: { pk: 'MEAL_TEMPLATE#7601', sk: template.staleIngredient.sk },
+      }),
+    );
+    assert.notEqual(oldTemplateIngredient.Item, undefined);
+    assert.equal(stagedTemplateIngredient.Item, undefined);
   });
 
   it('test_template_scalar_update_preserves_nested_items', async () => {
