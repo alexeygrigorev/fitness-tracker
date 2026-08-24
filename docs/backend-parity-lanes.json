@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "execution": {
     "mode": "parallel-isolated-worktrees",
-    "baselineCommit": "0951b22",
+    "baselineCommit": "5fffe75",
     "djangoFrozen": true,
     "worktreeRoot": "/tmp/fitness-tracker-lanes",
     "lanes": [
@@ -50,38 +50,49 @@
       }
     ],
     "verifiedBaseline": {
-      "integrationResult": "96 passed; 0 failed",
+      "integrationResult": "140 passed; 0 failed",
       "typecheck": "passed",
       "productionBuild": "passed",
-      "verifiedAt": "2026-08-23"
+      "verifiedAt": "2026-08-24"
     },
     "cutoverRule": "Keep backend-django serving until TypeScript reaches 141/141 manifest parity and every gate in backend-parity-lock.json passes.",
     "activeWave": [
       {
         "id": "nutrition",
-        "agent": "nutrition_backend_v7",
-        "branch": "parity/nutrition-backend",
+        "agent": "nutrition_parity_v9",
+        "branch": "parity/nutrition-parity-v9",
         "status": "in-progress"
       },
       {
-        "id": "workout-clean-tree-gate",
-        "agent": "committed_workout_gate_v1",
-        "branch": "34c515e-detached",
-        "status": "in-progress"
+        "id": "workout-api-parity",
+        "agent": "workout_api_parity_v7",
+        "branch": "parity/workout-api-parity-v7",
+        "status": "verification-only"
       },
       {
-        "id": "nutrition-python-mapping",
-        "agent": "nutrition_python_mapper",
-        "status": "read-only-review"
+        "id": "warmup-runtime-parity",
+        "agent": "warmup_runtime_parity_v2",
+        "branch": "parity/warmup-runtime-parity-v2",
+        "status": "verification-only"
       },
       {
-        "id": "backcompat-audit",
-        "agent": "backcompat_cleanup_v5",
+        "id": "cutover-gate-audit",
+        "agent": "cutover_gate_audit_v1",
         "status": "read-only-review"
       },
       {
         "id": "serverless-audit",
-        "agent": "serverless_hardening_v5",
+        "agent": "serverless_deployment_audit_v1",
+        "status": "read-only-review"
+      },
+      {
+        "id": "openapi-runtime-audit",
+        "agent": "openapi_runtime_audit_v4",
+        "status": "read-only-review"
+      },
+      {
+        "id": "backcompat-audit",
+        "agent": "backcompat_shim_audit_v3",
         "status": "read-only-review"
       }
     ]
