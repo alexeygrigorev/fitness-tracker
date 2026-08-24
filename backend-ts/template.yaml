@@ -17,7 +17,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
-      Handler: dist/lambda.handler
+      Handler: dist/lambda.cjs.handler
       Runtime: nodejs24.x
       Architectures:
         - arm64
