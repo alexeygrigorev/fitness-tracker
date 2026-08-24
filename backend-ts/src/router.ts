@@ -54,7 +54,16 @@ function compilePattern(pattern: string): RegExp {
     if (!segment.startsWith(':')) {
       return escapeRegExp(segment);
     }
-    const name = segment.slice(1);
+    const rawName = segment.slice(1);
+    const stringParameter = rawName.endsWith(':string');
+    if (stringParameter) {
+      const name = rawName.slice(0, -':string'.length);
+      if (!/^[A-Za-z][A-Za-z0-9]*$/.test(name)) {
+        throw new Error(`Invalid route parameter ${segment}`);
+      }
+      return `(?<${name}>[^/]+)`;
+    }
+    const name = rawName;
     if (!/^[A-Za-z][A-Za-z0-9]*$/.test(name)) {
       throw new Error(`Invalid route parameter ${segment}`);
     }
