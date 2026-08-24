@@ -38,6 +38,22 @@ Set `AllowedOrigins` to the exact comma-separated browser origins that call the
 API. A same-origin SPA needs no value; a local Vite frontend uses
 `http://localhost:5173`.
 
+## Frontend cutover artifact
+
+Django remains the active serving backend while parity gates are open. The
+Lambda stack is prepared for its eventual same-origin SPA without switching any
+traffic now. Build the React app with an empty `VITE_API_URL`, copy it into the
+SAM function artifact, and let the default `FrontendBuild` resolve to
+`/var/task/frontend` inside Lambda:
+
+```sh
+npm run build:cutover
+sam build
+sam deploy --guided --parameter-overrides \
+  JwtSecret='<50+-character-secret>' \
+  AllowedOrigins=''
+```
+
 The table retains data on stack updates/deletion. User IDs come from atomic
 counters so migrated SQLite IDs remain stable. Exercise settings are scoped to
 the authenticated user and require a canonical or owner-owned exercise item.
