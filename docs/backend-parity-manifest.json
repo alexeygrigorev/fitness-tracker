@@ -32,12 +32,12 @@
       "typecheckCommand": "cd backend-ts && npm run typecheck",
       "integrationCommand": "cd backend-ts && npm run test:integration",
       "buildCommand": "cd backend-ts && npm run build",
-      "integrationResult": "142 passed; 0 failed",
+      "integrationResult": "161 passed; 0 failed",
       "passing": true,
       "verifiedAt": "2026-08-24"
     },
-    "translatedTargetsPending": 14,
-    "translatedTargetsApprovedOrPassing": 129
+    "translatedTargetsPending": 0,
+    "translatedTargetsApprovedOrPassing": 143
   },
   "contractRequirements": {
     "preserveTrailingSlashes": true,
@@ -54,11 +54,11 @@
   },
   "gateStatus": {
     "testParityInventoryComplete": true,
-    "allTranslatedTestsPass": false,
+    "allTranslatedTestsPass": true,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 14,
-    "translatedTargetsApprovedOrPassing": 129,
-    "nextAction": "Implement and verify the remaining 14 TypeScript nutrition targets."
+    "translatedTargetsPending": 0,
+    "translatedTargetsApprovedOrPassing": 143,
+    "nextAction": "Complete frontend/E2E, artifact, security, sandbox, and cutover deletion gates."
   },
   "entries": [
     {
@@ -227,7 +227,7 @@
       "intent": "Anonymous Users Can Read But Not Write",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/food-item-authorization.test.ts#FoodItemAuthorizationTests#test_anonymous_users_can_read_but_not_write",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-022",
@@ -235,7 +235,7 @@
       "intent": "Owner Cannot Promote Private Food To Canonical",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/food-item-authorization.test.ts#FoodItemAuthorizationTests#test_owner_cannot_promote_private_food_to_canonical",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-023",
@@ -243,7 +243,7 @@
       "intent": "Meal List Loads And Calculates Nested Foods In Batches",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/meal-serialization-performance.test.ts#MealSerializationPerformanceTests#test_meal_list_loads_and_calculates_nested_foods_in_batches",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-024",
@@ -251,7 +251,7 @@
       "intent": "Calculate Nutrition Only Uses Accessible Valid Foods",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_calculate_nutrition_only_uses_accessible_valid_foods",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-025",
@@ -259,7 +259,7 @@
       "intent": "Calculate Nutrition Requires Authentication",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_calculate_nutrition_requires_authentication",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-026",
@@ -267,7 +267,7 @@
       "intent": "Calculation Endpoints Return Expected Values",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_calculation_endpoints_return_expected_values",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-027",
@@ -275,7 +275,7 @@
       "intent": "Create Meal Persists Nested Items And Derived Date",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_create_meal_persists_nested_items_and_derived_date",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-028",
@@ -283,7 +283,7 @@
       "intent": "Create Template Persists Nested Items",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_create_template_persists_nested_items",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-029",
@@ -291,7 +291,7 @@
       "intent": "Food Catalog Ownership And Crud",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_food_catalog_ownership_and_crud",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-030",
@@ -299,7 +299,7 @@
       "intent": "Meal Date Filtering And Daily Totals Are Isolated",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_meal_date_filtering_and_daily_totals_are_isolated",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-031",
@@ -307,7 +307,7 @@
       "intent": "Meal Partial Update Replaces Items Only When Provided",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_meal_partial_update_replaces_items_only_when_provided",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-032",
@@ -315,7 +315,7 @@
       "intent": "Meals And Templates Are Owner Scoped",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_meals_and_templates_are_owner_scoped",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-033",
@@ -323,7 +323,7 @@
       "intent": "Nested Writes Reject Inaccessible Private Food Atomically",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_nested_writes_reject_inaccessible_private_food_atomically",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-034",
@@ -331,7 +331,7 @@
       "intent": "Template Scalar Update Preserves Nested Items",
       "domain": "nutrition",
       "targetTestId": "backend-ts/tests/nutrition-api.test.ts#NutritionApiTests#test_template_scalar_update_preserves_nested_items",
-      "translationStatus": "pending"
+      "translationStatus": "passing"
     },
     {
       "id": "pmv2-035",
