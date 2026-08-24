@@ -1,4 +1,5 @@
 import {
+  BatchGetCommand,
   DescribeTableCommand,
   DynamoDBClient,
 } from '@aws-sdk/client-dynamodb';
@@ -250,6 +251,36 @@ export class FitnessRepository {
 
   get<T = DocumentItem>(key: Record<string, unknown>): Promise<T | undefined> {
     return this.getItem<T>(key);
+  }
+
+  async batchGet<T = DocumentItem>(
+    keys: ReadonlyArray<Record<string, unknown>>,
+  ): Promise<T[]> {
+    const items: T[] = [];
+    for (let offset = 0; offset < keys.length; offset += 100) {
+      let requestKeys = keys.slice(offset, offset + 100);
+      let attempts = 0;
+
+      while (requestKeys.length > 0 && attempts < 10) {
+        attempts += 1;
+        const result = await this.client.send(new BatchGetCommand({
+          RequestItems: {
+            [this.tableName]: { Keys: requestKeys, ConsistentRead: true },
+          },
+        }));
+        items.push(...((result.Responses?.[this.tableName] ?? []) as T[]));
+        const unprocessed = result.UnprocessedKeys?.[this.tableName]?.Keys ?? [];
+        requestKeys = unprocessed as Array<Record<string, unknown>>;
+        if (requestKeys.length > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 25 * attempts));
+        }
+      }
+
+      if (requestKeys.length > 0) {
+        throw new Error('BatchGet items remained unprocessed after retries');
+      }
+    }
+    return items;
   }
 
   async put<T extends object>(

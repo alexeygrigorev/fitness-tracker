@@ -49,6 +49,70 @@ export interface ExerciseSettingsItem {
 
 export type WorkoutSetType = 'normal' | 'bodyweight' | 'dropdown' | 'warmup';
 
+export interface FoodItemRecord {
+  pk: string;
+  sk: string;
+  id: number;
+  user_id?: number | null;
+  name: string;
+  brand?: string | null;
+  barcode?: string | null;
+  source: 'canonical' | 'user' | 'ai_generated';
+  serving_size: number;
+  serving_unit: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  saturated_fat?: number | null;
+  fiber?: number | null;
+  sugar?: number | null;
+  sodium?: number | null;
+  category?: string | null;
+  glycemic_index?: number | null;
+  absorption_speed?: string | null;
+  insulin_response?: number | null;
+  satiety_score?: number | null;
+  protein_quality?: number | null;
+}
+
+export interface NestedFoodItemRecord {
+  id: number;
+  food_id: number;
+  grams: number;
+  order: number;
+}
+
+export interface MealRecord {
+  pk: string;
+  sk: string;
+  entity_type: 'meal';
+  id: number;
+  user_id: number;
+  name: string;
+  meal_type: string;
+  date: string;
+  logged_at?: string | null;
+  event_time?: string | null;
+  notes?: string | null;
+  source: 'manual' | 'ai_assisted';
+  food_items: NestedFoodItemRecord[];
+}
+
+export interface MealTemplateRecord {
+  pk: string;
+  sk: string;
+  entity_type: 'meal_template';
+  id: number;
+  user_id: number;
+  name: string;
+  category: string;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  food_items: NestedFoodItemRecord[];
+}
+
 export interface WorkoutSessionItem {
   pk: string;
   sk: string;

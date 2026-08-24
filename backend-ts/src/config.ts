@@ -1,6 +1,7 @@
 export interface RuntimeConfig {
   tableName: string;
   jwtSecret: string;
+  timezone: string;
   frontendBuild?: string;
   dynamodbEndpoint?: string;
   allowedOrigins: ReadonlySet<string>;
@@ -36,6 +37,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RuntimeConfig 
   return {
     tableName,
     jwtSecret,
+    timezone: env.TIME_ZONE?.trim() || 'UTC',
     ...(frontendBuild ? { frontendBuild } : {}),
     ...(dynamodbEndpoint ? { dynamodbEndpoint } : {}),
     allowedOrigins,
