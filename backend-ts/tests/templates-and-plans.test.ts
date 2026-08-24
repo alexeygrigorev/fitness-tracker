@@ -451,6 +451,50 @@ describe('TestWorkoutPlans', () => {
     assert.ok(!names.includes('User2 Plan'));
   });
 
+  it('test_documented_get_plan_detail_matches_django', async () => {
+    await seedPlan(6008, ownerId, 'Detail Plan');
+
+    const owned = await api.call('GET', '/api/workouts/plans/6008/', {
+      token: ownerToken,
+    });
+    assert.equal(owned.status, 200);
+    assert.deepEqual(owned.body, {
+      id: 6008,
+      user_id: ownerId,
+      name: 'Detail Plan',
+      description: null,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
+
+    const foreign = await api.call('GET', '/api/workouts/plans/6008/', {
+      token: otherToken,
+    });
+    assert.equal(foreign.status, 404);
+    assert.deepEqual(foreign.body, { error: 'Not found' });
+
+    const missing = await api.call('GET', '/api/workouts/plans/999999/', {
+      token: ownerToken,
+    });
+    assert.equal(missing.status, 404);
+    assert.deepEqual(missing.body, { detail: 'Not found.' });
+  });
+
+  it('test_get_use_plan_is_method_not_allowed', async () => {
+    await seedPlan(6009, ownerId, 'Use Plan Drift');
+
+    const response = await api.call(
+      'GET',
+      '/api/workouts/plans/6009/use_plan/',
+      { token: ownerToken },
+    );
+
+    assert.equal(response.status, 405);
+    assert.deepEqual(response.body, {
+      detail: 'Method "GET" not allowed.',
+    });
+  });
+
   it('test_use_plan_copies_presets_to_user', async () => {
     await seedPlan(
       6003,

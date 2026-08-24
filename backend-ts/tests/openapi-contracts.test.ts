@@ -78,6 +78,10 @@ describe('OpenApiContractTests', () => {
   });
 
   it('test_documented_plan_use_contract_matches_response', () => {
+    assert.equal(
+      responseSchema('/api/workouts/plans/{id}/', 'get').$ref,
+      '#/components/schemas/WorkoutPlan',
+    );
     const usePlan = operation('/api/workouts/plans/{id}/use_plan/', 'post');
     assert.equal('requestBody' in usePlan, false);
     assert.equal(

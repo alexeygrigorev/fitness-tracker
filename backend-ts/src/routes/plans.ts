@@ -255,6 +255,21 @@ export function registerPlanRoutes(addRoute: (route: RouteDefinition) => void): 
 
   addRoute({
     method: 'GET',
+    pattern: '/api/workouts/plans/:planId',
+    authRequired: true,
+    authBeforeMethod: true,
+    handle: async (context, params) => {
+      const user = await context.requireUser();
+      const plan = await loadPlan(context, params.planId as number);
+      if (plan.plan.user_id !== user.id) {
+        throw new HttpError(404, { error: 'Not found' });
+      }
+      return jsonResponse(200, planModel(plan.plan), context.cors);
+    },
+  });
+
+  addRoute({
+    method: 'GET',
     pattern: '/api/workouts/plans/:planId/use_plan',
     authRequired: true,
     authBeforeMethod: true,
