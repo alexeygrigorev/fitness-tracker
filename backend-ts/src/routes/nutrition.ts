@@ -13,6 +13,18 @@ import type {
   NestedFoodItemRecord,
 } from '../types.js';
 import { HttpError } from '../types.js';
+import type { Rational } from '../nutrition-decimal.js';
+import {
+  addRational,
+  compareRational,
+  divideRational,
+  multiplyRational,
+  rational,
+  rationalFromInteger,
+  rationalToNumber,
+  roundedNumber,
+  zeroRational,
+} from '../nutrition-decimal.js';
 import { ValidationFailure } from '../validation.js';
 
 const FOOD_CATEGORIES: ReadonlySet<string> = new Set([
@@ -655,15 +667,14 @@ function validateTemplate(
   };
 }
 
-function round2(value: number): number {
-  return Number(value.toFixed(2));
-}
-
-function nutritionMultiplier(food: FoodItemRecord | undefined, grams: number): number | undefined {
+function nutritionMultiplier(
+  food: FoodItemRecord | undefined,
+  grams: number,
+): Rational | undefined {
   if (!food || !(food.serving_size > 0)) {
     return undefined;
   }
-  return grams / food.serving_size;
+  return divideRational(rational(grams), rational(food.serving_size));
 }
 
 function foodResponse(food: FoodItemRecord): Record<string, unknown> {
@@ -714,23 +725,26 @@ function mealTotals(
   items: readonly NestedFoodItemRecord[],
   foods: Map<number, FoodItemRecord>,
 ): Record<'totalCalories' | 'totalProtein' | 'totalCarbs' | 'totalFat', number> {
-  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+  let calories = zeroRational();
+  let protein = zeroRational();
+  let carbs = zeroRational();
+  let fat = zeroRational();
   for (const item of items) {
     const multiplier = nutritionMultiplier(foods.get(item.food_id), item.grams);
     if (multiplier === undefined) {
       continue;
     }
     const food = foods.get(item.food_id)!;
-    totals.calories += food.calories * multiplier;
-    totals.protein += food.protein * multiplier;
-    totals.carbs += food.carbs * multiplier;
-    totals.fat += food.fat * multiplier;
+    calories = addRational(calories, multiplyRational(rational(food.calories), multiplier));
+    protein = addRational(protein, multiplyRational(rational(food.protein), multiplier));
+    carbs = addRational(carbs, multiplyRational(rational(food.carbs), multiplier));
+    fat = addRational(fat, multiplyRational(rational(food.fat), multiplier));
   }
   return {
-    totalCalories: round2(totals.calories),
-    totalProtein: round2(totals.protein),
-    totalCarbs: round2(totals.carbs),
-    totalFat: round2(totals.fat),
+    totalCalories: roundedNumber(calories),
+    totalProtein: roundedNumber(protein),
+    totalCarbs: roundedNumber(carbs),
+    totalFat: roundedNumber(fat),
   };
 }
 
@@ -1073,13 +1087,13 @@ async function dailyTotals(context: RouteContext, date: string) {
     [...itemsByMeal.values()].flat().map((item) => item.food_id),
   );
   const totals = {
-    calories: 0,
-    protein_g: 0,
-    carbs_g: 0,
-    fat_g: 0,
-    fiber_g: 0,
-    sugar_g: 0,
-    sodium_mg: 0,
+    calories: zeroRational(),
+    protein_g: zeroRational(),
+    carbs_g: zeroRational(),
+    fat_g: zeroRational(),
+    fiber_g: zeroRational(),
+    sugar_g: zeroRational(),
+    sodium_mg: zeroRational(),
   };
   for (const meal of meals) {
     for (const item of itemsByMeal.get(meal.id) ?? []) {
@@ -1088,16 +1102,24 @@ async function dailyTotals(context: RouteContext, date: string) {
         continue;
       }
       const food = foods.get(item.food_id)!;
-      totals.calories += food.calories * multiplier;
-      totals.protein_g += food.protein * multiplier;
-      totals.carbs_g += food.carbs * multiplier;
-      totals.fat_g += food.fat * multiplier;
-      totals.fiber_g += (food.fiber ?? 0) * multiplier;
-      totals.sugar_g += (food.sugar ?? 0) * multiplier;
-      totals.sodium_mg += (food.sodium ?? 0) * multiplier;
+      const weighted = (field: keyof FoodItemRecord): Rational =>
+        multiplyRational(rational((food[field] ?? 0) as number), multiplier);
+      totals.calories = addRational(totals.calories, weighted('calories'));
+      totals.protein_g = addRational(totals.protein_g, weighted('protein'));
+      totals.carbs_g = addRational(totals.carbs_g, weighted('carbs'));
+      totals.fat_g = addRational(totals.fat_g, weighted('fat'));
+      totals.fiber_g = addRational(totals.fiber_g, weighted('fiber'));
+      totals.sugar_g = addRational(totals.sugar_g, weighted('sugar'));
+      totals.sodium_mg = addRational(totals.sodium_mg, weighted('sodium'));
     }
   }
-  return jsonResponse(200, { date, ...totals }, context.cors);
+  return jsonResponse(200, {
+    date,
+    ...Object.fromEntries(Object.entries(totals).map(([key, value]) => [
+      key,
+      rationalToNumber(value as Rational),
+    ])),
+  }, context.cors);
 }
 
 async function createTemplate(context: RouteContext) {
@@ -1362,8 +1384,14 @@ export function registerNutritionRoutes(addRoute: (route: RouteDefinition) => vo
     pattern: '/api/food/calculations/calculate-calories',
     handle: async (context) => {
       const macros = macroInputs(bodyObject(context.request.body));
+      const protein = rational(macros.protein);
+      const carbs = rational(macros.carbs);
+      const fat = rational(macros.fat);
       return jsonResponse(200, {
-        calories: macros.protein * 4 + macros.carbs * 4 + macros.fat * 9,
+        calories: rationalToNumber(addRational(addRational(
+          multiplyRational(protein, rationalFromInteger(4)),
+          multiplyRational(carbs, rationalFromInteger(4)),
+        ), multiplyRational(fat, rationalFromInteger(9)))),
         protein_g: macros.protein,
         carbs_g: macros.carbs,
         fat_g: macros.fat,
@@ -1376,21 +1404,39 @@ export function registerNutritionRoutes(addRoute: (route: RouteDefinition) => vo
     pattern: '/api/food/calculations/detect-category',
     handle: async (context) => {
       const { protein, carbs, fat } = macroInputs(bodyObject(context.request.body));
-      const total = protein + carbs + fat;
-      const category = total === 0
+      const proteinRatio = rational(protein);
+      const carbsRatio = rational(carbs);
+      const fatRatio = rational(fat);
+      const total = addRational(addRational(proteinRatio, carbsRatio), fatRatio);
+      const category = total.numerator === 0n
         ? 'unknown'
-        : protein > total * 0.4
+        : compareRational(
+            proteinRatio,
+            multiplyRational(total, { numerator: 2n, denominator: 5n }),
+          ) > 0
           ? 'protein'
-          : carbs > total * 0.5
+          : compareRational(
+              carbsRatio,
+              divideRational(total, rationalFromInteger(2)),
+            ) > 0
             ? 'carb'
-            : fat > total * 0.5
+            : compareRational(
+                fatRatio,
+                divideRational(total, rationalFromInteger(2)),
+              ) > 0
               ? 'fat'
               : 'balanced';
       return jsonResponse(200, {
         category,
-        protein_ratio: total > 0 ? protein / total : 0,
-        carb_ratio: total > 0 ? carbs / total : 0,
-        fat_ratio: total > 0 ? fat / total : 0,
+        protein_ratio: total.numerator === 0n
+          ? 0
+          : rationalToNumber(divideRational(proteinRatio, total)),
+        carb_ratio: total.numerator === 0n
+          ? 0
+          : rationalToNumber(divideRational(carbsRatio, total)),
+        fat_ratio: total.numerator === 0n
+          ? 0
+          : rationalToNumber(divideRational(fatRatio, total)),
       }, context.cors);
     },
   });
@@ -1407,6 +1453,9 @@ export function registerNutritionRoutes(addRoute: (route: RouteDefinition) => vo
       const carbs = readMacro('carbs_g');
       const fat = readMacro('fat_g');
       const fiber = readMacro('fiber_g');
+      const proteinRatio = rational(protein);
+      const carbsRatio = rational(carbs);
+      const fatRatio = rational(fat);
       let foodType = '';
       if (data.food_type !== undefined) {
         if (typeof data.food_type !== 'string') {
@@ -1419,7 +1468,7 @@ export function registerNutritionRoutes(addRoute: (route: RouteDefinition) => vo
       }
       fail(errors);
 
-      const total = protein + carbs + fat;
+      const total = addRational(addRational(proteinRatio, carbsRatio), fatRatio);
       let glycemicIndex = 'medium';
       if (carbs > 0 && fiber > 0) {
         glycemicIndex = fiber >= 5 ? 'low' : fiber >= 3 ? 'medium' : 'high';
@@ -1432,17 +1481,29 @@ export function registerNutritionRoutes(addRoute: (route: RouteDefinition) => vo
       ) {
         glycemicIndex = 'high';
       }
-      const thermicEffect = protein > total * 0.3
+      const thermicEffect = compareRational(
+        proteinRatio,
+        multiplyRational(total, { numerator: 3n, denominator: 10n }),
+      ) > 0
         ? 'high'
-        : protein > total * 0.15
+        : compareRational(
+            proteinRatio,
+            multiplyRational(total, { numerator: 3n, denominator: 20n }),
+          ) > 0
           ? 'medium'
           : 'low';
       let satietyScore = 0;
-      if (protein > total * 0.2) satietyScore += 3;
+      if (compareRational(
+        proteinRatio,
+        multiplyRational(total, { numerator: 1n, denominator: 5n }),
+      ) > 0) satietyScore += 3;
       if (fiber >= 5) satietyScore += 3;
       else if (fiber >= 3) satietyScore += 2;
       else if (fiber > 0) satietyScore += 1;
-      if (fat > total * 0.2) satietyScore += 2;
+      if (compareRational(
+        fatRatio,
+        multiplyRational(total, { numerator: 1n, denominator: 5n }),
+      ) > 0) satietyScore += 2;
       const satietyLevel = satietyScore >= 6
         ? 'very_high'
         : satietyScore >= 4
@@ -1474,13 +1535,13 @@ export function registerNutritionRoutes(addRoute: (route: RouteDefinition) => vo
       const items = calculateNutritionInput(context);
       const foods = await foodMap(context, user.id, items.map((item) => item.food_id));
       const totals = {
-        total_calories: 0,
-        total_protein_g: 0,
-        total_carbs_g: 0,
-        total_fat_g: 0,
-        total_fiber_g: 0,
-        total_sugar_g: 0,
-        total_sodium_mg: 0,
+        total_calories: zeroRational(),
+        total_protein_g: zeroRational(),
+        total_carbs_g: zeroRational(),
+        total_fat_g: zeroRational(),
+        total_fiber_g: zeroRational(),
+        total_sugar_g: zeroRational(),
+        total_sodium_mg: zeroRational(),
       };
       for (const item of items) {
         const multiplier = nutritionMultiplier(foods.get(item.food_id), item.grams);
@@ -1488,18 +1549,19 @@ export function registerNutritionRoutes(addRoute: (route: RouteDefinition) => vo
           continue;
         }
         const food = foods.get(item.food_id)!;
-        totals.total_calories += food.calories * multiplier;
-        totals.total_protein_g += food.protein * multiplier;
-        totals.total_carbs_g += food.carbs * multiplier;
-        totals.total_fat_g += food.fat * multiplier;
-        totals.total_fiber_g += (food.fiber ?? 0) * multiplier;
-        totals.total_sugar_g += (food.sugar ?? 0) * multiplier;
-        totals.total_sodium_mg += (food.sodium ?? 0) * multiplier;
+        const weighted = (field: keyof FoodItemRecord): Rational =>
+          multiplyRational(rational((food[field] ?? 0) as number), multiplier);
+        totals.total_calories = addRational(totals.total_calories, weighted('calories'));
+        totals.total_protein_g = addRational(totals.total_protein_g, weighted('protein'));
+        totals.total_carbs_g = addRational(totals.total_carbs_g, weighted('carbs'));
+        totals.total_fat_g = addRational(totals.total_fat_g, weighted('fat'));
+        totals.total_fiber_g = addRational(totals.total_fiber_g, weighted('fiber'));
+        totals.total_sugar_g = addRational(totals.total_sugar_g, weighted('sugar'));
+        totals.total_sodium_mg = addRational(totals.total_sodium_mg, weighted('sodium'));
       }
-  return jsonResponse(200, Object.fromEntries(Object.entries(totals).map(([key, value]) => [
-        key,
-        round2(value),
-      ])), context.cors);
+      return jsonResponse(200, Object.fromEntries(Object.entries(totals).map((
+        [key, value],
+      ) => [key, roundedNumber(value)])), context.cors);
     },
   });
 }
