@@ -11,12 +11,16 @@ npm ci
 # Install browsers
 npm run install:browsers
 
-# Run tests (defaults to http://localhost:8000)
+# Run tests (frontend defaults to http://localhost:5173)
 npm test
 
 # Run with UI mode
-BASE_URL=http://localhost:8000 npm run test:ui
+BASE_URL=http://localhost:5173 npm run test:ui
 ```
+
+Browser tests default to the Vite frontend on port `5173`, while direct API
+request helpers default to Django on port `8000`. For custom ports, use
+`./run-local.sh` or set both `BASE_URL` and `VITE_API_URL`.
 
 ## Running Against Different Environments
 
@@ -39,7 +43,7 @@ BASE_URL=https://staging.example.com npm test
 
 ```
 e2e/
-├── *.spec.ts           # Test files
+├── tests/*.spec.ts     # Test files
 ├── playwright.config.ts # Playwright configuration
 ├── package.json        # Dependencies
 ├── run.sh              # Convenience script

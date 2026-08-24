@@ -22,7 +22,10 @@ test.describe('Network Failure', () => {
     expect(registration.status()).toBe(201);
 
     let attempts = 0;
-    await page.route(`${apiOrigin}/api/auth/login/`, async (route) => {
+    // The browser calls the frontend origin; Vite proxies that request to
+    // the configured backend. Match any host so both direct and proxied
+    // development setups are covered.
+    await page.route('**/api/auth/login/', async (route) => {
       if (route.request().method() !== 'POST') {
         await route.fallback();
         return;

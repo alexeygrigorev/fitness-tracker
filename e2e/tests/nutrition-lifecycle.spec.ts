@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
-const API_BASE = process.env.VITE_API_URL || 'http://127.0.0.1:18000';
+const API_BASE = process.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const PASSWORD = 'nutrition-lifecycle-pass';
 
 type TestUser = {
