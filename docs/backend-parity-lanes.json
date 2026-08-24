@@ -198,7 +198,7 @@
     },
     {
       "id": "nutrition",
-      "status": "in-progress",
+      "status": "complete",
       "targetCount": 14,
       "entryIds": [
         "pmv2-021",
@@ -236,7 +236,7 @@
     {
       "id": "platform-users-contracts",
       "status": "in-progress",
-      "targetCount": 16,
+      "targetCount": 18,
       "entryIds": [
         "pmv2-009",
         "pmv2-010",
@@ -253,7 +253,9 @@
         "pmv2-035",
         "pmv2-036",
         "pmv2-037",
-        "pmv2-038"
+        "pmv2-038",
+        "pmv2-142",
+        "pmv2-143"
       ],
       "pythonTests": [
         "config/tests/test_openapi_contracts.py::OpenApiContractTests::test_committed_typescript_contract_matches_python_export",
@@ -263,6 +265,8 @@
         "config/tests/test_openapi_contracts.py::OpenApiContractTests::test_documented_user_and_settings_contracts_match_responses",
         "config/tests/test_openapi_contracts.py::OpenApiContractTests::test_documented_workout_lifecycle_contracts_match_responses",
         "config/tests/test_production_hardening.py::ProductionSettingsTests::test_debug_keeps_local_browser_origins",
+        "config/tests/test_production_hardening.py::ProductionSettingsTests::test_fly_allowlist_contains_only_the_configured_application_host",
+        "config/tests/test_production_hardening.py::ProductionSettingsTests::test_portable_image_defaults_to_non_debug_mode",
         "config/tests/test_production_hardening.py::ProductionSettingsTests::test_fly_proxy_enables_transport_hardening",
         "config/tests/test_production_hardening.py::ProductionSettingsTests::test_portable_direct_http_mode_does_not_redirect_health_checks",
         "config/tests/test_production_hardening.py::ProductionSettingsTests::test_short_production_secret_is_rejected",
