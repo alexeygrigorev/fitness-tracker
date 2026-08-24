@@ -36,6 +36,8 @@ export type TransactionOperations = NonNullable<
   TransactWriteCommandInput['TransactItems']
 >;
 
+type NutritionParentRecord = MealRecord | MealTemplateRecord;
+
 const DYNAMODB_TRANSACTION_LIMIT = 100;
 
 export interface ExerciseSettingsInput {
@@ -264,9 +266,7 @@ export class FitnessRepository {
   }
 
   async deleteFood(food: FoodItemRecord): Promise<void> {
-    await this.delete({ pk: food.pk, sk: food.sk }, {
-      ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
-    });
+    await this.deleteFoodAndReferences(food);
   }
 
   async getMeal(id: number, userId: number): Promise<MealRecord | undefined> {
@@ -476,6 +476,154 @@ export class FitnessRepository {
     await this.writeBoundedTransactionsQuietly(itemOperations);
   }
 
+  private async deleteFoodAndReferences(food: FoodItemRecord): Promise<void> {
+    const nutritionRecords = await this.scan<DocumentItem>({
+      FilterExpression:
+        'entity_type IN (:meal, :template, :mealFoodItem, :templateFoodItem)',
+      ExpressionAttributeValues: {
+        ':meal': 'meal',
+        ':template': 'meal_template',
+        ':mealFoodItem': 'meal_food_item',
+        ':templateFoodItem': 'meal_template_food_item',
+      },
+    });
+
+    const parents = new Map<string, NutritionParentRecord>();
+    const targetIngredientsByParent = new Map<string, NestedFoodItemRecord[]>();
+    const orphanTargetIngredients = new Map<string, NestedFoodItemRecord>();
+    for (const record of nutritionRecords) {
+      const entityType = record.entity_type;
+      const parentId = record.id;
+      if (entityType === 'meal' || entityType === 'meal_template') {
+        if (
+          typeof parentId === 'number' &&
+          typeof record.pk === 'string' &&
+          typeof record.sk === 'string' &&
+          Array.isArray(record.food_item_ids)
+        ) {
+          const parentKey = `${entityType}:${parentId}`;
+          parents.set(
+            parentKey,
+            record as unknown as NutritionParentRecord,
+          );
+        }
+        continue;
+      }
+      if (
+        entityType !== 'meal_food_item' &&
+        entityType !== 'meal_template_food_item'
+      ) {
+        continue;
+      }
+      if (
+        typeof parentId !== 'number' ||
+        record.food_id !== food.id ||
+        typeof record.pk !== 'string' ||
+        typeof record.sk !== 'string'
+      ) {
+        continue;
+      }
+      const linkedId = entityType === 'meal_food_item'
+        ? record.meal_id
+        : record.template_id;
+      if (typeof linkedId !== 'number') {
+        continue;
+      }
+      const parentKey = `${
+        entityType === 'meal_food_item' ? 'meal' : 'meal_template'
+      }:${linkedId}`;
+      orphanTargetIngredients.set(
+        `${record.pk}|${record.sk}`,
+        record as unknown as NestedFoodItemRecord,
+      );
+      const targetIngredients = targetIngredientsByParent.get(parentKey) ?? [];
+      targetIngredients.push(record as unknown as NestedFoodItemRecord);
+      targetIngredientsByParent.set(parentKey, targetIngredients);
+    }
+
+    for (const [parentKey, ingredients] of targetIngredientsByParent) {
+      if (!parents.has(parentKey)) continue;
+      for (const ingredient of ingredients) {
+        orphanTargetIngredients.delete(`${ingredient.pk}|${ingredient.sk}`);
+      }
+    }
+
+    const orphanOperations = [...orphanTargetIngredients.values()].map((item) => ({
+      Delete: {
+        TableName: this.tableName,
+        Key: { pk: item.pk, sk: item.sk },
+      },
+    }));
+    const cleanupGroups = [...parents.entries()]
+      .flatMap(([parentKey, parent]) => {
+        const removedTargetIds = new Set(
+          (targetIngredientsByParent.get(parentKey) ?? []).map(({ id }) => id),
+        );
+        const retainedItemIds = parent.food_item_ids.filter((itemId) =>
+          !removedTargetIds.has(itemId),
+        );
+        return {
+          parent: {
+            ...parent,
+            food_item_ids: retainedItemIds,
+          },
+          childOperations: this.nutritionItemDeleteOperations(
+            parent.entity_type === 'meal' ? 'meal' : 'template',
+            parent.id,
+            (targetIngredientsByParent.get(parentKey) ?? []).map(({ id }) => id),
+          ),
+          expectedItemIds: [...parent.food_item_ids],
+        };
+      })
+      .filter((group) =>
+        group.childOperations.length > 0 ||
+        group.expectedItemIds.length !== group.parent.food_item_ids.length
+      );
+
+    const deleteFoodOperation: TransactionOperations[number] = {
+      Delete: {
+        TableName: this.tableName,
+        Key: { pk: food.pk, sk: food.sk },
+        ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+      },
+    };
+    const cleanupOperations = cleanupGroups.flatMap((group) => [
+      this.nutritionParentPointerOperation(group.parent, group.expectedItemIds),
+      ...group.childOperations,
+    ]);
+
+    if (
+      cleanupOperations.length + orphanOperations.length + 1 <=
+      DYNAMODB_TRANSACTION_LIMIT
+    ) {
+      await this.transact([
+        ...orphanOperations,
+        ...cleanupOperations,
+        deleteFoodOperation,
+      ]);
+      return;
+    }
+
+    // Repoint before deleting an oversized collection. The conditional parent
+    // write rejects an intervening writer before any of its children disappear.
+    await this.writeBoundedTransactions(orphanOperations);
+    for (const group of cleanupGroups) {
+      const parentOperation = this.nutritionParentPointerOperation(
+        group.parent,
+        group.expectedItemIds,
+      );
+      if (group.childOperations.length + 1 <= DYNAMODB_TRANSACTION_LIMIT) {
+        await this.transact([parentOperation, ...group.childOperations]);
+        continue;
+      }
+      await this.transact([parentOperation]);
+      await this.writeBoundedTransactions(group.childOperations);
+    }
+    await this.delete(deleteFoodOperation.Delete!.Key!, {
+      ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+    });
+  }
+
   private async createNutritionRecordWithItems(
     parent: MealRecord | MealTemplateRecord,
     items: ReadonlyArray<NestedFoodItemRecord>,
@@ -522,13 +670,14 @@ export class FitnessRepository {
       .filter((itemId) => !newItemIds.has(itemId));
     const changedItems = items.filter((item) =>
       !new Set(previousItemIds).has(item.id));
-    const parentOperation: TransactionOperations[number] = {
-      Put: {
-        TableName: this.tableName,
-        Item: parent,
-        ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
+    const scalarUpdate = changedItems.length === 0;
+    const parentOperation = this.nutritionParentPointerOperation(
+      {
+        ...parent,
+        ...(scalarUpdate ? { food_item_ids: [...new Set(previousItemIds)] } : {}),
       },
-    };
+      previousItemIds,
+    );
     const itemPuts = changedItems.map((item) => ({
       Put: {
         TableName: this.tableName,
@@ -616,6 +765,23 @@ export class FitnessRepository {
         Key: { pk: `${prefix}${parentId}`, sk: `${sortPrefix}${itemId}` },
       },
     }));
+  }
+
+  private nutritionParentPointerOperation(
+    parent: NutritionParentRecord,
+    expectedItemIds: ReadonlyArray<number>,
+  ): TransactionOperations[number] {
+    return {
+      Put: {
+        TableName: this.tableName,
+        Item: parent,
+        ConditionExpression:
+          'attribute_exists(pk) AND attribute_exists(sk) AND food_item_ids = :expectedItemIds',
+        ExpressionAttributeValues: {
+          ':expectedItemIds': [...expectedItemIds],
+        },
+      },
+    };
   }
 
   async putAllTransactionally(items: readonly object[]): Promise<void> {
