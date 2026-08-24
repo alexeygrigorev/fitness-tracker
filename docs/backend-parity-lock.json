@@ -87,6 +87,34 @@
       "fly.toml"
     ]
   },
+  "nutritionContractAuditDecision": {
+    "status": "open",
+    "recordedAt": "2026-08-24",
+    "requiredBeforeDeletionGate": true,
+    "testManifestMayRemainPassingWhileTheseAreOpen": true,
+    "findings": [
+      {
+        "id": "food-delete-cascade",
+        "requiredBehavior": "Deleting a private or canonical food removes meal and meal-template ingredient rows and removes stale references from parent food_item_ids arrays.",
+        "status": "open"
+      },
+      {
+        "id": "concurrent-nested-updates",
+        "requiredBehavior": "Meal and template updates must prevent overlapping writers from repointing a parent while deleting another writer's stale ingredient IDs.",
+        "status": "open"
+      },
+      {
+        "id": "decimal-precision",
+        "requiredBehavior": "Derived nutrition values match Django Decimal behavior without binary floating-point drift.",
+        "status": "open"
+      },
+      {
+        "id": "scalar-and-validation-shapes",
+        "requiredBehavior": "Explicit nulls, preserved empty strings, time formatting, and nested DRF-style validation errors match Django responses.",
+        "status": "open"
+      }
+    ]
+  },
   "migrationStrategy": {
     "status": "locked",
     "approach": "parallel-parity-then-cutover",
