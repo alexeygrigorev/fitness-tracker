@@ -15,7 +15,7 @@ async function createUser(
 ): Promise<{ request: APIRequestContext }> {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const username = `preset_${marker}_${suffix}`;
-  const password = `preset-${suffix}-password`;
+  const password = 'Nested-Contract-Passw0rd!';
 
   const registerResponse = await parentRequest.post(`${API_BASE}/api/auth/register/`, {
     data: {

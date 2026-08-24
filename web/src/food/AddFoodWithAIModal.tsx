@@ -99,7 +99,7 @@ export default function AddFoodWithAIModal({ isOpen, onClose, onFoodCreated }: A
         <div className="space-y-4">
           {/* Image Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Photos</label>
+            <label htmlFor="food-ai-photos" className="block text-sm font-medium text-gray-700 mb-2">Photos</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {imagePreviews.map((preview, index) => (
                 <div key={index} className="relative w-24 h-24">
@@ -111,6 +111,7 @@ export default function AddFoodWithAIModal({ isOpen, onClose, onFoodCreated }: A
                   <button
                     type="button"
                     onClick={() => handleRemoveImage(index)}
+                    aria-label={`Remove food photo ${index + 1}`}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600"
                   >
                     ×
@@ -132,21 +133,24 @@ export default function AddFoodWithAIModal({ isOpen, onClose, onFoodCreated }: A
             </div>
             <input
               ref={fileInputRef}
+              id="food-ai-photos"
               type="file"
               accept="image/*"
               multiple
               className="hidden"
+              aria-label="Food photos"
               onChange={handleImageSelect}
             />
           </div>
 
           {/* Text Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="food-ai-description" className="block text-sm font-medium text-gray-700 mb-2">
               Description
               <span className="text-gray-400 font-normal"> (optional but helps accuracy)</span>
             </label>
             <textarea
+              id="food-ai-description"
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="e.g., Can of Coca-Cola, 330ml. Grilled chicken breast with herbs..."

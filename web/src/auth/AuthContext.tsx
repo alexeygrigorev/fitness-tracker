@@ -1,33 +1,14 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authApi } from '@/api';
-
-interface User {
-  id: number;
-  email: string;
-  username: string;
-  is_active: boolean;
-  dark_mode?: boolean;
-}
-
-interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  login: (username: string, password: string) => Promise<void>;
-  register: (email: string, username: string, password: string) => Promise<void>;
-  logout: () => void;
-  loading: boolean;
-  darkMode: boolean;
-  toggleDarkMode: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import { AuthContext } from './authContext';
+import type { AuthUser } from './authContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(() => authApi.getStoredUser());
+  const [token, setToken] = useState<string | null>(() => authApi.getToken());
+  const [loading, setLoading] = useState(() => Boolean(authApi.getToken() && authApi.getStoredUser()));
   const [darkMode, setDarkMode] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,15 +23,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [darkMode]);
 
   useEffect(() => {
-    // Check for stored token on mount
     const storedToken = authApi.getToken();
     const storedUser = authApi.getStoredUser();
 
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(storedUser);
-      // Default to light mode, will update after API confirms
-      setDarkMode(false);
       // Verify token is still valid and get fresh user data
       authApi.getMe()
         .then((data) => {
@@ -64,8 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
         })
         .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
     }
   }, []);
 
@@ -83,7 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authApi.setAuth(accessToken, userData);
 
     // Redirect to the page they were trying to access
-    const from = (location.state as any)?.from?.pathname || '/';
+    interface LocationState {
+      from?: { pathname?: string };
+    }
+    const state = location.state as LocationState | null;
+    const from = state?.from?.pathname || '/';
     navigate(from, { replace: true });
   };
 
@@ -124,12 +102,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
 }

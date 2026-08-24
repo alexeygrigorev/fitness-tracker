@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { mealTemplatesApi } from '../api';
 import FoodSelector from './FoodSelector';
 import type { FoodItem, MealTemplate, MealCategory } from '../types';
@@ -19,19 +19,6 @@ export default function MealTemplateForm({
   const [name, setName] = useState(template?.name || '');
   const [category, setCategory] = useState<MealCategory>(template?.category || 'snack');
   const [foods, setFoods] = useState(template?.foods || []);
-
-  // Reset form when template changes
-  useEffect(() => {
-    if (template) {
-      setName(template.name);
-      setCategory(template.category);
-      setFoods(template.foods || []);
-    } else {
-      setName('');
-      setCategory('snack');
-      setFoods([]);
-    }
-  }, [template?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

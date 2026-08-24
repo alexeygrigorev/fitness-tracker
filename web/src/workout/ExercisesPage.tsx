@@ -12,6 +12,12 @@ import type { Exercise, WorkoutSession, WorkoutPreset } from '../types';
 
 type Tab = 'workouts' | 'presets' | 'library';
 
+const getWorkoutTab = (pathname: string): Tab => {
+  if (pathname === '/workouts/presets') return 'presets';
+  if (pathname === '/workouts/library') return 'library';
+  return 'workouts';
+};
+
 // Get day of week number from a day label
 const getDayOfWeek = (dayLabel?: string): number | null => {
   if (!dayLabel) return null;
@@ -50,20 +56,8 @@ export default function ExercisesPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Derive active tab from URL path
-  const getTabFromPath = (): Tab => {
-    const path = location.pathname;
-    if (path === '/workouts/presets') return 'presets';
-    if (path === '/workouts/library') return 'library';
-    return 'workouts';
-  };
-
-  const [activeTab, setActiveTab] = useState<Tab>(getTabFromPath());
-
-  // Sync tab with URL changes
-  useEffect(() => {
-    setActiveTab(getTabFromPath());
-  }, [location.pathname]);
+  // The URL owns navigation state, so browser actions stay authoritative.
+  const activeTab = getWorkoutTab(location.pathname);
 
   const handleTabChange = (tab: Tab) => {
     const path = tab === 'workouts' ? '/workouts'
@@ -305,7 +299,12 @@ export default function ExercisesPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+    return (
+      <div role="status" aria-live="polite" className="flex justify-center items-center h-64">
+        <span className="sr-only">Loading workouts</span>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
@@ -320,6 +319,8 @@ export default function ExercisesPage() {
           {/* Date navigation */}
           <div className="flex items-center justify-center gap-4">
             <button
+              type="button"
+              aria-label="Go to previous day"
               onClick={() => goToDate(-1)}
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
             >
@@ -327,6 +328,8 @@ export default function ExercisesPage() {
             </button>
             <div className="text-center">
               <button
+                type="button"
+                aria-label="Go to today"
                 onClick={goToToday}
                 className="text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
@@ -337,6 +340,8 @@ export default function ExercisesPage() {
               </div>
             </div>
             <button
+              type="button"
+              aria-label="Go to next day"
               onClick={() => goToDate(1)}
               disabled={isToday}
               className={`p-2 rounded-md transition-colors ${
@@ -372,26 +377,34 @@ export default function ExercisesPage() {
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="flex space-x-8">
-          {(['workouts', 'presets', 'library'] as Tab[]).map(tab => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === tab
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              {tabLabels[tab]}
-            </button>
-          ))}
+        <nav aria-label="Workout sections">
+          <div role="tablist" className="flex space-x-8">
+            {(['workouts', 'presets', 'library'] as Tab[]).map(tab => (
+              <button
+                key={tab}
+                id={`${tab}-tab`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                aria-controls={`${tab}-panel`}
+                tabIndex={activeTab === tab ? 0 : -1}
+                onClick={() => handleTabChange(tab)}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === tab
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                {tabLabels[tab]}
+              </button>
+            ))}
+          </div>
         </nav>
       </div>
 
       {/* Workouts Tab */}
       {activeTab === 'workouts' && (
-        <div className="space-y-6">
+        <div id="workouts-panel" role="tabpanel" aria-labelledby="workouts-tab" className="space-y-6">
           {/* Active Workout Session */}
           {activeWorkoutSession && (
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg shadow p-6 border-2 border-blue-400 dark:border-blue-600" data-workout-id={activeWorkoutSession.id}>
@@ -531,6 +544,8 @@ export default function ExercisesPage() {
                       </div>
                       <div className="flex gap-1 sm:gap-2">
                         <button
+                          type="button"
+                          aria-label={`Resume workout ${workout.name}`}
                           onClick={() => handleResumeWorkout(workout)}
                           className="text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 p-2 rounded transition-colors touch-manipulation"
                           title="Resume"
@@ -538,6 +553,8 @@ export default function ExercisesPage() {
                           <FontAwesomeIcon icon={faPlay} className="text-sm" />
                         </button>
                         <button
+                          type="button"
+                          aria-label={`Delete workout ${workout.name}`}
                           onClick={() => handleDeleteWorkout(workout.id)}
                           className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded transition-colors touch-manipulation"
                           title="Delete"
@@ -573,11 +590,12 @@ export default function ExercisesPage() {
 
       {/* Presets Tab */}
       {activeTab === 'presets' && (
-        <div className="space-y-4">
+        <div id="presets-panel" role="tabpanel" aria-labelledby="presets-tab" className="space-y-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Workout Presets</h3>
               <button
+                type="button"
                 onClick={openAddPreset}
                 className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
               >
@@ -639,6 +657,8 @@ export default function ExercisesPage() {
                         </div>
                         <div className="flex gap-1 sm:gap-2">
                           <button
+                            type="button"
+                            aria-label={`Edit preset ${preset.name}`}
                             onClick={() => openEditPreset(preset)}
                             className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2 rounded transition-colors touch-manipulation"
                             title="Edit"
@@ -646,6 +666,8 @@ export default function ExercisesPage() {
                             <FontAwesomeIcon icon={faPen} className="text-sm" />
                           </button>
                           <button
+                            type="button"
+                            aria-label={`Delete preset ${preset.name}`}
                             onClick={() => handleDeletePreset(preset.id)}
                             className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded transition-colors touch-manipulation"
                             title="Delete"
@@ -665,13 +687,15 @@ export default function ExercisesPage() {
 
       {/* Exercises Tab */}
       {activeTab === 'library' && (
-        <>
+        <div id="library-panel" role="tabpanel" aria-labelledby="library-tab" className="space-y-6">
           {/* Mobile: Header with action buttons */}
           <div className="md:hidden bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Exercises</h3>
               <div className="flex gap-2">
                 <button
+                  type="button"
+                  aria-label="Add exercise with AI"
                   onClick={() => setShowExerciseAIModal(true)}
                   className="px-2 py-1.5 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 flex items-center gap-1"
                 >
@@ -679,6 +703,8 @@ export default function ExercisesPage() {
                   <span className="hidden sm:inline">AI</span>
                 </button>
                 <button
+                  type="button"
+                  aria-label="Add exercise"
                   onClick={openAddExercise}
                   className="px-2 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center gap-1"
                 >
@@ -693,46 +719,57 @@ export default function ExercisesPage() {
           <div className="md:hidden space-y-3">
             {exercises.map(exercise => (
               <div key={exercise.id} className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                {/* Exercise row - always clickable */}
-                <div
-                  onClick={() => setSelectedExercise(selectedExercise?.id === exercise.id ? null : exercise)}
-                  className={`p-4 flex items-center justify-between cursor-pointer ${
-                    selectedExercise?.id === exercise.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                  }`}
-                >
-                  <div className="flex-1 min-w-0 pr-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{exercise.name}</span>
-                      {exercise.bodyweight && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 shrink-0">BW</span>
-                      )}
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 capitalize shrink-0">
-                        {exercise.category}
-                      </span>
+                {/* Exercise row - always keyboard operable */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedExercise(selectedExercise?.id === exercise.id ? null : exercise)}
+                    aria-label={`${selectedExercise?.id === exercise.id ? 'Hide details for' : 'Show details for'} ${exercise.name}`}
+                    className="absolute inset-0 z-0 w-full rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                  />
+                  <div
+                    className={`relative z-10 pointer-events-none p-4 flex items-center justify-between ${
+                      selectedExercise?.id === exercise.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0 pr-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">{exercise.name}</span>
+                        {exercise.bodyweight && (
+                          <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300 shrink-0">BW</span>
+                        )}
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 capitalize shrink-0">
+                          {exercise.category}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {exercise.muscleGroups?.join(', ') || 'No muscle groups'}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {exercise.muscleGroups?.join(', ') || 'No muscle groups'}
+                    <div className="pointer-events-auto flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); openEditExercise(exercise); }}
+                        aria-label={`Edit exercise ${exercise.name}`}
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
+                        title="Edit"
+                      >
+                        <FontAwesomeIcon icon={faPen} className="text-sm" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise.id); }}
+                        aria-label={`Delete exercise ${exercise.name}`}
+                        className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400"
+                        title="Delete"
+                      >
+                        <FontAwesomeIcon icon={faTrash} className="text-sm" />
+                      </button>
+                      <FontAwesomeIcon
+                        icon={selectedExercise?.id === exercise.id ? faChevronDown : faChevronRight}
+                        className="text-gray-400 text-xs"
+                      />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openEditExercise(exercise); }}
-                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400"
-                      title="Edit"
-                    >
-                      <FontAwesomeIcon icon={faPen} className="text-sm" />
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise.id); }}
-                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400"
-                      title="Delete"
-                    >
-                      <FontAwesomeIcon icon={faTrash} className="text-sm" />
-                    </button>
-                    <FontAwesomeIcon
-                      icon={selectedExercise?.id === exercise.id ? faChevronDown : faChevronRight}
-                      className="text-gray-400 text-xs"
-                    />
                   </div>
                 </div>
 
@@ -768,6 +805,8 @@ export default function ExercisesPage() {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Exercises</h3>
                 <div className="flex gap-2">
                   <button
+                    type="button"
+                    aria-label="Add exercise with AI"
                     onClick={() => setShowExerciseAIModal(true)}
                     className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 flex items-center gap-1"
                   >
@@ -775,6 +814,8 @@ export default function ExercisesPage() {
                     Add with AI
                   </button>
                   <button
+                    type="button"
+                    aria-label="Add exercise"
                     onClick={openAddExercise}
                     className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center gap-1"
                   >
@@ -787,38 +828,49 @@ export default function ExercisesPage() {
                 {exercises.map(exercise => (
                   <div
                     key={exercise.id}
-                    onClick={() => setSelectedExercise(exercise)}
-                    className={`p-3 rounded-lg border transition-colors flex items-center justify-between cursor-pointer ${
+                    className={`relative p-3 rounded-lg border transition-colors ${
                       selectedExercise?.id === exercise.id
                         ? 'bg-blue-500/10 border-blue-500 dark:bg-blue-500/20'
                         : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'
                     }`}
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900 dark:text-gray-100">{exercise.name}</span>
-                        {exercise.bodyweight && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">BW</span>
-                        )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedExercise(exercise)}
+                      aria-label={`View details for ${exercise.name}`}
+                      className="absolute inset-0 z-0 w-full rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                    />
+                    <div className="relative z-10 pointer-events-none flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900 dark:text-gray-100">{exercise.name}</span>
+                          {exercise.bodyweight && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">BW</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400 capitalize">{exercise.category || 'Exercise'}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">{exercise.muscleGroups?.join(', ') || ''}</div>
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 capitalize">{exercise.category || 'Exercise'}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-500">{exercise.muscleGroups?.join(', ') || ''}</div>
-                    </div>
-                    <div className="flex gap-1 shrink-0">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); openEditExercise(exercise); }}
-                        className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
-                        title="Edit"
-                      >
-                        <FontAwesomeIcon icon={faPen} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise.id); }}
-                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
-                        title="Delete"
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
+                      <div className="pointer-events-auto flex gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); openEditExercise(exercise); }}
+                          aria-label={`Edit exercise ${exercise.name}`}
+                          className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
+                          title="Edit"
+                        >
+                          <FontAwesomeIcon icon={faPen} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteExercise(exercise.id); }}
+                          aria-label={`Delete exercise ${exercise.name}`}
+                          className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
+                          title="Delete"
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -833,6 +885,8 @@ export default function ExercisesPage() {
                 {selectedExercise && (
                   <div className="flex gap-1">
                     <button
+                      type="button"
+                      aria-label={`Edit exercise ${selectedExercise.name}`}
                       onClick={() => openEditExercise(selectedExercise)}
                       className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 p-1"
                       title="Edit"
@@ -840,6 +894,8 @@ export default function ExercisesPage() {
                       <FontAwesomeIcon icon={faPen} />
                     </button>
                     <button
+                      type="button"
+                      aria-label={`Delete exercise ${selectedExercise.name}`}
                       onClick={() => handleDeleteExercise(selectedExercise.id)}
                       className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1"
                       title="Delete"
@@ -884,7 +940,7 @@ export default function ExercisesPage() {
               )}
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* Preset Form Modal */}

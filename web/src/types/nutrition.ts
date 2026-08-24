@@ -45,6 +45,10 @@ export type AiFoodAnalysis = Omit<FoodItem, 'id' | 'source' | 'brand'> & {
   brand?: string | null;
 };
 
+// The resolution endpoint accepts a fully analyzed meal food, including its
+// portion weight, even though the persisted FoodItem itself has no grams.
+export type AiMealIngredient = AiAnalyzedFood;
+
 export interface AiMealAnalysis {
   name: string;
   mealType: MealCategory;

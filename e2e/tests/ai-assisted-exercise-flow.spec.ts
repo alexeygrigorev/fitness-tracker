@@ -83,7 +83,7 @@ test('AI exercise review creates an editable persistent exercise', async ({
     await page.goto('/workouts/library');
 
     await expect(page.getByRole('heading', { name: 'Exercises' })).toBeVisible();
-    await page.getByRole('button', { name: 'Add with AI' }).click();
+    await page.getByRole('button', { name: 'Add exercise with AI' }).click();
 
     const aiDialog = page.getByRole('dialog', { name: 'Add Exercise with AI' });
     await expect(aiDialog).toBeVisible();
@@ -181,8 +181,8 @@ test('AI exercise review creates an editable persistent exercise', async ({
     const editedName = `Edited Dumbbell Press ${marker}`;
     await nameInput.fill(editedName);
     await categorySelect.selectOption('isolation');
-    await editDialog.getByRole('button', { name: 'Chest' }).click();
-    await editDialog.getByRole('button', { name: 'Back' }).click();
+    await editDialog.getByRole('button', { name: 'Chest', exact: true }).click();
+    await editDialog.getByRole('button', { name: 'Back', exact: true }).click();
 
     const equipmentInput = editDialog.getByPlaceholder('e.g., barbell, dumbbells');
     await equipmentInput.fill('loaded sandbag');
@@ -211,12 +211,14 @@ test('AI exercise review creates an editable persistent exercise', async ({
 
     await page.reload();
     const editedRow = page
-      .locator('div.p-3.rounded-lg.border.cursor-pointer')
+      .locator('div.p-3.rounded-lg.border')
       .filter({ has: page.getByText(editedName, { exact: true }) })
       .first();
     await expect(editedRow).toBeVisible();
     await expect(editedRow.getByText('BW')).toBeVisible();
-    await editedRow.getByText(editedName, { exact: true }).click();
+    await editedRow
+      .getByRole('button', { name: `View details for ${editedName}` })
+      .click();
 
     const details = page.locator('div.hidden.md\\:grid > div').nth(1);
     await expect(details.getByRole('heading', { name: editedName })).toBeVisible();

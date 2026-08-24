@@ -21,7 +21,7 @@ test.describe('Exercise library CRUD', () => {
 
   function exerciseRows(page: Page, name: string) {
     return page
-      .locator('div.p-3.rounded-lg.border.cursor-pointer')
+      .locator('div.p-3.rounded-lg.border')
       .filter({ has: page.getByText(name, { exact: true }) });
   }
 
@@ -75,7 +75,7 @@ test.describe('Exercise library CRUD', () => {
     await login(page);
     await openLibrary(page);
 
-    await page.getByRole('button', { name: 'Add Exercise' }).click();
+    await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
     const form = page.locator('form');
     await expect(form.getByRole('heading', { name: 'New Exercise' })).toBeVisible();
 
@@ -98,7 +98,9 @@ test.describe('Exercise library CRUD', () => {
     await page.reload();
     const initialRow = exerciseRows(page, initialName).first();
     await expect(initialRow).toBeVisible();
-    await initialRow.getByText(initialName, { exact: true }).click();
+    await initialRow
+      .getByRole('button', { name: `View details for ${initialName}` })
+      .click();
 
     const details = exerciseDetails(page);
     await expect(details.getByRole('heading', { name: initialName })).toBeVisible();
@@ -133,7 +135,9 @@ test.describe('Exercise library CRUD', () => {
     await page.reload();
     const editedRow = exerciseRows(page, editedName).first();
     await expect(editedRow).toBeVisible();
-    await editedRow.getByText(editedName, { exact: true }).click();
+    await editedRow
+      .getByRole('button', { name: `View details for ${editedName}` })
+      .click();
     await expect(details.getByRole('heading', { name: editedName })).toBeVisible();
     await expect(details.getByText('Compound')).toBeVisible();
     await expect(details.getByText(/triceps,\s*back,\s*glutes/i)).toBeVisible();
@@ -151,13 +155,15 @@ test.describe('Exercise library CRUD', () => {
     await equipmentInput.fill('cancelled equipment');
     await equipmentInput.press('Enter');
     await page.getByLabel('Bodyweight exercise (e.g., pull-ups, dips, push-ups)').check();
-    await form.getByRole('button', { name: 'Cancel' }).click();
+    await form.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(form).not.toBeVisible();
 
     await page.reload();
     const unchangedRow = exerciseRows(page, editedName).first();
     await expect(unchangedRow).toBeVisible();
-    await unchangedRow.getByText(editedName, { exact: true }).click();
+    await unchangedRow
+      .getByRole('button', { name: `View details for ${editedName}` })
+      .click();
     await expect(details.getByRole('heading', { name: editedName })).toBeVisible();
     await expect(details.getByText('Compound')).toBeVisible();
     await expect(details.getByText('loaded sandbag')).toBeVisible();

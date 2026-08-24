@@ -31,18 +31,18 @@ test.describe('Exercises Page Navigation', () => {
     await expect(page).toHaveURL(/\/workouts$/);
 
     // Click on Presets tab
-    await page.getByRole('button', { name: 'Presets' }).click();
+    const workoutSections = page.getByRole('navigation', { name: 'Workout sections' });
+    await workoutSections.getByRole('tab', { name: 'Presets' }).click();
     await page.waitForLoadState('domcontentloaded');
     await expect(page).toHaveURL(/\/workouts\/presets/);
 
     // Click on Exercises (Library) tab - use filter to get the tab button specifically
-    const tabs = page.locator('nav button');
-    await tabs.filter({ hasText: 'Exercises' }).click();
+    await workoutSections.getByRole('tab', { name: 'Exercises' }).click();
     await page.waitForLoadState('domcontentloaded');
     await expect(page).toHaveURL(/\/workouts\/library/);
 
     // Click back to Workouts tab
-    await page.getByRole('button', { name: 'Workouts' }).click();
+    await workoutSections.getByRole('tab', { name: 'Workouts' }).click();
     await page.waitForLoadState('domcontentloaded');
     await expect(page).toHaveURL(/\/workouts$/);
   });

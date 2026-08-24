@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartBar, faDumbbell, faAppleWhole, faBed, faBolt, faUser, faWeightScale, faRightFromBracket, faMoon, faSun } from '@fortawesome/free-solid-svg-icons';
 import { Link, NavLink, useLocation, Routes, Route } from 'react-router-dom';
-import { useAuth } from '@/auth/AuthContext';
+import { useAuth } from '@/auth/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));

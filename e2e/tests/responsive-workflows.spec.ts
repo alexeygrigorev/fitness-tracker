@@ -31,7 +31,8 @@ test.describe('Mobile workout workflows', () => {
     await expect(page.getByRole('heading', { name: 'Workouts & Programs' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
-    await page.getByRole('button', { name: 'Presets' }).click();
+    const workoutSections = page.getByRole('navigation', { name: 'Workout sections' });
+    await workoutSections.getByRole('tab', { name: 'Presets' }).click();
     await expect(page.getByRole('heading', { name: 'Workout Presets' })).toBeVisible();
 
     await page.getByRole('button', { name: '+ New Preset' }).click();
@@ -41,7 +42,7 @@ test.describe('Mobile workout workflows', () => {
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByRole('heading', { name: 'New Preset' })).toBeHidden();
 
-    await page.getByRole('button', { name: 'Exercises' }).click();
+    await workoutSections.getByRole('tab', { name: 'Exercises' }).click();
     await expect(page.getByRole('heading', { name: 'Exercises' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });

@@ -12,6 +12,12 @@ import type { FoodItem, Meal, MealTemplate } from "../types";
 
 type Tab = "meals" | "templates" | "items";
 
+const getNutritionTab = (pathname: string): Tab => {
+  if (pathname === '/nutrition/templates') return 'templates';
+  if (pathname === '/nutrition/items') return 'items';
+  return 'meals';
+};
+
 // Helper to safely calculate per-serving values (handles 0 or undefined servingSize)
 const calcPerServing = (valuePer100g: number, servingSize: number | undefined): number => {
   if (!servingSize || servingSize <= 0) return 0;
@@ -40,27 +46,15 @@ export default function NutritionPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Derive active tab from URL path
-  const getTabFromPath = (): Tab => {
-    const path = location.pathname;
-    if (path === '/nutrition/templates') return 'templates';
-    if (path === '/nutrition/items') return 'items';
-    return 'meals'; // default for /nutrition
-  };
-
-  const [activeTab, setActiveTab] = useState<Tab>(getTabFromPath());
+  // The URL owns navigation state, so browser actions stay authoritative.
+  const activeTab = getNutritionTab(location.pathname);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [templates, setTemplates] = useState<MealTemplate[]>([]);
-  const [loadingMeals, setLoadingMeals] = useState(getTabFromPath() === 'meals');
+  const [loadingMeals, setLoadingMeals] = useState(true);
   const [loadingFoodItems, setLoadingFoodItems] = useState(true);
   const [templatesLoaded, setTemplatesLoaded] = useState(false);
-  const [loadingTemplates, setLoadingTemplates] = useState(getTabFromPath() === 'templates');
-
-  // Sync tab with URL changes
-  useEffect(() => {
-    setActiveTab(getTabFromPath());
-  }, [location.pathname]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   const handleTabChange = (tab: Tab) => {
     const path = tab === 'meals' ? '/nutrition'
@@ -84,8 +78,6 @@ export default function NutritionPage() {
     if (activeTab !== 'meals') return;
 
     let cancelled = false;
-    setLoadingMeals(true);
-
     mealsApi.getByDate(selectedDate)
       .then(data => {
         if (!cancelled) setMeals(data);
@@ -130,8 +122,6 @@ export default function NutritionPage() {
     if (!shouldLoadTemplates || templatesLoaded) return;
 
     let cancelled = false;
-    setLoadingTemplates(true);
-
     mealTemplatesApi.getAll()
       .then(data => {
         if (!cancelled) {

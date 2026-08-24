@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { exercisesApi } from '../api';
 import type { Exercise, WorkoutPresetExercise, PresetExerciseType, SupersetExerciseItem } from '../types';
 
@@ -30,6 +30,14 @@ const SUPERSET_EXERCISE_TYPES: { value: PresetExerciseType; label: string }[] = 
 // Check if exercise is bodyweight
 const isBodyweight = (exercise: Exercise) => {
   return exercise.bodyweight === true;
+};
+
+// Client-side keys only; the API assigns persisted preset exercise IDs.
+let nextLocalId = -1;
+const createLocalId = () => {
+  const id = nextLocalId;
+  nextLocalId -= 1;
+  return id;
 };
 
 // Reusable Exercise Picker Component
@@ -158,15 +166,13 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [supersetAddIndex, setSupersetAddIndex] = useState<number | null>(null); // Which superset has add panel open
-  const [filteredExercises, setFilteredExercises] = useState<Exercise[]>([]);
   const [editingSuperset, setEditingSuperset] = useState<{ supersetIndex: number; itemIndex: number } | null>(null);
 
   useEffect(() => {
     exercisesApi.getAll().then(setExercises);
   }, []);
 
-  // Filter exercises based on search and category
-  useEffect(() => {
+  const filteredExercises = useMemo(() => {
     let filtered = exercises;
 
     if (search) {
@@ -190,12 +196,12 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
       }
     }
 
-    setFilteredExercises(filtered);
+    return filtered;
   }, [exercises, search, filterCategory]);
 
   const addExercise = (exercise: Exercise) => {
     const newExercise: WorkoutPresetExercise = {
-      id: Date.now(), // Use timestamp as numeric ID
+      id: createLocalId(),
       type: 'normal',
       exerciseId: exercise.id,
       sets: 3,
@@ -209,13 +215,26 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
     onChange(selectedExercises.filter((_, i) => i !== index));
   };
 
-  const updateExercise = (index: number, field: keyof WorkoutPresetExercise, value: any) => {
+  const updateExercise = (
+    index: number,
+    ...update:
+      | [field: 'type', value: PresetExerciseType]
+      | [field: 'dropdowns', value: string | number]
+      | [field: 'sets', value: string | number]
+      | [field: 'includeWarmup', value: boolean]
+  ) => {
+    const [field, value] = update;
     const updated = [...selectedExercises];
-    // Convert dropdowns to number
+    // Controlled number inputs report strings; keep persisted counts numeric.
     if (field === 'dropdowns') {
-      value = Number(value) || 0;
+      updated[index] = { ...updated[index], dropdowns: Number(value) || 0 };
+    } else if (field === 'sets') {
+      updated[index] = { ...updated[index], sets: Math.max(1, Number(value) || 1) };
+    } else if (field === 'includeWarmup') {
+      updated[index] = { ...updated[index], includeWarmup: value };
+    } else {
+      updated[index] = { ...updated[index], type: value };
     }
-    updated[index] = { ...updated[index], [field]: value };
     onChange(updated);
   };
 
@@ -223,9 +242,13 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
   const updateSupersetExercise = (
     supersetIndex: number,
     itemIndex: number,
-    field: keyof SupersetExerciseItem,
-    value: any
+    ...update:
+      | [field: 'type', value: PresetExerciseType]
+      | [field: 'dropdowns', value: string | number]
+      | [field: 'order', value: string | number]
+      | [field: 'includeWarmup', value: boolean]
   ) => {
+    const [field, value] = update;
     const updated = [...selectedExercises];
     const superset = updated[supersetIndex];
     if (superset.supersetExercises) {
@@ -233,9 +256,9 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
       if (field === 'dropdowns' || field === 'order') {
         items[itemIndex] = { ...items[itemIndex], [field]: Number(value) || 0 };
       } else if (field === 'includeWarmup') {
-        items[itemIndex] = { ...items[itemIndex], includeWarmup: value };
+        items[itemIndex] = { ...items[itemIndex], includeWarmup: Boolean(value) };
       } else {
-        items[itemIndex] = { ...items[itemIndex], [field]: value };
+        items[itemIndex] = { ...items[itemIndex], type: value };
       }
       updated[supersetIndex] = { ...superset, supersetExercises: items };
       onChange(updated);
@@ -267,7 +290,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
         ...superset,
         supersetExercises: [
           ...superset.supersetExercises,
-          { id: Date.now(), exerciseId: exercise.id, type: 'normal', dropdowns: 0, includeWarmup: true, order: superset.supersetExercises.length }
+          { id: createLocalId(), exerciseId: exercise.id, type: 'normal', dropdowns: 0, includeWarmup: true, order: superset.supersetExercises.length }
         ]
       };
       onChange(updated);
@@ -297,7 +320,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
     if (exercise.exerciseId) {
       const updated = [...selectedExercises];
       const supersetItem: SupersetExerciseItem = {
-        id: Date.now(),
+        id: createLocalId(),
         exerciseId: exercise.exerciseId,
         type: exercise.type || 'normal',
         dropdowns: exercise.dropdowns,
@@ -324,7 +347,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
       // Remove superset and add individual exercises
       updated.splice(index, 1);
       const individualExercises: WorkoutPresetExercise[] = superset.supersetExercises.map((ex) => ({
-        id: Date.now() + Math.random(), // Generate unique numeric ID
+        id: createLocalId(),
         type: ex.type,
         exerciseId: ex.exerciseId,
         sets: 3,
@@ -360,10 +383,17 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
       {/* Selected Exercises */}
       {selectedExercises.length > 0 && (
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <h3
+            id="selected-exercises-heading"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             Exercises ({selectedExercises.length})
-          </label>
-          <div className="space-y-2">
+          </h3>
+          <div
+            role="group"
+            aria-labelledby="selected-exercises-heading"
+            className="space-y-2"
+          >
             {selectedExercises.map((ex, index) => {
               if (ex.type === 'superset' && ex.supersetExercises) {
                 // Superset rendering
@@ -379,6 +409,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                           type="button"
                           onClick={() => moveExercise(index, Math.max(0, index - 1))}
                           disabled={index === 0}
+                          aria-label={`Move Superset ${index + 1} up`}
                           className="text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed p-0.5"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -389,6 +420,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                           type="button"
                           onClick={() => moveExercise(index, Math.min(selectedExercises.length - 1, index + 1))}
                           disabled={index === selectedExercises.length - 1}
+                          aria-label={`Move Superset ${index + 1} down`}
                           className="text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed p-0.5"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -405,6 +437,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                         type="button"
                         onClick={() => breakUpSuperset(index)}
                         className="text-xs text-purple-600 hover:text-purple-800"
+                        aria-label={`Break up Superset ${index + 1} into individual exercises`}
                         title="Break up into individual exercises"
                       >
                         Break up
@@ -414,6 +447,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                         type="button"
                         onClick={() => addSupersetExercise(index)}
                         className="text-xs text-blue-600 hover:text-blue-800 ml-auto"
+                        aria-label={`Add an exercise to Superset ${index + 1}`}
                         title="Add exercise to superset"
                       >
                         + Add exercise
@@ -423,6 +457,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                         type="button"
                         onClick={() => removeExercise(index)}
                         className="text-red-400 hover:text-red-600 p-1"
+                        aria-label={`Remove Superset ${index + 1}`}
                         title="Remove superset"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -455,6 +490,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                 <select
                                   value={item.exerciseId}
                                   onChange={(e) => updateSupersetExerciseItem(index, itemIndex, Number(e.target.value))}
+                                  aria-label={`Change exercise ${String.fromCharCode(65 + itemIndex)} in Superset ${index + 1}`}
                                   className="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded"
                                   autoFocus
                                 >
@@ -469,6 +505,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                 <button
                                   type="button"
                                   onClick={() => setEditingSuperset(null)}
+                                  aria-label={`Done changing exercise ${String.fromCharCode(65 + itemIndex)} in Superset ${index + 1}`}
                                   className="text-xs text-blue-600 hover:text-blue-800"
                                 >
                                   Done
@@ -476,6 +513,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                 <button
                                   type="button"
                                   onClick={() => setEditingSuperset(null)}
+                                  aria-label={`Cancel changing exercise ${String.fromCharCode(65 + itemIndex)} in Superset ${index + 1}`}
                                   className="text-xs text-gray-500 hover:text-gray-700"
                                 >
                                   Cancel
@@ -498,7 +536,8 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                 {/* Exercise type within superset */}
                                 <select
                                   value={item.type}
-                                  onChange={(e) => updateSupersetExercise(index, itemIndex, 'type', e.target.value)}
+                                  onChange={(e) => updateSupersetExercise(index, itemIndex, 'type', e.target.value as PresetExerciseType)}
+                                  aria-label={`Exercise type for item ${String.fromCharCode(65 + itemIndex)} in Superset ${index + 1}`}
                                   className="w-20 px-1 py-0.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded"
                                 >
                                   {availableTypes.map(type => (
@@ -513,6 +552,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                       value={item.dropdowns || 1}
                                       onChange={(e) => updateSupersetExercise(index, itemIndex, 'dropdowns', e.target.value)}
                                       min="1"
+                                      aria-label={`Drops per set for item ${String.fromCharCode(65 + itemIndex)} in Superset ${index + 1}`}
                                       className="w-10 px-1 py-0.5 text-xs border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded text-center"
                                     />
                                     <span className="text-gray-400 dark:text-gray-500 text-xs">drops/set</span>
@@ -524,6 +564,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                     type="checkbox"
                                     checked={item.includeWarmup}
                                     onChange={(e) => updateSupersetExercise(index, itemIndex, 'includeWarmup', e.target.checked)}
+                                    aria-label={`Include warmup for item ${String.fromCharCode(65 + itemIndex)} in Superset ${index + 1}`}
                                     className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                                   />
                                   include warmup
@@ -533,6 +574,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                   type="button"
                                   onClick={() => setEditingSuperset({ supersetIndex: index, itemIndex })}
                                   className="text-blue-400 hover:text-blue-600 p-0.5"
+                                  aria-label={`Change exercise ${exercise.name} in Superset ${index + 1}`}
                                   title="Change exercise"
                                 >
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -544,6 +586,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                                   type="button"
                                   onClick={() => removeSupersetExercise(index, itemIndex)}
                                   className="text-red-400 hover:text-red-600 p-0.5"
+                                  aria-label={`Remove exercise ${exercise.name} from Superset ${index + 1}`}
                                   title="Remove exercise"
                                 >
                                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -612,6 +655,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                       type="button"
                       onClick={() => moveExercise(index, Math.max(0, index - 1))}
                       disabled={index === 0}
+                      aria-label={`Move ${exercise.name} up`}
                       className="text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed p-0.5"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -622,6 +666,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                       type="button"
                       onClick={() => moveExercise(index, Math.min(selectedExercises.length - 1, index + 1))}
                       disabled={index === selectedExercises.length - 1}
+                      aria-label={`Move ${exercise.name} down`}
                       className="text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed p-0.5"
                     >
                       <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -653,6 +698,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                   <select
                     value={ex.type}
                     onChange={(e) => handleTypeChange(e.target.value as PresetExerciseType)}
+                    aria-label={`Exercise type for ${exercise.name}`}
                     className="w-28 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md"
                     title="Exercise type"
                   >
@@ -668,6 +714,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                       value={ex.sets || 3}
                       onChange={(e) => updateExercise(index, 'sets', e.target.value)}
                       min="1"
+                      aria-label={`Sets for ${exercise.name}`}
                       className="w-12 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-center"
                       title="Sets"
                     />
@@ -682,6 +729,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                         value={ex.dropdowns || 1}
                         onChange={(e) => updateExercise(index, 'dropdowns', e.target.value)}
                         min="1"
+                        aria-label={`Drops per set for ${exercise.name}`}
                         className="w-12 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md text-center"
                         title="Drops per set"
                       />
@@ -695,6 +743,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                       type="checkbox"
                       checked={ex.includeWarmup || false}
                       onChange={(e) => updateExercise(index, 'includeWarmup', e.target.checked)}
+                      aria-label={`Include warmup for ${exercise.name}`}
                       className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                     />
                     include warmup
@@ -705,6 +754,7 @@ export default function ExerciseSelector({ selectedExercises, onChange }: Exerci
                     type="button"
                     onClick={() => removeExercise(index)}
                     className="text-red-400 hover:text-red-600 p-1"
+                    aria-label={`Remove ${exercise.name}`}
                     title="Remove"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

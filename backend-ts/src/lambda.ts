@@ -18,6 +18,7 @@ import { registerPlanRoutes } from './routes/plans.js';
 import { registerWorkoutCalculationRoutes } from './routes/workout-calculations.js';
 import { registerNutritionRoutes } from './routes/nutrition.js';
 import { registerAiRoutes } from './routes/ai.js';
+import { registerSchemaRoutes } from './routes/schema.js';
 
 export async function requireUser(
   request: NormalizedRequest,
@@ -69,6 +70,7 @@ async function handleApi(
   registerWorkoutCalculationRoutes((route) => router.add(route));
   registerNutritionRoutes((route) => router.add(route));
   registerAiRoutes((route) => router.add(route));
+  registerSchemaRoutes((route) => router.add(route));
   return router.handle({
     request,
     repository,

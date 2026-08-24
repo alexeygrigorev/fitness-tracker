@@ -334,7 +334,7 @@ test.describe('Preset Management', () => {
     await expect(warmupCheckbox).toBeChecked();
 
     // Add Barbell Rows to the superset
-    await page.getByRole('button', { name: '+ Add exercise' }).click();
+    await page.getByRole('button', { name: 'Add an exercise to Superset 1' }).click();
     // Use the second (visible) search input for the superset picker
     const supersetSearchInput = page.getByPlaceholder('Search exercises by name or muscle').nth(1);
     await supersetSearchInput.fill('Barbell Row');
@@ -444,7 +444,7 @@ test.describe('Preset Management', () => {
     // BUG: After converting to superset, sets input disappears (no UI to edit sets for supersets)
 
     // Add Barbell Rows to the superset
-    await page.getByRole('button', { name: '+ Add exercise' }).click();
+    await page.getByRole('button', { name: 'Add an exercise to Superset 1' }).click();
     // Use the second (visible) search input for the superset picker
     const supersetSearchInput = page.getByPlaceholder('Search exercises by name or muscle').nth(1);
     await supersetSearchInput.fill('Barbell Row');

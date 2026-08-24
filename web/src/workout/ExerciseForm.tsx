@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { exercisesApi } from '../api';
 import type { Exercise, MuscleGroup } from '../types';
 
@@ -16,6 +16,11 @@ interface ExerciseFormProps {
 }
 
 export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFormProps) {
+  const aiDescriptionId = useId();
+  const nameId = useId();
+  const categoryId = useId();
+  const equipmentInputId = useId();
+  const instructionInputId = useId();
   const [name, setName] = useState(exercise?.name || '');
   const [category, setCategory] = useState<Exercise['category']>(exercise?.category || 'compound');
   const [muscleGroups, setMuscleGroups] = useState<string[]>(exercise?.muscleGroups || []);
@@ -82,7 +87,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
       if (result.equipment) setEquipment(Array.isArray(result.equipment) ? result.equipment[0] || '' : result.equipment);
       if (result.instructions) setInstructions(result.instructions);
       setAiDescription('');
-    } catch (error) {
+    } catch {
       alert('Failed to analyze exercise. Please try again.');
     } finally {
       setAnalyzing(false);
@@ -120,12 +125,13 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
       {/* AI Auto-fill */}
       {!exercise && (
         <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-700">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor={aiDescriptionId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Auto-fill with AI
             <span className="text-gray-400 dark:text-gray-500 font-normal"> (optional)</span>
           </label>
           <div className="flex gap-2">
             <input
+              id={aiDescriptionId}
               type="text"
               value={aiDescription}
               onChange={e => setAiDescription(e.target.value)}
@@ -148,8 +154,9 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
       {/* Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Exercise Name *</label>
+        <label htmlFor={nameId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Exercise Name *</label>
         <input
+          id={nameId}
           type="text"
           value={name}
           onChange={e => setName(e.target.value)}
@@ -162,8 +169,9 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
       {/* Category */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+        <label htmlFor={categoryId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
         <select
+          id={categoryId}
           value={category}
           onChange={e => setCategory(e.target.value as Exercise['category'])}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-100"
@@ -183,6 +191,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
               key={mg}
               type="button"
               onClick={() => toggleMuscleGroup(mg)}
+              aria-pressed={muscleGroups.includes(mg)}
               className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors touch-manipulation ${
                 muscleGroups.includes(mg)
                   ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
@@ -197,9 +206,10 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
       {/* Equipment */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Equipment</label>
+        <label htmlFor={equipmentInputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Equipment</label>
         <div className="flex gap-2 mb-2">
           <input
+            id={equipmentInputId}
             type="text"
             value={equipmentInput}
             onChange={e => setEquipmentInput(e.target.value)}
@@ -210,6 +220,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
           <button
             type="button"
             onClick={addEquipment}
+            aria-label="Add equipment"
             className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 touch-manipulation"
           >
             Add
@@ -222,6 +233,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
               <button
                 type="button"
                 onClick={() => removeEquipment()}
+                aria-label={`Remove ${equipment}`}
                 className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
               >
                 &times;
@@ -248,9 +260,10 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
 
       {/* Instructions */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Instructions</label>
+        <label htmlFor={instructionInputId} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Instructions</label>
         <div className="flex gap-2 mb-2">
           <input
+            id={instructionInputId}
             type="text"
             value={instructionInput}
             onChange={e => setInstructionInput(e.target.value)}
@@ -261,6 +274,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
           <button
             type="button"
             onClick={addInstruction}
+            aria-label="Add instruction"
             className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 touch-manipulation"
           >
             Add
@@ -278,6 +292,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
                   disabled={i === 0}
                   className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 touch-manipulation rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                   title="Move up"
+                  aria-label={`Move instruction ${i + 1} up`}
                 >
                   ↑
                 </button>
@@ -287,6 +302,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
                   disabled={i === instructions.length - 1}
                   className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-30 touch-manipulation rounded hover:bg-gray-200 dark:hover:bg-gray-600"
                   title="Move down"
+                  aria-label={`Move instruction ${i + 1} down`}
                 >
                   ↓
                 </button>
@@ -295,6 +311,7 @@ export default function ExerciseForm({ exercise, onSave, onCancel }: ExerciseFor
                   onClick={() => removeInstruction(i)}
                   className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 touch-manipulation rounded hover:bg-red-50 dark:hover:bg-red-900/30"
                   title="Remove"
+                  aria-label={`Remove instruction ${i + 1}: ${inst}`}
                 >
                   ×
                 </button>

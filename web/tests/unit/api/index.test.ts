@@ -8,7 +8,7 @@ import {
   mealsApi,
   workoutsApi,
 } from '@/api';
-import type { AiAnalyzedFood, WorkoutSession } from '@/types';
+import type { AiMealIngredient, WorkoutSession } from '@/types';
 
 const fetchMock = vi.fn<Parameters<typeof fetch>, ReturnType<typeof fetch>>();
 
@@ -257,7 +257,7 @@ describe('API adapter', () => {
 
   describe('AI meal ingredients', () => {
     it('resolves analyzed foods through the atomic backend endpoint', async () => {
-      const ingredient: AiAnalyzedFood = {
+      const ingredient: AiMealIngredient = {
         name: 'Roasted Vegetable',
         brand: null,
         category: 'mixed',

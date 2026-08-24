@@ -6,15 +6,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import * as AuthContext from '@/auth/AuthContext';
+import * as authHook from '@/auth/useAuth';
 
 // Mock the AuthContext
-vi.mock('@/auth/AuthContext', () => ({
+vi.mock('@/auth/useAuth', () => ({
   useAuth: vi.fn(),
-  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-const mockUseAuth = vi.spyOn(AuthContext, 'useAuth');
+const mockUseAuth = vi.spyOn(authHook, 'useAuth');
 
 // Test component to render inside ProtectedRoute
 const TestComponent = () => <div>Protected Content</div>;

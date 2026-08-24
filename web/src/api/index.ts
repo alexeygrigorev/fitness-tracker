@@ -13,7 +13,7 @@ import type {
   Exercise,
   AiFoodAnalysis,
   AiMealAnalysis,
-  AiAnalyzedFood,
+  AiMealIngredient,
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
@@ -708,7 +708,7 @@ export const analyzeMealWithAI = async (description: string): Promise<AiMealAnal
 };
 
 export const resolveMealFoodsWithAI = async (
-  foods: AiAnalyzedFood[],
+  foods: AiMealIngredient[],
 ): Promise<FoodItem[]> => {
   const response = await fetch(`${API_BASE}/api/ai/meal-foods/`, {
     method: 'POST',

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import { useAuth } from './useAuth';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');

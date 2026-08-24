@@ -20,7 +20,8 @@ vi.mock('@/api', () => ({
   },
 }));
 
-import { AuthProvider, useAuth } from '@/auth/AuthContext';
+import { AuthProvider } from '@/auth/AuthContext';
+import { useAuth } from '@/auth/useAuth';
 import { authApi } from '@/api';
 
 const mockAuthApi = authApi as unknown as {

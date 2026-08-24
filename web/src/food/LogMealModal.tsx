@@ -35,6 +35,81 @@ async function resolveAnalyzedFoods(
   return { selectedFoods, resolvedFoods };
 }
 
+type SpeechRecognitionAlternativeLike = {
+  transcript: string;
+};
+
+type SpeechRecognitionResultLike = {
+  isFinal: boolean;
+  readonly [index: number]: SpeechRecognitionAlternativeLike;
+};
+
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultLike>;
+};
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onstart: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
+let currentRecognition: SpeechRecognitionLike | null = null;
+
+function NutritionPreview({ foods }: { foods: MealFoodItem[] }) {
+  const [totals, setTotals] = useState({
+    totalCalories: 0,
+    totalProtein: 0,
+    totalCarbs: 0,
+    totalFat: 0,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    mealTemplatesApi.calculateNutrition({ foods }).then((nextTotals) => {
+      if (!cancelled) setTotals(nextTotals);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [foods]);
+
+  return (
+    <div className="grid grid-cols-4 gap-2 p-3 bg-gray-50 rounded-md">
+      <div className="text-center">
+        <div className="text-lg font-bold">{Math.round(totals.totalCalories)}</div>
+        <div className="text-xs text-gray-500">kcal</div>
+      </div>
+      <div className="text-center">
+        <div className="text-lg font-bold text-blue-600">{Math.round(totals.totalProtein)}g</div>
+        <div className="text-xs text-gray-500">protein</div>
+      </div>
+      <div className="text-center">
+        <div className="text-lg font-bold">{Math.round(totals.totalCarbs)}g</div>
+        <div className="text-xs text-gray-500">carbs</div>
+      </div>
+      <div className="text-center">
+        <div className="text-lg font-bold">{Math.round(totals.totalFat)}g</div>
+        <div className="text-xs text-gray-500">fat</div>
+      </div>
+    </div>
+  );
+}
+
 export default function LogMealModal({
   isOpen,
   onClose,
@@ -64,12 +139,10 @@ export default function LogMealModal({
   const [showAiSection, setShowAiSection] = useState(false);
   const [aiImages, setAiImages] = useState<File[]>([]);
   const [isRecording, setIsRecording] = useState(false);
-  const [hasSpeechSupport, setHasSpeechSupport] = useState(false);
-
-  useEffect(() => {
-    // Check for speech recognition support
-    setHasSpeechSupport('webkitSpeechRecognition' in window || 'SpeechRecognition' in window);
-  }, []);
+  const [hasSpeechSupport] = useState(() => {
+    const speechWindow = window as SpeechWindow;
+    return Boolean(speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition);
+  });
 
   const resetFormInternal = () => {
     setName('');
@@ -140,7 +213,8 @@ export default function LogMealModal({
   const startDictation = () => {
     if (!hasSpeechSupport) return;
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const speechWindow = window as SpeechWindow;
+    const SpeechRecognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
     const recognition = new SpeechRecognition();
@@ -151,16 +225,13 @@ export default function LogMealModal({
       setIsRecording(true);
     };
 
-    recognition.onresult = (event: any) => {
-      let interimTranscript = '';
+    recognition.onresult = (event) => {
       let finalTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
           finalTranscript += transcript + ' ';
-        } else {
-          interimTranscript += transcript;
         }
       }
 
@@ -174,19 +245,20 @@ export default function LogMealModal({
     };
 
     recognition.onend = () => {
+      if (currentRecognition === recognition) {
+        currentRecognition = null;
+      }
       setIsRecording(false);
     };
 
     recognition.start();
-
-    // Store reference to stop it later
-    (window as any).currentRecognition = recognition;
+    currentRecognition = recognition;
   };
 
   const stopDictation = () => {
-    if ((window as any).currentRecognition) {
-      (window as any).currentRecognition.stop();
-      (window as any).currentRecognition = null;
+    if (currentRecognition) {
+      currentRecognition.stop();
+      currentRecognition = null;
     }
     setIsRecording(false);
   };
@@ -266,35 +338,6 @@ export default function LogMealModal({
     } finally {
       setLoading(false);
     }
-  };
-
-  const NutritionPreview = () => {
-    const [totals, setTotals] = useState({ totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFat: 0 });
-
-    useEffect(() => {
-      mealTemplatesApi.calculateNutrition({ foods }).then(setTotals);
-    }, [foods]);
-
-    return (
-      <div className="grid grid-cols-4 gap-2 p-3 bg-gray-50 rounded-md">
-        <div className="text-center">
-          <div className="text-lg font-bold">{Math.round(totals.totalCalories)}</div>
-          <div className="text-xs text-gray-500">kcal</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg font-bold text-blue-600">{Math.round(totals.totalProtein)}g</div>
-          <div className="text-xs text-gray-500">protein</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg font-bold">{Math.round(totals.totalCarbs)}g</div>
-          <div className="text-xs text-gray-500">carbs</div>
-        </div>
-        <div className="text-center">
-          <div className="text-lg font-bold">{Math.round(totals.totalFat)}g</div>
-          <div className="text-xs text-gray-500">fat</div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -546,7 +589,7 @@ export default function LogMealModal({
             </label>
           )}
 
-          <NutritionPreview />
+          <NutritionPreview foods={foods} />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
