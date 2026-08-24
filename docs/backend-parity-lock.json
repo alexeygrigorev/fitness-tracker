@@ -72,6 +72,7 @@
   "deletionRules": {
     "keepBackendDjangoUntilAllGatesPass": true,
     "deletePythonOnlyAfterAllGatesPass": true,
+    "deleteLegacyDeploymentStackOnlyAfterAllGatesPass": true,
     "requireFinalManifestAtDeletionTime": true
   },
   "activeBackendDecision": {
@@ -79,6 +80,11 @@
     "servingBackend": "backend-django",
     "replacementBackend": "backend-ts-lambda",
     "keepOldBackendUntilTypeScriptParity": true,
-    "deleteDjangoAndDeploymentJungleOnlyAfterDeletionGatePassed": true
+    "deleteDjangoAndDeploymentJungleOnlyAfterDeletionGatePassed": true,
+    "pythonBackendDirectory": "backend/",
+    "legacyDeploymentFiles": [
+      "Dockerfile",
+      "fly.toml"
+    ]
   }
 }
