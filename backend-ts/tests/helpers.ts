@@ -169,6 +169,17 @@ export async function registerAndLogin(
 export async function startTestApi(
   options: { exerciseIds?: number[] } = {},
 ): Promise<TestApi> {
+  const environmentKeys = [
+    'TABLE_NAME',
+    'JWT_SECRET',
+    'AWS_REGION',
+    'NODE_ENV',
+    'DYNAMODB_ENDPOINT',
+  ] as const;
+  const previousEnvironment = new Map(environmentKeys.map((key) => [
+    key,
+    process.env[key],
+  ]));
   const tableName = `fitness-test-${randomUUID()}`;
   const selectedPort = await freePort();
 
@@ -257,11 +268,10 @@ export async function startTestApi(
       documentClient.destroy();
       client.destroy();
       DynamoDbLocal.stop(selectedPort);
-      delete process.env.TABLE_NAME;
-      delete process.env.JWT_SECRET;
-      delete process.env.AWS_REGION;
-      delete process.env.NODE_ENV;
-      delete process.env.DYNAMODB_ENDPOINT;
+      for (const [key, value] of previousEnvironment) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
     },
   };
 }
