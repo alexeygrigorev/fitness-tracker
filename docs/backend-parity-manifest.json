@@ -6,13 +6,13 @@
     "pythonCommit": "3030309",
     "committedTestClasses": 22,
     "committedTestMethods": 140,
-    "minimumCurrentTestMethods": 140,
+    "minimumCurrentTestMethods": 143,
     "source": "docs/backend-parity-lock.json"
   },
   "liveInventory": {
-    "command": "cd backend-django && uv run pytest --collect-only -q",
+    "command": "cd backend-django && uv run pytest --collect-only -q | grep '::' | LC_ALL=C sort",
     "snapshotPath": "docs/backend-parity-manifest-source.txt",
-    "snapshotSha256": "bef0d0ff19f01e546875b617f2033cd58584465e0fab94a0349f3c9d38b1d490",
+    "snapshotSha256": "e35bfe8ffb5e6cf6fb9cc65dd33bd645aede55200cf6893e19c4771b5bedf1ca",
     "testClasses": 32,
     "testMethods": 143,
     "sourceCommit": "e1790d5"
@@ -1230,7 +1230,7 @@
         "food/templates",
         "food/days"
       ],
-      "targetTests": "backend-ts/tests/nutrition*.test.ts"
+      "targetTests": "backend-ts/tests/nutrition-api.test.ts backend-ts/tests/food-item-authorization.test.ts backend-ts/tests/meal-serialization-performance.test.ts"
     },
     {
       "id": "ai",
