@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-08-23",
+  "generatedAt": "2026-08-24",
   "purpose": "Working parity inventory for the locked TypeScript migration. This is not a deletion-time manifest.",
   "baseline": {
     "pythonCommit": "3030309",
@@ -12,15 +12,15 @@
   "liveInventory": {
     "command": "cd backend-django && uv run pytest --collect-only -q",
     "snapshotPath": "docs/backend-parity-manifest-source.txt",
-    "snapshotSha256": "b99b8aa77d126b32b91a7c4027264ba992f64d7f07a7670bf3a0bf0b6f710d5b",
+    "snapshotSha256": "bef0d0ff19f01e546875b617f2033cd58584465e0fab94a0349f3c9d38b1d490",
     "testClasses": 32,
-    "testMethods": 141,
-    "sourceCommit": "cd51a0e"
+    "testMethods": 143,
+    "sourceCommit": "e1790d5"
   },
   "verification": {
     "pythonSuite": {
       "command": "cd backend-django && uv run pytest -q",
-      "result": "141 passed; 115 warnings; 9 subtests passed",
+      "result": "143 passed; 115 warnings; 9 subtests passed",
       "passing": true
     },
     "openApiFocusedContract": {
@@ -32,12 +32,12 @@
       "typecheckCommand": "cd backend-ts && npm run typecheck",
       "integrationCommand": "cd backend-ts && npm run test:integration",
       "buildCommand": "cd backend-ts && npm run build",
-      "integrationResult": "120 passed; 0 failed",
+      "integrationResult": "142 passed; 0 failed",
       "passing": true,
-      "verifiedAt": "2026-08-23"
+      "verifiedAt": "2026-08-24"
     },
-    "translatedTargetsPending": 37,
-    "translatedTargetsApprovedOrPassing": 104
+    "translatedTargetsPending": 14,
+    "translatedTargetsApprovedOrPassing": 129
   },
   "contractRequirements": {
     "preserveTrailingSlashes": true,
@@ -56,9 +56,9 @@
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": false,
     "deletionGatePassed": false,
-    "translatedTargetsPending": 37,
-    "translatedTargetsApprovedOrPassing": 104,
-    "nextAction": "Implement the remaining nutrition and workout preset/warmup targets."
+    "translatedTargetsPending": 14,
+    "translatedTargetsApprovedOrPassing": 129,
+    "nextAction": "Implement and verify the remaining 14 TypeScript nutrition targets."
   },
   "entries": [
     {
@@ -1187,6 +1187,22 @@
       "intent": "Complete E2e Scenario",
       "domain": "workouts",
       "targetTestId": "backend-ts/tests/workout-session-parity.test.ts#TestE2ECompleteScenario#test_complete_e2e_scenario",
+      "translationStatus": "passing"
+    },
+    {
+      "id": "pmv2-142",
+      "pythonTestId": "config/tests/test_production_hardening.py::ProductionSettingsTests::test_fly_allowlist_contains_only_the_configured_application_host",
+      "intent": "Fly Allowlist Contains Only The Configured Application Host",
+      "domain": "platform",
+      "targetTestId": "backend-ts/tests/runtime-hardening.test.ts#ProductionSettingsTests#test_fly_allowlist_contains_only_the_configured_application_host",
+      "translationStatus": "passing"
+    },
+    {
+      "id": "pmv2-143",
+      "pythonTestId": "config/tests/test_production_hardening.py::ProductionSettingsTests::test_portable_image_defaults_to_non_debug_mode",
+      "intent": "Portable Image Defaults To Non Debug Mode",
+      "domain": "platform",
+      "targetTestId": "backend-ts/tests/runtime-hardening.test.ts#ProductionSettingsTests#test_portable_image_defaults_to_non_debug_mode",
       "translationStatus": "passing"
     }
   ],
