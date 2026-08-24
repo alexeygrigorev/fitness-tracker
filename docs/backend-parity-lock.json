@@ -86,5 +86,23 @@
       "Dockerfile",
       "fly.toml"
     ]
+  },
+  "migrationStrategy": {
+    "status": "locked",
+    "approach": "parallel-parity-then-cutover",
+    "typescriptBackendMayServeTraffic": false,
+    "requireDirectTranslationOfEveryPythonBackendTest": true,
+    "parityManifestIsAuthoritative": true,
+    "mergeOrder": [
+      "nutrition-persistence-integrity",
+      "nutrition-api-contract-parity",
+      "full-python-test-reconciliation",
+      "frontend-cutover-config"
+    ],
+    "deleteAfterEveryGatePasses": [
+      "backend-django/",
+      "Dockerfile",
+      "fly.toml"
+    ]
   }
 }
