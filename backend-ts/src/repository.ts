@@ -392,7 +392,7 @@ export class FitnessRepository {
     meal: MealRecord,
     items: ReadonlyArray<NestedFoodItemRecord>,
   ): Promise<void> {
-    await this.transact(this.nutritionCreateOperations(meal, items));
+    await this.createNutritionRecordWithItems(meal, items);
   }
 
   async replaceMealWithItems(
@@ -400,8 +400,11 @@ export class FitnessRepository {
     previousItemIds: ReadonlyArray<number>,
     items: ReadonlyArray<NestedFoodItemRecord>,
   ): Promise<void> {
-    await this.transact(
-      this.nutritionReplaceOperations('meal', meal, previousItemIds, items),
+    await this.replaceNutritionItems(
+      'meal',
+      meal,
+      previousItemIds,
+      items,
     );
   }
 
@@ -417,7 +420,7 @@ export class FitnessRepository {
     template: MealTemplateRecord,
     items: ReadonlyArray<NestedFoodItemRecord>,
   ): Promise<void> {
-    await this.transact(this.nutritionCreateOperations(template, items));
+    await this.createNutritionRecordWithItems(template, items);
   }
 
   async replaceMealTemplateWithItems(
@@ -425,13 +428,11 @@ export class FitnessRepository {
     previousItemIds: ReadonlyArray<number>,
     items: ReadonlyArray<NestedFoodItemRecord>,
   ): Promise<void> {
-    await this.transact(
-      this.nutritionReplaceOperations(
-        'template',
-        template,
-        previousItemIds,
-        items,
-      ),
+    await this.replaceNutritionItems(
+      'template',
+      template,
+      previousItemIds,
+      items,
     );
   }
 
@@ -465,84 +466,139 @@ export class FitnessRepository {
       return;
     }
 
-    // Child deletes are idempotent. Keeping the parent until every bounded
-    // chunk succeeds leaves a failed cascade retryable instead of half-deleted.
-    for (
-      let index = 0;
-      index < itemOperations.length;
-      index += DYNAMODB_TRANSACTION_LIMIT
-    ) {
-      await this.transact(itemOperations.slice(
-        index,
-        index + DYNAMODB_TRANSACTION_LIMIT,
-      ));
-    }
+    // The parent is the visible pointer. Removing it first makes the whole
+    // meal disappear atomically; child cleanup failures cannot expose a
+    // partially deleted collection through owner-scoped parent queries.
     await this.transact([parentOperation]);
+    // Once the visible parent is gone the API operation is complete. Child
+    // cleanup is best-effort so a transient chunk failure cannot turn a
+    // successful delete into a false error while leaving unreachable rows.
+    await this.writeBoundedTransactionsQuietly(itemOperations);
   }
 
-  private nutritionCreateOperations(
+  private async createNutritionRecordWithItems(
     parent: MealRecord | MealTemplateRecord,
     items: ReadonlyArray<NestedFoodItemRecord>,
-  ): TransactionOperations {
-    if (items.length + 1 > DYNAMODB_TRANSACTION_LIMIT) {
-      throw new HttpError(400, {
-        food_items: ['Ensure this field has no more than 99 elements.'],
-      });
-    }
-    return [
-      {
-        Put: {
-          TableName: this.tableName,
-          Item: parent,
-          ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
-        },
+  ): Promise<void> {
+    const parentOperation: TransactionOperations[number] = {
+      Put: {
+        TableName: this.tableName,
+        Item: parent,
+        ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
       },
-      ...items.map((item) => ({
-        Put: {
-          TableName: this.tableName,
-          Item: item,
-          ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
-        },
-      })),
-    ];
+    };
+    const itemOperations = items.map((item) => ({
+      Put: {
+        TableName: this.tableName,
+        Item: item,
+        ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+      },
+    }));
+
+    if (itemOperations.length + 1 <= DYNAMODB_TRANSACTION_LIMIT) {
+      await this.transact([...itemOperations, parentOperation]);
+      return;
+    }
+
+    try {
+      // Unreferenced children are invisible to owner queries. Write them in
+      // bounded transactions and make the parent the visibility switch.
+      await this.writeBoundedTransactions(itemOperations);
+      await this.transact([parentOperation]);
+    } catch (error) {
+      await this.deleteWrittenKeysQuietly(itemOperations);
+      throw error;
+    }
   }
 
-  private nutritionReplaceOperations(
+  private async replaceNutritionItems(
     kind: 'meal' | 'template',
     parent: MealRecord | MealTemplateRecord,
     previousItemIds: ReadonlyArray<number>,
     items: ReadonlyArray<NestedFoodItemRecord>,
-  ): TransactionOperations {
+  ): Promise<void> {
     const newItemIds = new Set(items.map(({ id }) => id));
     const removedItemIds = [...new Set(previousItemIds)]
       .filter((itemId) => !newItemIds.has(itemId));
     const changedItems = items.filter((item) =>
       !new Set(previousItemIds).has(item.id));
-    if (
-      changedItems.length + removedItemIds.length + 1 >
-      DYNAMODB_TRANSACTION_LIMIT
-    ) {
-      throw new HttpError(400, {
-        food_items: ['Ensure this field has no more than 99 elements.'],
-      });
-    }
-    return [
-      {
-        Put: {
-          TableName: this.tableName,
-          Item: parent,
-          ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
-        },
+    const parentOperation: TransactionOperations[number] = {
+      Put: {
+        TableName: this.tableName,
+        Item: parent,
+        ConditionExpression: 'attribute_exists(pk) AND attribute_exists(sk)',
       },
-      ...this.nutritionItemDeleteOperations(kind, parent.id, removedItemIds),
-      ...changedItems.map((item) => ({
-        Put: {
-          TableName: this.tableName,
-          Item: item,
-          ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
-        },
-      })),
-    ];
+    };
+    const itemPuts = changedItems.map((item) => ({
+      Put: {
+        TableName: this.tableName,
+        Item: item,
+        ConditionExpression: 'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+      },
+    }));
+    const itemDeletes = this.nutritionItemDeleteOperations(
+      kind,
+      parent.id,
+      removedItemIds,
+    );
+
+    if (itemPuts.length + itemDeletes.length + 1 <= DYNAMODB_TRANSACTION_LIMIT) {
+      await this.transact([...itemPuts, ...itemDeletes, parentOperation]);
+      return;
+    }
+
+    try {
+      // New ingredient IDs never overlap the old parent pointer. Stage them,
+      // atomically repoint the visible parent, then clean up superseded rows.
+      await this.writeBoundedTransactions(itemPuts);
+      await this.transact([parentOperation]);
+    } catch (error) {
+      await this.deleteWrittenKeysQuietly(itemPuts);
+      throw error;
+    }
+    await this.writeBoundedTransactionsQuietly(itemDeletes);
+  }
+
+  private async writeBoundedTransactions(
+    operations: TransactionOperations,
+  ): Promise<void> {
+    for (
+      let index = 0;
+      index < operations.length;
+      index += DYNAMODB_TRANSACTION_LIMIT
+    ) {
+      await this.transact(operations.slice(
+        index,
+        index + DYNAMODB_TRANSACTION_LIMIT,
+      ));
+    }
+  }
+
+  private async deleteWrittenKeysQuietly(
+    operations: ReadonlyArray<TransactionOperations[number]>,
+  ): Promise<void> {
+    const keys = operations.flatMap((operation) => {
+      const put = 'Put' in operation ? operation.Put : undefined;
+      const item = put?.Item;
+      return item && typeof item.pk === 'string' && typeof item.sk === 'string'
+        ? [{ pk: item.pk, sk: item.sk }]
+        : [];
+    });
+    const operationsToDelete = keys.map((key) => ({
+      Delete: { TableName: this.tableName, Key: key },
+    }));
+    await this.writeBoundedTransactionsQuietly(operationsToDelete);
+  }
+
+  private async writeBoundedTransactionsQuietly(
+    operations: TransactionOperations,
+  ): Promise<void> {
+    try {
+      await this.writeBoundedTransactions(operations);
+    } catch {
+      // Cleanup rows are unreachable through parent queries. Never turn an
+      // already-visible successful mutation into a contradictory API error.
+    }
   }
 
   private nutritionItemDeleteOperations(
