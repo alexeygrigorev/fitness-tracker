@@ -96,17 +96,23 @@
       {
         "id": "food-delete-cascade",
         "requiredBehavior": "Deleting a private or canonical food removes meal and meal-template ingredient rows and removes stale references from parent food_item_ids arrays.",
-        "status": "open"
+        "status": "fixed_verified",
+        "evidenceCommit": "ebca203",
+        "verifiedAt": "2026-08-24"
       },
       {
         "id": "concurrent-nested-updates",
         "requiredBehavior": "Meal and template updates must prevent overlapping writers from repointing a parent while deleting another writer's stale ingredient IDs.",
-        "status": "open"
+        "status": "fixed_verified",
+        "evidenceCommit": "ebca203",
+        "verifiedAt": "2026-08-24"
       },
       {
         "id": "decimal-precision",
         "requiredBehavior": "Derived nutrition values match Django Decimal behavior without binary floating-point drift.",
-        "status": "open"
+        "status": "fixed_verified",
+        "evidenceCommits": ["af87861", "a4292f6"],
+        "verifiedAt": "2026-08-24"
       },
       {
         "id": "scalar-and-validation-shapes",
