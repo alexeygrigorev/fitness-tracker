@@ -11,6 +11,10 @@ Parameters:
     Type: String
     Default: ''
     Description: Comma-separated browser origins allowed by the application CORS handler.
+  Timezone:
+    Type: String
+    Default: UTC
+    Description: IANA timezone used to derive local nutrition dates.
 
 Resources:
   Api:
@@ -32,6 +36,7 @@ Resources:
           JWT_SECRET: !Ref JwtSecret
           NODE_ENV: production
           ALLOWED_ORIGINS: !Ref AllowedOrigins
+          TIME_ZONE: !Ref Timezone
       Policies:
         - Statement:
             - Sid: TableRecords
