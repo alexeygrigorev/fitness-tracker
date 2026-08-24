@@ -54,11 +54,14 @@ function compilePattern(pattern: string): RegExp {
     if (!segment.startsWith(':')) {
       return escapeRegExp(segment);
     }
-    const name = segment.slice(1);
+    const [name, parameterType = 'int'] = segment.slice(1).split(':');
     if (!/^[A-Za-z][A-Za-z0-9]*$/.test(name)) {
       throw new Error(`Invalid route parameter ${segment}`);
     }
-    return `(?<${name}>\\d+)`;
+    if (parameterType !== 'int' && parameterType !== 'text') {
+      throw new Error(`Invalid route parameter type ${segment}`);
+    }
+    return `(?<${name}>${parameterType === 'text' ? '[^/]+' : '\\d+'})`;
   });
   return new RegExp(`^/${segments.join('/')}/?$`);
 }
