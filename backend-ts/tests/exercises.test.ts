@@ -370,3 +370,59 @@ describe('TestExerciseListFiltering', () => {
     api?.stop();
   });
 });
+
+describe('TestExerciseListingExcludesOtherEntities', () => {
+  let api: TestApi;
+  let accessToken: string;
+  let userId: number;
+
+  before(async () => {
+    api = await startTestApi();
+    await seedExercises(api.documentClient, api.tableName, [
+      { id: 1, name: 'Bench Press', is_compound: true },
+    ]);
+    const account = await registerAndLogin(api, 'collision-user');
+    accessToken = account.accessToken;
+    userId = account.userId;
+
+    // Every entity type (exercises, presets, sessions, plans) stores its
+    // metadata row under sk = 'METADATA'. Insert a preset whose numeric id
+    // collides with the exercise above (both start from 1 in independent
+    // per-entity counters, so this is a routine occurrence, not a
+    // contrived edge case) to guard against a regression where
+    // listExercises() returned any METADATA row regardless of its pk
+    // prefix, leaking presets/sessions/plans into the exercises list.
+    await api.documentClient.send(new PutCommand({
+      TableName: api.tableName,
+      Item: {
+        pk: 'PRESET#1',
+        sk: 'METADATA',
+        id: 1,
+        name: 'Push Day',
+        user_id: userId,
+        notes: null,
+        day_label: null,
+        status: 'active',
+        tags: [],
+        is_public: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    }));
+  });
+
+  after(() => {
+    api?.stop();
+  });
+
+  it('test_exercises_list_only_contains_exercise_partition_items', async () => {
+    const response = await api.call('GET', '/api/workouts/exercises/', {
+      token: accessToken,
+    });
+    assert.equal(response.status, 200);
+    const matches = response.body.filter((exercise: any) => exercise.id === 1);
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].name, 'Bench Press');
+    assert.ok(!response.body.some((exercise: any) => exercise.name === 'Push Day'));
+  });
+});

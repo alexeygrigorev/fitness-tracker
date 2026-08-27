@@ -859,11 +859,18 @@ export class FitnessRepository {
   }
 
   async listExercises(userId?: number): Promise<ExerciseItem[]> {
+    // Every entity type (exercises, presets, sessions, plans, ...) stores
+    // its metadata row under sk = 'METADATA', so filtering on sk alone
+    // would also match presets/sessions/plans that happen to share a
+    // numeric id and ownership with a real exercise. Restrict to the
+    // EXERCISE# partition prefix to avoid returning non-exercise items.
     const items = await this.scan<ExerciseItem>({
-      FilterExpression: '#sk = :sk AND (#owner = :null OR #owner = :user)',
-      ExpressionAttributeNames: { '#sk': 'sk', '#owner': 'user_id' },
+      FilterExpression:
+        '#sk = :sk AND begins_with(#pk, :pkPrefix) AND (#owner = :null OR #owner = :user)',
+      ExpressionAttributeNames: { '#sk': 'sk', '#pk': 'pk', '#owner': 'user_id' },
       ExpressionAttributeValues: {
         ':sk': 'METADATA',
+        ':pkPrefix': 'EXERCISE#',
         ':null': null,
         ':user': userId ?? -1,
       },
