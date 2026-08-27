@@ -148,7 +148,14 @@ export class FitnessRepository {
         ProjectionExpression: 'pk',
       }),
     );
-    const key = result.Items?.[0]?.pk;
+    // Reservation placeholder rows are keyed by the same attribute values as
+    // the profile row so uniqueness can be enforced without an extra read.
+    // Prefer the real `USER#<id>` profile item over any reservation rows the
+    // GSI query may also match.
+    const keys = (result.Items ?? [])
+      .map((item) => item.pk)
+      .filter((pk): pk is string => typeof pk === 'string');
+    const key = keys.find((pk) => pk.startsWith('USER#')) ?? keys[0];
     return typeof key === 'string' ? this.getUserByKey(key) : undefined;
   }
 

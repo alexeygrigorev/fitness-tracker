@@ -534,17 +534,21 @@ export function buildMigrationItems(input: unknown): BuiltMigrationItems {
       is_active: entry.is_active,
       ...(entry.date_joined === undefined ? {} : { date_joined: entry.date_joined }),
     }, {
+      // Reservation items must not carry `username`/`email` attributes: both
+      // GSIs (UsernameIndex/EmailIndex) key on those attribute names, and any
+      // matching item — not just the PROFILE item — would be returned by a
+      // lookup query, sometimes non-deterministically resolving logins to
+      // this placeholder row instead of the real profile. Mirror
+      // repository.ts's createUser(), which only stores `id` here.
       pk: `USERNAME#${entry.username}`,
       sk: 'RESERVATION',
       entity_type: 'user_reservation',
       id: entry.id,
-      username: entry.username,
     }, {
       pk: `EMAIL#${entry.email}`,
       sk: 'RESERVATION',
       entity_type: 'user_reservation',
       id: entry.id,
-      email: entry.email,
     });
   }
 
