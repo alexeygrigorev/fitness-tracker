@@ -451,6 +451,34 @@ describe('TestWorkoutPlans', () => {
     assert.ok(!names.includes('User2 Plan'));
   });
 
+  it('test_retrieve_own_plan', async () => {
+    await seedPlan(6100, ownerId, 'Retrievable Plan');
+
+    const response = await api.call('GET', '/api/workouts/plans/6100/', {
+      token: ownerToken,
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.id, 6100);
+    assert.equal(response.body.name, 'Retrievable Plan');
+  });
+
+  it('test_cannot_retrieve_another_users_plan', async () => {
+    await seedPlan(6101, otherId, 'Private Plan');
+
+    const response = await api.call('GET', '/api/workouts/plans/6101/', {
+      token: ownerToken,
+    });
+    assert.equal(response.status, 404);
+    assert.equal(response.body.error, 'Not found');
+  });
+
+  it('test_retrieve_missing_plan_returns_404', async () => {
+    const response = await api.call('GET', '/api/workouts/plans/999999/', {
+      token: ownerToken,
+    });
+    assert.equal(response.status, 404);
+  });
+
   it('test_use_plan_copies_presets_to_user', async () => {
     await seedPlan(
       6003,
