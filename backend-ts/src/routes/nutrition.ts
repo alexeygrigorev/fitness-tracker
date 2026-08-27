@@ -110,7 +110,6 @@ function decimal(
     min?: number;
     max?: number;
     maximumDigits?: number;
-    fieldLabel?: string;
   } = {},
 ): number | null | undefined {
   if (value === null && options.allowNull) {
@@ -149,7 +148,7 @@ function decimal(
     );
   }
   if (places > 2) {
-    addError(errors, field, `Ensure that there are no more than 2 decimal places.`);
+    addError(errors, field, 'Ensure that there are no more than 2 decimal places.');
   }
   const magnitudeLimit = DECIMAL_LIMITS[maximumDigits === 5 ? 'small' : 'standard'];
   if (Math.abs(parsed) > magnitudeLimit) {
@@ -173,36 +172,27 @@ function integer(
     min?: number;
   } = {},
 ): number | null | undefined {
-  if (value === null && options.allowNull) {
-    return null;
+  if (value === null) {
+    if (options.allowNull) {
+      return null;
+    }
+    addError(errors, field, 'This field may not be null.');
+    return undefined;
   }
-  if (!Number.isInteger(value)) {
+  const parsed = typeof value === 'string'
+    ? (/^[+-]?\d+$/.test(value.trim()) ? Number(value.trim()) : Number.NaN)
+    : value;
+  if (typeof parsed !== 'number' || !Number.isInteger(parsed)) {
     addError(errors, field, 'A valid integer is required.');
     return undefined;
   }
-  const result = value as number;
-  if (options.choices && !options.choices.includes(result)) {
-    addError(errors, field, `"${result}" is not a valid choice.`);
-    return undefined;
-  }
+  const result = parsed;
   if (options.min !== undefined && result < options.min) {
     addError(
       errors,
       field,
       `Ensure this value is greater than or equal to ${options.min}.`,
     );
-    return undefined;
-  }
-  if (options.max !== undefined && result > options.max) {
-    addError(
-      errors,
-      field,
-      `Ensure this value is less than or equal to ${options.max}.`,
-    );
-    return undefined;
-  }
-  if (Math.abs(result) > 2_147_483_647) {
-    addError(errors, field, 'Integer value is out of range.');
     return undefined;
   }
   return result;
@@ -213,6 +203,7 @@ function nullableString(
   field: string,
   value: unknown,
   maxLength: number,
+  { trim = true }: { trim?: boolean } = {},
 ): string | null | undefined {
   if (value === null) {
     return null;
@@ -221,7 +212,8 @@ function nullableString(
     addError(errors, field, 'A valid string is required.');
     return undefined;
   }
-  if (value.length > maxLength) {
+  const normalized = trim ? value.trim() : value;
+  if (normalized.length > maxLength) {
     addError(
       errors,
       field,
@@ -229,7 +221,7 @@ function nullableString(
     );
     return undefined;
   }
-  return value === '' ? null : value;
+  return normalized;
 }
 
 function requiredText(
@@ -240,6 +232,10 @@ function requiredText(
 ): string | undefined {
   if (value === undefined) {
     addError(errors, field, 'This field is required.');
+    return undefined;
+  }
+  if (value === null) {
+    addError(errors, field, 'This field may not be null.');
     return undefined;
   }
   if (typeof value !== 'string') {
@@ -268,6 +264,10 @@ function choice(
   value: unknown,
   choices: ReadonlySet<string>,
 ): string | undefined {
+  if (value === null) {
+    addError(errors, field, 'This field may not be null.');
+    return undefined;
+  }
   if (typeof value !== 'string') {
     addError(errors, field, 'A valid string is required.');
     return undefined;
@@ -288,22 +288,51 @@ function optionalChoice(
   if (value === null) {
     return null;
   }
-  if (value === undefined || value === '') {
+  if (typeof value !== 'string') {
+    addError(errors, field, `"${String(value)}" is not a valid choice.`);
+    return undefined;
+  }
+  if (value === '') {
     return '';
   }
-  const selected = choice(errors, field, value, choices);
-  return selected as FoodCategory | undefined;
+  if (!choices.has(value)) {
+    addError(errors, field, `"${value}" is not a valid choice.`);
+    return undefined;
+  }
+  return value;
 }
 
 function validDate(value: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(value);
+  if (!match) {
     return false;
   }
-  const [year, month, day] = value.split('-').map(Number);
+  const [year, month, day] = match.slice(1).map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year &&
     date.getUTCMonth() === month - 1 &&
     date.getUTCDate() === day;
+}
+
+function padDate(value: string): string {
+  const [year, month, day] = value.split('-');
+  return `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+function normalizedDate(
+  errors: JsonObject,
+  field: string,
+  value: unknown,
+): string | undefined {
+  if (typeof value !== 'string' || !validDate(value)) {
+    addError(
+      errors,
+      field,
+      'Date has wrong format. Use one of these formats instead: YYYY-MM-DD.',
+    );
+    return undefined;
+  }
+  return padDate(value);
 }
 
 function calendarDate(date: Date, timeZone: string): string {
@@ -481,7 +510,7 @@ function validateFood(
     sugar: parsedNumbers.sugar,
     sodium: parsedNumbers.sodium,
     glycemic_index: glycemicIndex,
-    absorption_speed: absorptionSpeed,
+    absorption_speed: absorptionSpeed as FoodItemRecord['absorption_speed'],
     insulin_response: parsedNumbers.insulinResponse,
     satiety_score: satietyScore,
     protein_quality: proteinQuality,
@@ -584,10 +613,9 @@ function validateMeal(
 
   let date = existing?.date ?? calendarDate(loggedAt, timezone);
   if ('date' in data && data.date !== null && data.date !== undefined) {
-    if (typeof data.date !== 'string' || !validDate(data.date)) {
-      addError(errors, 'date', 'Date has wrong format.');
-    } else {
-      date = data.date;
+    const normalized = normalizedDate(errors, 'date', data.date);
+    if (normalized !== undefined) {
+      date = normalized;
     }
   } else if (isCreate) {
     date = calendarDate(loggedAt, timezone);
@@ -1047,10 +1075,11 @@ async function destroyMeal(context: RouteContext, id: number) {
   return emptyResponse(204, context.cors);
 }
 
-async function mealsByDate(context: RouteContext, date: string) {
-  if (!validDate(date)) {
+async function mealsByDate(context: RouteContext, rawDate: string) {
+  if (!validDate(rawDate)) {
     throw new HttpError(400, { error: 'Invalid date format. Use YYYY-MM-DD' });
   }
+  const date = padDate(rawDate);
   const user = await context.requireUser();
   const meals = (await context.repository.listMeals(user.id))
     .filter((meal) => meal.date === date);
@@ -1070,10 +1099,11 @@ async function mealsByDate(context: RouteContext, date: string) {
   );
 }
 
-async function dailyTotals(context: RouteContext, date: string) {
-  if (!validDate(date)) {
+async function dailyTotals(context: RouteContext, rawDate: string) {
+  if (!validDate(rawDate)) {
     throw new HttpError(400, { error: 'Invalid date format. Use YYYY-MM-DD' });
   }
+  const date = padDate(rawDate);
   const user = await context.requireUser();
   const meals = (await context.repository.listMeals(user.id))
     .filter((meal) => meal.date === date);

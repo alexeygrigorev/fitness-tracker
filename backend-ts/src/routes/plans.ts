@@ -1,7 +1,7 @@
 import type { DocumentItem } from '../repository.js';
 import { HttpError } from '../types.js';
 import type { JsonObject } from '../types.js';
-import { jsonResponse } from '../http.js';
+import { emptyResponse, jsonResponse } from '../http.js';
 import type { RouteContext, RouteDefinition } from '../router.js';
 import {
   copyPresetItems,
@@ -326,7 +326,7 @@ export function registerPlanRoutes(addRoute: (route: RouteDefinition) => void): 
         { pk: plan.plan.pk, sk: plan.plan.sk },
         ...plan.links.map((link) => ({ pk: link.pk, sk: link.sk })),
       ]);
-      return jsonResponse(204, {}, context.cors);
+      return emptyResponse(204, context.cors);
     },
   });
 }

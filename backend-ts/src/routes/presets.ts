@@ -1,6 +1,6 @@
 import type { JsonObject } from '../types.js';
 import { HttpError } from '../types.js';
-import { jsonResponse } from '../http.js';
+import { emptyResponse, jsonResponse } from '../http.js';
 import type { RouteContext, RouteDefinition } from '../router.js';
 import {
   isPresetExercise,
@@ -416,7 +416,7 @@ export function registerPresetRoutes(addRoute: (route: RouteDefinition) => void)
       }
       if (context.request.method === 'DELETE') {
         await deleteOwnedPreset(context, presetId);
-        return jsonResponse(204, {}, context.cors);
+        return emptyResponse(204, context.cors);
       }
       return jsonResponse(
         200,

@@ -1,6 +1,7 @@
 import type { JsonObject } from '../types.js';
 import { HttpError } from '../types.js';
-import { jsonResponse } from '../http.js';
+import { emptyResponse, jsonResponse } from '../http.js';
+import { ValidationFailure } from '../validation.js';
 import type {
   ExerciseItem,
   WorkoutSessionItem,
@@ -21,6 +22,7 @@ import {
   parseDate,
   sessionResponse,
   setResponse,
+  setSortKey,
   validateDropdownWeights,
   type DropdownWeight,
   type PresetExerciseRow,
@@ -52,6 +54,15 @@ function body(request: RouteContext['request']): RequestData {
     throw new HttpError(400, { error: 'Invalid workout' });
   }
   return request.body as RequestData;
+}
+
+/** Preferred contract keys are authoritative even when their value is null. */
+function preferredInput(
+  data: RequestData,
+  preferred: string,
+  alias: string,
+): unknown {
+  return preferred in data ? data[preferred] : data[alias];
 }
 
 function sortSets(sets: WorkoutSetItem[]): WorkoutSetItem[] {
@@ -204,7 +215,9 @@ function preparedSetFromRequest(
   fallbackOrder: number,
 ): PreparedInputSet {
   const setOrder = integerValue(input.set_order ?? fallbackOrder, { min: 0 }) as number;
-  const requestedType = input.setType ?? input.set_type ?? 'normal';
+  const requestedType = 'setType' in input
+    ? input.setType
+    : input.set_type ?? 'normal';
   if (typeof requestedType !== 'string' || !SET_TYPES.has(requestedType)) {
     throw new HttpError(400, { error: 'Invalid date or numeric value' });
   }
@@ -214,7 +227,7 @@ function preparedSetFromRequest(
     setType: requestedType as SetType,
     weight: decimalValue(input.weight),
     reps: integerValue(input.reps, { allowNull: true }),
-    dropdownWeights: input.dropdownWeights ?? input.dropdown_weights ?? null,
+    dropdownWeights: preferredInput(input, 'dropdownWeights', 'dropdown_weights') ?? null,
     loggedAt: parseDate(input.loggedAt),
   };
 }
@@ -233,7 +246,7 @@ async function prepareInputSets(
     const exercise = await accessibleExercise(
       context,
       userId,
-      input.exerciseId ?? input.exercise_id,
+      preferredInput(input, 'exerciseId', 'exercise_id'),
     );
     prepared.push(preparedSetFromRequest(exercise, input, index));
   }
@@ -292,23 +305,311 @@ function startedWorkoutResponse(
   };
 }
 
-function applyValidatedUpdates(
-  current: WorkoutSetItem,
+function addValidationError(errors: JsonObject, field: string, message: string): void {
+  const existing = errors[field];
+  if (Array.isArray(existing)) existing.push(message);
+  else errors[field] = [message];
+}
+
+function dateTimeUpdate(
+  errors: JsonObject,
+  field: string,
+  value: unknown,
+  allowNull = false,
+): Date | null | undefined {
+  if (value === null) {
+    if (allowNull) return null;
+    addValidationError(errors, field, 'This field may not be null.');
+    return undefined;
+  }
+  try {
+    return parseDate(value);
+  } catch {
+    addValidationError(
+      errors,
+      field,
+      'Datetime has wrong format. Use one of these formats instead: %Y-%m-%dT%H:%M:%S%z.',
+    );
+    return undefined;
+  }
+}
+
+interface SetScalarUpdates {
+  weight?: number | null;
+  reps?: number | null;
+  dropdownWeights?: Array<{ weight?: number | null; reps: number }> | null;
+}
+
+interface SessionWriteUpdates {
+  name?: string;
+  notes?: string | null;
+  bodyweight?: number | null;
+  startedAt?: Date;
+  endedAt?: Date | null;
+}
+
+function validateSessionUpdates(
   data: RequestData,
+  partial: boolean,
+): SessionWriteUpdates {
+  const errors: JsonObject = {};
+  const updates: SessionWriteUpdates = {};
+
+  if (!partial || 'name' in data) {
+    const value = data.name;
+    if (value === undefined) {
+      addValidationError(errors, 'name', 'This field is required.');
+    } else if (typeof value !== 'string') {
+      addValidationError(errors, 'name', 'A valid string is required.');
+    } else if (value.trim().length === 0) {
+      addValidationError(errors, 'name', 'This field may not be blank.');
+    } else if (value.length > 255) {
+      addValidationError(
+        errors,
+        'name',
+        'Ensure this field has no more than 255 characters.',
+      );
+    } else {
+      updates.name = value.trim();
+    }
+  }
+
+  if ('notes' in data) {
+    const value = data.notes;
+    if (value !== null && typeof value !== 'string') {
+      addValidationError(errors, 'notes', 'A valid string is required.');
+    } else {
+      updates.notes = typeof value === 'string' ? value.trim() : value;
+    }
+  }
+
+  if ('bodyweight' in data) {
+    try {
+      updates.bodyweight = decimalValue(data.bodyweight);
+    } catch {
+      addValidationError(errors, 'bodyweight', 'A valid number is required.');
+    }
+  }
+
+  if (!partial || 'startedAt' in data) {
+    if (!('startedAt' in data)) {
+      addValidationError(errors, 'startedAt', 'This field is required.');
+    } else {
+      const startedAt = dateTimeUpdate(errors, 'startedAt', data.startedAt);
+      if (startedAt instanceof Date) updates.startedAt = startedAt;
+    }
+  }
+
+  if (!partial || 'endedAt' in data) {
+    if (!('endedAt' in data)) {
+      addValidationError(errors, 'endedAt', 'This field is required.');
+    } else {
+      const endedAt = dateTimeUpdate(errors, 'endedAt', data.endedAt, true);
+      if (endedAt !== undefined) updates.endedAt = endedAt;
+    }
+  }
+
+  if (Object.keys(errors).length > 0) throw new ValidationFailure(errors);
+  return updates;
+}
+
+function validateSetScalarUpdates(data: RequestData): SetScalarUpdates {
+  const errors: JsonObject = {};
+
+  let weight: number | null | undefined;
+  if ('weight' in data) {
+    const parsed = decimalValue(data.weight);
+    if (parsed !== null && parsed < 0) {
+      addValidationError(
+        errors,
+        'weight',
+        'Ensure this value is greater than or equal to 0.',
+      );
+    } else if (parsed !== null && parsed > 9_999.99) {
+      addValidationError(
+        errors,
+        'weight',
+        'Ensure this value is less than or equal to 9999.99.',
+      );
+    } else {
+      weight = parsed;
+    }
+  }
+
+  let reps: number | null | undefined;
+  if ('reps' in data) {
+    try {
+      const parsed = integerValue(data.reps, {
+        allowNull: true,
+        min: 0,
+        max: 10_000,
+      });
+      reps = parsed;
+    } catch {
+      addValidationError(errors, 'reps', 'A valid integer is required.');
+    }
+  }
+
+  let dropdownWeights: Array<{ weight?: number | null; reps: number }> | null | undefined;
+  if ('dropdownWeights' in data) {
+    try {
+      dropdownWeights = validateDropdownWeights(data.dropdownWeights);
+    } catch (error) {
+      if (!(error instanceof HttpError)) throw error;
+      const payloadField = error.payload.dropdownWeights;
+      const messages = Array.isArray(payloadField)
+        ? payloadField.map(String)
+        : ['Must be a list of drop sets'];
+      for (const message of messages) {
+        addValidationError(errors, 'dropdownWeights', message);
+      }
+    }
+  }
+
+  if (Object.keys(errors).length > 0) throw new ValidationFailure(errors);
+  return {
+    ...(weight === undefined ? {} : { weight }),
+    ...(reps === undefined ? {} : { reps }),
+    ...(dropdownWeights === undefined ? {} : { dropdownWeights }),
+  };
+}
+
+function validateSetOrder(data: RequestData): number | undefined {
+  if (!('set_order' in data)) return undefined;
+
+  let value: unknown = data.set_order;
+  if (value === null) {
+    throw new ValidationFailure({
+      set_order: ['This field may not be null.'],
+    });
+  }
+
+  try {
+    value = integerValue(value);
+  } catch {
+    throw new ValidationFailure({
+      set_order: ['A valid integer is required.'],
+    });
+  }
+  if (typeof value !== 'number') {
+    throw new ValidationFailure({
+      set_order: ['A valid integer is required.'],
+    });
+  }
+  if (value < 0) {
+    throw new ValidationFailure({
+      set_order: ['Ensure this value is greater than or equal to 0.'],
+    });
+  }
+  if (value > 10_000) {
+    throw new ValidationFailure({
+      set_order: ['Ensure this value is less than or equal to 10000.'],
+    });
+  }
+  return value;
+}
+
+interface SetRelationshipUpdates {
+  exercise?: ExerciseItem;
+  sessionId?: number;
+  setType?: SetType;
+}
+
+async function resolveSetRelationshipUpdates(
+  context: RouteContext,
+  userId: number,
+  data: RequestData,
+  partial: boolean,
+): Promise<SetRelationshipUpdates> {
+  const errors: JsonObject = {};
+  const updates: SetRelationshipUpdates = {};
+  const hasExercise = 'exerciseId' in data || 'exercise_id' in data;
+  const hasSession = 'session' in data || 'sessionId' in data;
+  const hasType = 'setType' in data || 'set_type' in data;
+
+  if (!partial && !hasExercise) {
+    addValidationError(errors, 'exerciseId', 'This field is required.');
+  }
+  if (!partial && !hasSession) {
+    addValidationError(errors, 'session', 'This field is required.');
+  }
+  if (!partial && !hasType) {
+    addValidationError(errors, 'setType', 'This field is required.');
+  }
+
+  try {
+    if (hasExercise) {
+      updates.exercise = await accessibleExercise(
+        context,
+        userId,
+        preferredInput(data, 'exerciseId', 'exercise_id'),
+      );
+    }
+  } catch {
+    addValidationError(
+      errors,
+      'exerciseId',
+      'Invalid or unavailable exercise',
+    );
+  }
+
+  if (hasSession) {
+    const rawId = preferredInput(data, 'session', 'sessionId');
+    const normalizedId = rawId === null ? null : normalizePositiveInteger(rawId);
+    if (normalizedId === null) {
+      addValidationError(errors, 'session', 'Invalid session');
+    } else {
+      const { sessions } = await userWorkouts(context, userId);
+      if (!sessions.some((session) => session.id === normalizedId)) {
+        addValidationError(errors, 'session', 'Invalid session');
+      } else {
+        updates.sessionId = normalizedId;
+      }
+    }
+  }
+
+  if (hasType) {
+    const requestedType = preferredInput(data, 'setType', 'set_type');
+    if (
+      typeof requestedType !== 'string' ||
+      !SET_TYPES.has(requestedType)
+    ) {
+      addValidationError(
+        errors,
+        'setType',
+        `"${String(requestedType)}" is not a valid choice.`,
+      );
+    } else {
+      updates.setType = requestedType as SetType;
+    }
+  }
+
+  if (Object.keys(errors).length > 0) throw new ValidationFailure(errors);
+  return updates;
+}
+
+function mergeSetUpdate(
+  current: WorkoutSetItem,
+  relationships: SetRelationshipUpdates,
+  scalars: SetScalarUpdates,
 ): WorkoutSetItem {
-  let weight = current.weight ?? null;
-  let reps = current.reps ?? null;
-  let dropdownWeights = current.dropdown_weights ?? null;
-
-  if ('weight' in data) weight = decimalValue(data.weight);
-  if ('reps' in data) reps = integerValue(data.reps, { allowNull: true, min: 0, max: 10_000 });
-  if ('dropdownWeights' in data) dropdownWeights = validateDropdownWeights(data.dropdownWeights);
-
   return {
     ...current,
-    weight,
-    reps,
-    dropdown_weights: dropdownWeights,
+    ...(relationships.exercise === undefined ? {} : {
+      exercise_id: relationships.exercise.id,
+      exercise_name: relationships.exercise.name ?? '',
+    }),
+    ...(relationships.sessionId === undefined ? {} : {
+      session_id: relationships.sessionId,
+    }),
+    ...(relationships.setType === undefined ? {} : {
+      set_type: relationships.setType,
+    }),
+    ...(scalars.weight === undefined ? {} : { weight: scalars.weight }),
+    ...(scalars.reps === undefined ? {} : { reps: scalars.reps }),
+    ...(scalars.dropdownWeights === undefined ? {} : {
+      dropdown_weights: scalars.dropdownWeights,
+    }),
   };
 }
 
@@ -355,7 +656,7 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
           throw new Error('invalid text');
         }
         const bodyweight = decimalValue(data.bodyweight);
-        const presetIdRaw = data.preset_id ?? data.preset;
+        const presetIdRaw = preferredInput(data, 'preset_id', 'preset');
         let preset: WorkoutPresetItem | undefined;
         if (presetIdRaw !== undefined && presetIdRaw !== null) {
           const presetId = integerValue(presetIdRaw, { min: 1 }) as number;
@@ -462,7 +763,7 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
         ? context.request.body as RequestData
         : {};
       const updated: WorkoutSetItem = {
-        ...applyValidatedUpdates(current, data),
+        ...mergeSetUpdate(current, {}, validateSetScalarUpdates(data)),
         completed_at: nowIso(),
       };
       await context.repository.put(updated);
@@ -471,7 +772,7 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
   });
 
   addRoute({
-    method: ['GET', 'DELETE'],
+    method: ['GET', 'PATCH', 'PUT', 'DELETE'],
     pattern: '/api/workouts/sessions/:sessionId',
     authRequired: true,
     authBeforeMethod: true,
@@ -481,12 +782,53 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
         const { session, sets } = await getSession(context, sessionId);
         return jsonResponse(200, sessionResponse(session, sets), context.cors);
       }
+      if (
+        context.request.method === 'PATCH' ||
+        context.request.method === 'PUT'
+      ) {
+        const { session, sets } = await getSession(context, sessionId);
+        const updates = validateSessionUpdates(
+          body(context.request),
+          context.request.method === 'PATCH',
+        );
+        const updated: WorkoutSessionItem = {
+          ...session,
+          ...(updates.name === undefined ? {} : { name: updates.name }),
+          ...(updates.notes === undefined ? {} : { notes: updates.notes }),
+          ...(updates.bodyweight === undefined ? {} : {
+            bodyweight: updates.bodyweight,
+          }),
+          ...(updates.startedAt === undefined ? {} : {
+            created_at: updates.startedAt.toISOString(),
+          }),
+          ...(updates.endedAt === undefined ? {}
+            : updates.endedAt === null
+              ? { finished_at: null }
+              : { finished_at: updates.endedAt.toISOString() }),
+        };
+        await context.repository.put(updated);
+        return jsonResponse(200, sessionResponse(updated, sets), context.cors);
+      }
       const { session, sets } = await getSession(context, sessionId);
       await context.repository.deleteAllTransactionally([
         { pk: session.pk, sk: session.sk },
         ...sets.map((set) => ({ pk: set.pk, sk: set.sk })),
       ]);
-      return jsonResponse(204, {}, context.cors);
+      return emptyResponse(204, context.cors);
+    },
+  });
+
+  addRoute({
+    method: 'GET',
+    pattern: '/api/workouts/sets',
+    authRequired: true,
+    authBeforeMethod: true,
+    handle: async (context) => {
+      const { sets } = await userWorkouts(
+        context,
+        (await context.requireUser()).id,
+      );
+      return jsonResponse(200, sortSets(sets).map(setResponse), context.cors);
     },
   });
 
@@ -501,7 +843,10 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
         context.request.body !== null && !Array.isArray(context.request.body)
         ? context.request.body as RequestData
         : {};
-      const sessionId = integerValue(input.session ?? input.sessionId, { min: 1 });
+      const sessionId = integerValue(
+        preferredInput(input, 'session', 'sessionId'),
+        { min: 1 },
+      );
       if (sessionId === null) {
         throw new HttpError(400, { session: ['This field is required.'] });
       }
@@ -509,7 +854,7 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
       const exercise = await accessibleExercise(
         context,
         user.id,
-        input.exerciseId ?? input.exercise_id,
+        preferredInput(input, 'exerciseId', 'exercise_id'),
       );
       const fallbackOrder = sets.length === 0
         ? 0
@@ -538,7 +883,7 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
   });
 
   addRoute({
-    method: ['GET', 'PATCH', 'DELETE'],
+    method: ['GET', 'PATCH', 'PUT', 'DELETE'],
     pattern: '/api/workouts/sets/:setId',
     authRequired: true,
     authBeforeMethod: true,
@@ -549,29 +894,47 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
       }
       if (context.request.method === 'DELETE') {
         await context.repository.delete({ pk: current.pk, sk: current.sk });
-        return jsonResponse(204, {}, context.cors);
+        return emptyResponse(204, context.cors);
       }
-      const data = typeof context.request.body === 'object' &&
-        context.request.body !== null && !Array.isArray(context.request.body)
-        ? context.request.body as RequestData
-        : {};
-      if ('session' in data || 'sessionId' in data) {
-        const requestedSession = normalizePositiveInteger(data.session ?? data.sessionId);
-        const workouts = await userWorkouts(context, current.user_id);
-        const target = workouts.sessions.find((item) =>
-          requestedSession !== null && item.id === requestedSession);
-        if (!target) {
-          throw new HttpError(400, { session: ['Invalid session'] });
-        }
-        const updated = {
-          ...applyValidatedUpdates(current, data),
-          session_id: target.id,
-        };
+      const data = body(context.request);
+      const relationships = await resolveSetRelationshipUpdates(
+        context,
+        current.user_id,
+        data,
+        context.request.method === 'PATCH',
+      );
+      let updated = mergeSetUpdate(
+        current,
+        relationships,
+        validateSetScalarUpdates(data),
+      );
+
+      const nextOrder = validateSetOrder(data);
+      if (nextOrder !== undefined) {
+        const nextSortKey = setSortKey({ ...updated, set_order: nextOrder });
+        updated = { ...updated, set_order: nextOrder, sk: nextSortKey };
+      }
+
+      if (updated.sk !== current.sk) {
+        await context.repository.transact([
+          {
+            Delete: {
+              TableName: context.config.tableName,
+              Key: { pk: current.pk, sk: current.sk },
+            },
+          },
+          {
+            Put: {
+              TableName: context.config.tableName,
+              Item: updated,
+              ConditionExpression:
+                'attribute_not_exists(pk) AND attribute_not_exists(sk)',
+            },
+          },
+        ]);
+      } else {
         await context.repository.put(updated);
-        return jsonResponse(200, setResponse(updated), context.cors);
       }
-      const updated = applyValidatedUpdates(current, data);
-      await context.repository.put(updated);
       return jsonResponse(200, setResponse(updated), context.cors);
     },
   });
@@ -602,7 +965,7 @@ export function registerSessionRoutes(addRoute: (route: RouteDefinition) => void
         ? context.request.body as RequestData
         : {};
       const updated: WorkoutSetItem = {
-        ...applyValidatedUpdates(current, data),
+        ...mergeSetUpdate(current, {}, validateSetScalarUpdates(data)),
         completed_at: nowIso(),
       };
       await context.repository.put(updated);

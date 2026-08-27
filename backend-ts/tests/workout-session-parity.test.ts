@@ -922,3 +922,216 @@ describe('TestE2ECompleteScenario', () => {
     assert.equal(finalSession.sets.filter((set: any) => set.loggedAt).length, 5);
   });
 });
+
+describe('TestSessionsSetsParityRoutes', () => {
+  async function createSession(
+    token: string,
+    overrides: Record<string, unknown> = {},
+  ): Promise<Record<string, any>> {
+    const response = await api.call('POST', '/api/workouts/sessions/', {
+      body: {
+        name: 'Original Session',
+        notes: 'Original notes',
+        bodyweight: 70.5,
+        startedAt: new Date(BASE_MS).toISOString(),
+        endedAt: null,
+        sets: [
+          { exerciseId: BENCH, set_order: 2, reps: 8, weight: 100 },
+          { exerciseId: ROWS, set_order: 0, reps: 9 },
+        ],
+        ...overrides,
+      },
+      token,
+    });
+    assert.equal(response.status, 201);
+    return response.body;
+  }
+
+  it('test_put_session_replaces_writable_fields_and_preserves_sets', async () => {
+    const token = await login('session-put');
+    const created = await createSession(token);
+    const response = await api.call(
+      'PUT',
+      `/api/workouts/sessions/${created.id}/`,
+      {
+        body: {
+          name: 'Replaced Session',
+          notes: 'Replaced notes',
+          bodyweight: 72,
+          startedAt: new Date(BASE_MS + 60_000).toISOString(),
+          endedAt: new Date(BASE_MS + 3_600_000).toISOString(),
+        },
+        token,
+      },
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(
+      {
+        id: response.body.id,
+        name: response.body.name,
+        notes: response.body.notes,
+        bodyweight: response.body.bodyweight,
+        startedAt: response.body.startedAt,
+        endedAt: response.body.endedAt,
+        preset: response.body.preset,
+      },
+      {
+        id: created.id,
+        name: 'Replaced Session',
+        notes: 'Replaced notes',
+        bodyweight: 72,
+        startedAt: new Date(BASE_MS + 60_000).toISOString(),
+        endedAt: new Date(BASE_MS + 3_600_000).toISOString(),
+        preset: null,
+      },
+    );
+    assert.deepEqual(response.body.sets.map((set: any) => set.id), created.sets.map((set: any) => set.id));
+
+    const fetched = await fetchedSession(token, created.id);
+    assert.equal(fetched.name, 'Replaced Session');
+    assert.equal(fetched.sets.length, 2);
+  });
+
+  it('test_patch_session_clears_nullable_field_and_preserves_unspecified_fields', async () => {
+    const token = await login('session-patch');
+    const created = await createSession(token);
+    const originalStartedAt = created.startedAt;
+    const response = await api.call(
+      'PATCH',
+      `/api/workouts/sessions/${created.id}/`,
+      {
+        body: {
+          notes: null,
+          endedAt: new Date(BASE_MS + 60_000).toISOString(),
+        },
+        token,
+      },
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.body.name, 'Original Session');
+    assert.equal(response.body.notes, null);
+    assert.equal(response.body.bodyweight, 70.5);
+    assert.equal(response.body.startedAt, originalStartedAt);
+    assert.equal(response.body.endedAt, new Date(BASE_MS + 60_000).toISOString());
+
+    const clearedEnd = await api.call(
+      'PATCH',
+      `/api/workouts/sessions/${created.id}/`,
+      { body: { endedAt: null }, token },
+    );
+    assert.equal(clearedEnd.status, 200);
+    assert.equal(clearedEnd.body.endedAt, null);
+  });
+
+  it('test_get_all_sets_is_owner_scoped_and_sorted', async () => {
+    const token = await login('sets-list');
+    const otherToken = await login('sets-list-other');
+    const owned = await createSession(token);
+    const foreign = await createSession(otherToken);
+
+    const ownedIds = owned.sets.map((set: any) => set.id);
+    const foreignIds = foreign.sets.map((set: any) => set.id);
+    assert.notDeepEqual(ownedIds, foreignIds);
+
+    const listed = await api.call('GET', '/api/workouts/sets/', { token });
+    assert.equal(listed.status, 200);
+    const ownListed = listed.body.filter((set: any) => ownedIds.includes(set.id));
+    assert.deepEqual(ownListed.map((set: any) => set.id), ownedIds);
+    assert.equal(listed.body.some((set: any) => foreignIds.includes(set.id)), false);
+    assert.deepEqual(
+      ownListed.map((set: any) => [set.session, set.set_order]),
+      [
+        [owned.id, 0],
+        [owned.id, 2],
+      ],
+    );
+  });
+
+  it('test_put_set_replaces_relationships_and_moves_sort_key_atomically', async () => {
+    const token = await login('set-put');
+    const source = await createSession(token);
+    const target = await createSession(token, {
+      name: 'Target Session',
+      sets: [{ exerciseId: CURLS, set_order: 0, reps: 10 }],
+    });
+    const current = source.sets.find((set: any) => set.exerciseId === BENCH);
+
+    const response = await api.call('PUT', `/api/workouts/sets/${current.id}/`, {
+      body: {
+        exerciseId: DIPS,
+        session: target.id,
+        setType: 'bodyweight',
+        reps: 12,
+        weight: null,
+        set_order: 5,
+      },
+      token,
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.exerciseId, DIPS);
+    assert.equal(response.body.exerciseName, 'Dips');
+    assert.equal(response.body.session, target.id);
+    assert.equal(response.body.setType, 'bodyweight');
+    assert.equal(response.body.reps, 12);
+    assert.equal(response.body.weight, null);
+    assert.equal(response.body.set_order, 5);
+
+    const stored = await storedSet(token, current.id);
+    assert.equal(stored.sk, `WORKOUT_SET#00000005#${current.id}`);
+    const targetSession = await fetchedSession(token, target.id);
+    assert.equal(targetSession.sets.filter((set: any) => set.id === current.id).length, 1);
+    const sourceSession = await fetchedSession(token, source.id);
+    assert.equal(sourceSession.sets.some((set: any) => set.id === current.id), false);
+  });
+
+  it('test_explicit_null_preferred_set_type_beats_snake_case_alias', async () => {
+    const token = await login('alias-precedence');
+    const created = await createSession(token);
+    const current = created.sets[0];
+
+    const rejected = await api.call('PATCH', `/api/workouts/sets/${current.id}/`, {
+      body: { setType: null, set_type: 'bodyweight' },
+      token,
+    });
+    assert.equal(rejected.status, 400);
+    assert.deepEqual(rejected.body, {
+      setType: ['"null" is not a valid choice.'],
+    });
+
+    const unchanged = await api.call('GET', `/api/workouts/sets/${current.id}/`, {
+      token,
+    });
+    assert.equal(unchanged.body.setType, current.setType);
+  });
+
+  it('test_workout_delete_responses_have_no_body', async () => {
+    const token = await login('empty-delete');
+    const created = await createSession(token, {
+      sets: [{ exerciseId: BENCH, set_order: 0 }],
+    });
+    const setId = created.sets[0].id;
+
+    const deletedSet = await api.call('DELETE', `/api/workouts/sets/${setId}/`, {
+      token,
+    });
+    assert.equal(deletedSet.status, 204);
+    assert.equal(deletedSet.body, null);
+    assert.equal(deletedSet.headers['content-type'], undefined);
+
+    const deletedSession = await api.call(
+      'DELETE',
+      `/api/workouts/sessions/${created.id}/`,
+      { token },
+    );
+    assert.equal(deletedSession.status, 204);
+    assert.equal(deletedSession.body, null);
+    assert.equal(deletedSession.headers['content-type'], undefined);
+
+    assert.equal(
+      (await api.call('GET', `/api/workouts/sessions/${created.id}/`, { token })).status,
+      404,
+    );
+  });
+});
