@@ -65,6 +65,26 @@ function invalidExercises(message: string): never {
   throw new HttpError(400, { exercises: [message] });
 }
 
+/**
+ * Mirrors WorkoutPresetSerializer.validate()'s `_references_private_exercise`
+ * check: a public preset must not reference any exercise owned by a user
+ * (i.e. `user_id` set), since that would leak private exercise data to
+ * other users through the public preset.
+ */
+export function assertNoPrivateExerciseInPublicPreset(
+  isPublic: boolean,
+  rows: readonly PreparedPresetRow[],
+): void {
+  if (!isPublic) return;
+  const referencesPrivate = rows.some((row) =>
+    (row.exercise !== undefined && row.exercise.user_id !== null && row.exercise.user_id !== undefined) ||
+    row.children.some((child) =>
+      child.exercise.user_id !== null && child.exercise.user_id !== undefined));
+  if (referencesPrivate) {
+    invalidExercises('Public presets cannot contain private exercises');
+  }
+}
+
 function optionalDropdownCount(value: unknown): number | null {
   if (value === undefined || value === null) return null;
   const parsed = nonNegativeInteger(value);

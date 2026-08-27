@@ -18,6 +18,7 @@ import {
   visibleExercise,
   type LoadedPreset,
   validatePresetExercises,
+  assertNoPrivateExerciseInPublicPreset,
 } from '../workout-preset-service.js';
 
 function requestBody(context: RouteContext): JsonObject {
@@ -40,6 +41,7 @@ export async function createOwnedPreset(
     input.exercises ?? [],
     [],
   );
+  assertNoPrivateExerciseInPublicPreset(metadata.isPublic, rows);
   const created = await materializePreset(context.repository, {
     userId: user.id,
     ...metadata,
@@ -204,6 +206,7 @@ export async function updateOwnedPreset(
     input.exercises,
     existingRows,
   );
+  assertNoPrivateExerciseInPublicPreset(scalarInput.isPublic, requestedRows);
   const desired = await appendPresetRows(
     context.repository,
     updatedMetadata,
