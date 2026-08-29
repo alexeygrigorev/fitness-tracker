@@ -132,7 +132,7 @@ describe('TypeScript Lambda API foundation', () => {
     assert.deepEqual(second.body, { reps: 5 });
   });
 
-  it('returns DRF-compatible validation, ownership, routing, and CORS responses', async () => {
+  it('returns structured validation, ownership, routing, and CORS responses', async () => {
     const invalid = await api.call('POST', '/api/auth/register/', { body: {
       username: 'validator',
       email: 'not-an-email',

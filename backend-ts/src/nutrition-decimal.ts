@@ -91,7 +91,7 @@ export function rationalFromInteger(value: number): Rational {
   return { numerator: BigInt(value), denominator: 1n };
 }
 
-// Python's round() uses banker's rounding for Decimal values.
+// Decimal values use banker's rounding at the storage boundary.
 export function roundedNumber(
   value: Rational,
   fractionalDigits = 2,

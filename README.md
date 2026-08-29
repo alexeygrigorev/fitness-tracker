@@ -100,9 +100,9 @@ fitness-tracker/
 
 ## API
 
-The handler preserves the existing `/api/.../` routes, numeric IDs, JWT
-`Authorization: Bearer` header, and DRF-compatible error payloads. The
-committed contract is [backend-ts/openapi.json](backend-ts/openapi.json).
+The handler exposes the `/api/.../` routes, numeric IDs, JWT
+`Authorization: Bearer` header, and structured validation errors. The committed
+contract is [backend-ts/openapi.json](backend-ts/openapi.json).
 
 ## AWS packaging
 

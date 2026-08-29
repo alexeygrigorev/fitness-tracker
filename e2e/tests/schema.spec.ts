@@ -262,7 +262,7 @@ test.describe('Schema Validation', () => {
       // If path has a parameter, try common format variations
       if (!schemaPaths.has(call.path)) {
         const variations = [
-          call.path.replace(/\{[^}]+\}/g, ':id'), // DRF format
+          call.path.replace(/\{[^}]+\}/g, ':id'), // named-parameter format
           call.path.replace(/\{[^}]+\}/g, '{id}'),
         ];
         for (const variation of variations) {

@@ -84,7 +84,7 @@ describe('AiContractTests', () => {
     }
   });
 
-  it('test_food_response_matches_serializer_contract', async () => {
+  it('test_food_response_matches_response_contract', async () => {
     const response = await api.call('POST', '/api/ai/analyze-food/', {
       token: accessToken,
       body: { description: 'grilled chicken salad' },
@@ -101,7 +101,7 @@ describe('AiContractTests', () => {
     }
   });
 
-  it('test_meal_response_matches_nested_serializer_contract', async () => {
+  it('test_meal_response_matches_nested_response_contract', async () => {
     const response = await api.call('POST', '/api/ai/analyze-meal/', {
       token: accessToken,
       body: { description: 'grilled chicken salad' },
@@ -115,7 +115,7 @@ describe('AiContractTests', () => {
     }
   });
 
-  it('test_exercise_response_matches_serializer_contract', async () => {
+  it('test_exercise_response_matches_response_contract', async () => {
     const response = await api.call('POST', '/api/ai/analyze-exercise/', {
       token: accessToken,
       body: { description: 'grilled chicken salad' },

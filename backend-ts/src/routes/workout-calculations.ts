@@ -12,10 +12,9 @@ import {
   type Rational,
 } from '../nutrition-decimal.js';
 
-// Mirrors workouts/serializers.py's VolumeSetSerializer /
-// VolumeCalculationRequestSerializer (DecimalField(max_digits=8,
-// decimal_places=2), IntegerField(min_value=0, max_value=10000), and the
-// custom ExerciseIdentifierField).
+// The volume endpoint accepts weights with up to eight total digits and two
+// decimal places, non-negative repetitions up to 10,000, and string or numeric
+// exercise identifiers.
 const SETS_MAX_LENGTH = 10000;
 const WEIGHT_MAX_DIGITS = 8;
 const WEIGHT_DECIMAL_PLACES = 2;
@@ -74,10 +73,8 @@ function weightLbs(errors: JsonObject, field: string, value: unknown): Rational 
     addFieldError(errors, field, 'A valid number is required.');
     return zeroRational();
   }
-  // DRF's DecimalField.to_internal_value raises the first precision
-  // violation it finds (max_digits, then max_decimal_places, then
-  // max_whole_digits) and stops there; min_value is only checked
-  // afterwards, as a separate validator, if precision passed.
+  // Report the first precision violation (total digits, decimal places, then
+  // whole digits) before applying the non-negative value check.
   const { wholeDigits, decimalPlaces } = digitCounts(raw);
   const totalDigits = wholeDigits + decimalPlaces;
   if (totalDigits > WEIGHT_MAX_DIGITS) {

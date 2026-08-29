@@ -66,10 +66,8 @@ function invalidExercises(message: string): never {
 }
 
 /**
- * Mirrors WorkoutPresetSerializer.validate()'s `_references_private_exercise`
- * check: a public preset must not reference any exercise owned by a user
- * (i.e. `user_id` set), since that would leak private exercise data to
- * other users through the public preset.
+ * Public presets must not reference exercises owned by a user (`user_id` set),
+ * since that would leak private exercise data to other users.
  */
 export function assertNoPrivateExerciseInPublicPreset(
   isPublic: boolean,

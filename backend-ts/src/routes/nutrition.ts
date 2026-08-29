@@ -77,11 +77,11 @@ interface TemplateValues {
 }
 
 /**
- * DRF's FoodItem serializer uses FloatField for nutrition scalars.  The
- * underlying SQLite DecimalField rounds values when they are read back, but
- * it does not reject extra precision during request validation. Keep this
- * parser separate from the DecimalField parser used by calculation endpoints
- * so request and response behavior stays consistent across all entry points.
+ * Nutrition CRUD accepts floating-point request values. The underlying storage
+ * rounds values when they are read back, but it does not reject extra
+ * precision during request validation. Keep this parser separate from the
+ * fixed-precision parser used by calculation endpoints so request and response
+ * behavior stays consistent across all entry points.
  */
 function numberValue(
   errors: JsonObject,
@@ -495,8 +495,7 @@ function validateFood(
     carbs: existing?.carbs ?? 0,
     fat: existing?.fat ?? 0,
     saturatedFat: existing?.saturated_fat ?? null,
-    // FoodItem.model defines fiber and sugar with a default of zero.  DRF
-    // therefore returns 0 when either field is omitted on create.
+    // Fiber and sugar default to zero when omitted on create.
     fiber: existing?.fiber ?? 0,
     sugar: existing?.sugar ?? 0,
     sodium: existing?.sodium ?? null,
@@ -597,7 +596,7 @@ interface ResolvedNestedItems {
   foods: Map<number, FoodItemRecord>;
 }
 
-function drfTypeName(value: unknown): string {
+function typeName(value: unknown): string {
   if (value === null) return 'null';
   if (Array.isArray(value)) return 'list';
   if (typeof value === 'object') return 'dict';
@@ -642,7 +641,7 @@ function parseNestedItems(
   }
   if (!Array.isArray(value)) {
     errors.food_items = [
-      `Expected a list of items but got type "${drfTypeName(value)}".`,
+      `Expected a list of items but got type "${typeName(value)}".`,
     ];
     return undefined;
   }
@@ -659,7 +658,7 @@ function parseNestedItems(
     if (typeof entry !== 'object' || Array.isArray(entry)) {
       itemErrors[index] = {
         non_field_errors: [
-          `Invalid data. Expected a dictionary, but got ${drfTypeName(entry)}.`,
+          `Invalid data. Expected a dictionary, but got ${typeName(entry)}.`,
         ],
       };
       hasErrors = true;
@@ -678,7 +677,7 @@ function parseNestedItems(
       foodId = Number.parseInt(item.foodId.trim(), 10);
     } else {
       nestedErrors.foodId = [
-        `Incorrect type. Expected pk value, received ${drfTypeName(item.foodId)}.`,
+        `Incorrect type. Expected pk value, received ${typeName(item.foodId)}.`,
       ];
     }
 
@@ -699,8 +698,8 @@ function parseNestedItems(
       hasErrors = true;
     }
     if (foodId !== undefined) {
-      // MealFoodItem is a DecimalField(decimal_places=2), so its persisted
-      // value is rounded when the nested row is loaded by the serializer.
+      // Nested item grams are stored at two decimal places, so the persisted
+      // value is rounded when the row is read back.
       const persistedGrams = Number(grams.toFixed(2));
       items.push({
         inputIndex: index,
@@ -995,8 +994,8 @@ async function resolveNestedFoods(
     }
   }
   if (Array.isArray(errors.food_items)) {
-    // A parser error list may already have established the DRF positional
-    // shape.  Preserve empty entries for valid siblings.
+    // A parser error list may already have established the positional shape.
+    // Preserve empty entries for valid siblings.
     const parsedErrors = errors.food_items;
     while (parsedErrors.length < Math.max(...items.map((item) => item.inputIndex + 1), 0)) {
       parsedErrors.push({});

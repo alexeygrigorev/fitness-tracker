@@ -37,7 +37,7 @@ function responseSchema(path: string, method: string, status = 200): JsonObject 
 }
 
 describe('OpenApiContractTests', () => {
-  it('test_committed_typescript_contract_matches_python_export', async () => {
+  it('test_committed_typescript_contract_matches_recorded_hash', async () => {
     const committed = await readFile(`${process.cwd()}/openapi.json`);
     assert.equal(
       createHash('sha256').update(committed).digest('hex'),

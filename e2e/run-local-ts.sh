@@ -47,8 +47,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Load a committed, deterministic seed directly into DynamoDB Local. This
-# keeps the TypeScript E2E path independent from Python and from mutable local
-# databases while preserving the "test"/"test" fixture used by the suite.
+# keeps the TypeScript E2E path independent from mutable local databases while
+# preserving the "test"/"test" fixture used by the suite.
 SEED_SNAPSHOT="${PROJECT_ROOT}/e2e/fixtures/backend-seed.json"
 
 echo "Building backend-ts..."

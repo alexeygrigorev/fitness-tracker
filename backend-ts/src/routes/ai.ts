@@ -95,7 +95,7 @@ function validateDescription(request: NormalizedRequest): string {
   return trimmedValue;
 }
 
-function pythonTitle(value: string): string {
+function titleCase(value: string): string {
   let atWordStart = true;
   let result = '';
   for (const character of value.toLowerCase()) {
@@ -111,7 +111,7 @@ function pythonTitle(value: string): string {
 }
 
 function analysisName(description: string, fallback: string): string {
-  return description ? pythonTitle(description) : fallback;
+  return description ? titleCase(description) : fallback;
 }
 
 function parsedNumber(value: unknown): number | undefined {
