@@ -23,7 +23,7 @@ deterministic fixture at `../e2e/fixtures/backend-seed.json`:
 
 ```sh
 ../e2e/run-local-ts.sh   # TypeScript dev server + Vite
-../e2e/run-sam-ts.sh     # SAM-built Lambda/SPA + Vite-compatible HTTP server
+../e2e/run-sam-ts.sh     # SAM-built Lambda/SPA + local HTTP server
 ```
 
 ## Runtime configuration
@@ -73,6 +73,5 @@ packaged file inventory, SPA assets, and the health fallback when the database
 is unavailable. AWS deployment is deliberately a separate, explicitly
 authorized operation after local and account-level migration smoke checks.
 
-`openapi.json` is the committed public contract. It preserves the existing
-routes, trailing slashes, numeric IDs, JWT header, and compatibility error
-payloads.
+`openapi.json` is the committed public contract. It documents the routes,
+trailing slashes, numeric IDs, JWT header, and structured error payloads.

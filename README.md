@@ -9,7 +9,7 @@ be run locally against DynamoDB Local.
 - **API:** TypeScript, Node.js 24, AWS Lambda Function URL
 - **Data:** DynamoDB (pay-per-request in AWS)
 - **Web:** React, TypeScript, Vite, Tailwind CSS
-- **Authentication:** JWT with PBKDF2-compatible password hashes
+- **Authentication:** JWT with PBKDF2 password hashes
 - **Tests:** Node's test runner, Vitest, and Playwright
 
 ## Run locally
