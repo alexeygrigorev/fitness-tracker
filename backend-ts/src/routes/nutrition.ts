@@ -33,9 +33,6 @@ const FOOD_CATEGORIES: ReadonlySet<string> = new Set([
 const MEAL_TYPES: ReadonlySet<string> = new Set([
   'breakfast', 'lunch', 'dinner', 'snack', 'post_workout', 'beverage',
 ]);
-const ABSORPTION_SPEEDS: ReadonlySet<string> = new Set([
-  'slow', 'moderate', 'fast',
-]);
 const MEAL_SOURCES: ReadonlySet<string> = new Set(['manual', 'ai_assisted']);
 const DECIMAL_LIMITS = {
   standard: 99_999_999.99,
@@ -57,7 +54,7 @@ interface FoodValues {
   sugar: number | null;
   sodium: number | null;
   glycemic_index: number | null;
-  absorption_speed: 'slow' | 'moderate' | 'fast' | null;
+  absorption_speed: string | null;
   insulin_response: number | null;
   satiety_score: number | null;
   protein_quality: number | null;
@@ -77,6 +74,56 @@ interface TemplateValues {
   name: string;
   category: string;
   notes: string | null;
+}
+
+/**
+ * DRF's FoodItem serializer uses FloatField for nutrition scalars.  The
+ * underlying SQLite DecimalField rounds values when they are read back, but
+ * it does not reject extra precision during request validation.  Keep this
+ * parser separate from the DecimalField parser used by calculation endpoints
+ * so request/response behavior remains compatible with the legacy API.
+ */
+function numberValue(
+  errors: JsonObject,
+  field: string,
+  value: unknown,
+  options: {
+    allowNull?: boolean;
+    min?: number;
+    max?: number;
+  } = {},
+): number | null | undefined {
+  if (value === undefined) {
+    addError(errors, field, 'This field is required.');
+    return undefined;
+  }
+  if (value === null) {
+    if (options.allowNull) return null;
+    addError(errors, field, 'This field may not be null.');
+    return undefined;
+  }
+  const parsed = typeof value === 'string'
+    ? (value.trim() ? Number(value.trim()) : Number.NaN)
+    : value;
+  if (typeof parsed !== 'number' || !Number.isFinite(parsed)) {
+    addError(errors, field, 'A valid number is required.');
+    return undefined;
+  }
+  if (options.min !== undefined && parsed < options.min) {
+    addError(
+      errors,
+      field,
+      `Ensure this value is greater than or equal to ${options.min}.`,
+    );
+  }
+  if (options.max !== undefined && parsed > options.max) {
+    addError(
+      errors,
+      field,
+      `Ensure this value is less than or equal to ${options.max}.`,
+    );
+  }
+  return parsed;
 }
 
 function bodyObject(value: unknown): JsonObject {
@@ -193,9 +240,33 @@ function integer(
       field,
       `Ensure this value is greater than or equal to ${options.min}.`,
     );
-    return undefined;
+  }
+  if (options.max !== undefined && result > options.max) {
+    addError(
+      errors,
+      field,
+      `Ensure this value is less than or equal to ${options.max}.`,
+    );
   }
   return result;
+}
+
+function optionalNonBlankString(
+  errors: JsonObject,
+  field: string,
+  value: unknown,
+): string | null | undefined {
+  if (value === null) return null;
+  if (typeof value !== 'string') {
+    addError(errors, field, 'A valid string is required.');
+    return undefined;
+  }
+  const normalized = value.trim();
+  if (!normalized) {
+    addError(errors, field, 'This field may not be blank.');
+    return undefined;
+  }
+  return normalized;
 }
 
 function nullableString(
@@ -360,8 +431,8 @@ function normalizedEventTime(
     addError(errors, field, 'A valid time is required.');
     return undefined;
   }
-  const match = /^(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?$/.exec(value);
-  const [, hour = '', minute = '', second = ''] = match ?? [];
+  const match = /^(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,6}))?)?$/.exec(value);
+  const [, hour = '', minute = '', second = '', fraction = ''] = match ?? [];
   if (
     !match ||
     Number(hour) > 23 ||
@@ -371,7 +442,10 @@ function normalizedEventTime(
     addError(errors, field, 'A valid time is required.');
     return undefined;
   }
-  return `${hour}:${minute}:${second || '00'}`;
+  const normalizedFraction = fraction
+    ? `.${fraction.padEnd(6, '0')}`
+    : '';
+  return `${hour}:${minute}:${second || '00'}${normalizedFraction}`;
 }
 
 function validateFood(
@@ -398,7 +472,7 @@ function validateFood(
 
   let servingSize = existing?.serving_size ?? 0;
   if (isCreate || 'servingSize' in data) {
-    const value = decimal(errors, 'servingSize', data.servingSize);
+    const value = numberValue(errors, 'servingSize', data.servingSize);
     if (value !== undefined && value !== null && value <= 0) {
       addError(errors, 'servingSize', 'Serving size must be greater than zero.');
     } else if (value !== undefined && value !== null) {
@@ -421,8 +495,10 @@ function validateFood(
     carbs: existing?.carbs ?? 0,
     fat: existing?.fat ?? 0,
     saturatedFat: existing?.saturated_fat ?? null,
-    fiber: existing?.fiber ?? null,
-    sugar: existing?.sugar ?? null,
+    // FoodItem.model defines fiber and sugar with a default of zero.  DRF
+    // therefore returns 0 when either field is omitted on create.
+    fiber: existing?.fiber ?? 0,
+    sugar: existing?.sugar ?? 0,
     sodium: existing?.sodium ?? null,
     insulinResponse: existing?.insulin_response ?? null,
   };
@@ -430,13 +506,12 @@ function validateFood(
     structuredClone(currentNumbers);
   for (const field of numericFields) {
     if (field in data) {
-      const value = decimal(
+      const value = numberValue(
         errors,
         field,
         data[field],
         {
           allowNull: field !== 'calories',
-          maximumDigits: field === 'insulinResponse' ? 5 : 10,
         },
       );
       if (value !== undefined) {
@@ -463,25 +538,17 @@ function validateFood(
   if ('proteinQuality' in data) {
     proteinQuality = integer(errors, 'proteinQuality', data.proteinQuality, {
       allowNull: true,
-      choices: [1, 2, 3],
     }) ?? null;
   }
 
   let absorptionSpeed = existing?.absorption_speed ?? null;
   if ('absorptionSpeed' in data) {
-    if (data.absorptionSpeed === null) {
-      absorptionSpeed = null;
-    } else if (data.absorptionSpeed === '') {
-      absorptionSpeed = null;
-    } else {
-      const selected = choice(
-        errors,
-        'absorptionSpeed',
-        data.absorptionSpeed,
-        ABSORPTION_SPEEDS,
-      );
-      absorptionSpeed = (selected ?? null) as 'slow' | 'moderate' | 'fast' | null;
-    }
+    const selected = optionalNonBlankString(
+      errors,
+      'absorptionSpeed',
+      data.absorptionSpeed,
+    );
+    if (selected !== undefined) absorptionSpeed = selected;
   }
 
   let category = existing?.category ?? null;
@@ -510,7 +577,7 @@ function validateFood(
     sugar: parsedNumbers.sugar,
     sodium: parsedNumbers.sodium,
     glycemic_index: glycemicIndex,
-    absorption_speed: absorptionSpeed as FoodItemRecord['absorption_speed'],
+    absorption_speed: absorptionSpeed ?? null,
     insulin_response: parsedNumbers.insulinResponse,
     satiety_score: satietyScore,
     protein_quality: proteinQuality,
@@ -519,6 +586,7 @@ function validateFood(
 }
 
 interface ParsedNestedItem {
+  inputIndex: number;
   foodId: number;
   grams: number;
   order?: number;
@@ -529,6 +597,38 @@ interface ResolvedNestedItems {
   foods: Map<number, FoodItemRecord>;
 }
 
+function drfTypeName(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'list';
+  if (typeof value === 'object') return 'dict';
+  if (typeof value === 'boolean') return 'bool';
+  if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'float';
+  if (typeof value === 'string') return 'str';
+  return typeof value;
+}
+
+function nestedItemErrorObject(errors: JsonObject, index: number): JsonObject {
+  const list = Array.isArray(errors.food_items) ? errors.food_items : [];
+  if (errors.food_items !== list) errors.food_items = list;
+  while (list.length <= index) list.push({});
+  const current = list[index];
+  if (typeof current === 'object' && current !== null && !Array.isArray(current)) {
+    return current as JsonObject;
+  }
+  const replacement: JsonObject = {};
+  list[index] = replacement;
+  return replacement;
+}
+
+function addNestedError(
+  errors: JsonObject,
+  index: number,
+  field: string,
+  message: string,
+): void {
+  addError(nestedItemErrorObject(errors, index), field, message);
+}
+
 function parseNestedItems(
   errors: JsonObject,
   value: unknown,
@@ -536,44 +636,83 @@ function parseNestedItems(
   if (value === undefined) {
     return undefined;
   }
+  if (value === null) {
+    errors.food_items = ['This field may not be null.'];
+    return undefined;
+  }
   if (!Array.isArray(value)) {
-    addError(errors, 'food_items', 'Expected a list of items but got type "str".');
+    errors.food_items = [
+      `Expected a list of items but got type "${drfTypeName(value)}".`,
+    ];
     return undefined;
   }
 
   const items: ParsedNestedItem[] = [];
+  const itemErrors: unknown[] = [];
+  let hasErrors = false;
   value.forEach((entry, index) => {
-    const field = `food_items[${index}]`;
-    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
-      addError(errors, field, 'Invalid data. Expected a dictionary, but got an object.');
+    if (entry === null) {
+      itemErrors[index] = ['This field may not be null.'];
+      hasErrors = true;
+      return;
+    }
+    if (typeof entry !== 'object' || Array.isArray(entry)) {
+      itemErrors[index] = {
+        non_field_errors: [
+          `Invalid data. Expected a dictionary, but got ${drfTypeName(entry)}.`,
+        ],
+      };
+      hasErrors = true;
       return;
     }
     const item = entry as JsonObject;
+    const nestedErrors: JsonObject = {};
     let foodId: number | undefined;
-    if (typeof item.foodId === 'number' && Number.isInteger(item.foodId) && item.foodId >= 1) {
+    if (!('foodId' in item)) {
+      nestedErrors.foodId = ['This field is required.'];
+    } else if (item.foodId === null) {
+      nestedErrors.foodId = ['This field may not be null.'];
+    } else if (typeof item.foodId === 'number' && Number.isInteger(item.foodId)) {
       foodId = item.foodId;
-    } else if (
-      typeof item.foodId === 'string' &&
-      /^\d+$/.test(item.foodId) &&
-      Number.parseInt(item.foodId, 10) >= 1
-    ) {
-      foodId = Number.parseInt(item.foodId, 10);
+    } else if (typeof item.foodId === 'string' && /^[+-]?\d+$/.test(item.foodId.trim())) {
+      foodId = Number.parseInt(item.foodId.trim(), 10);
     } else {
-      addError(errors, `${field}.foodId`, 'A valid integer is required.');
+      nestedErrors.foodId = [
+        `Incorrect type. Expected pk value, received ${drfTypeName(item.foodId)}.`,
+      ];
     }
 
-    const grams = decimal(errors, `${field}.grams`, item.grams, { min: 0.01 });
+    const grams = numberValue(nestedErrors, 'grams', item.grams, { min: 0.01 });
     if (grams === undefined || grams === null) {
+      if (Object.keys(nestedErrors).length > 0) {
+        itemErrors[index] = nestedErrors;
+        hasErrors = true;
+      }
       return;
     }
     let order: number | undefined;
     if ('order' in item) {
-      order = integer(errors, `${field}.order`, item.order) ?? undefined;
+      order = integer(nestedErrors, 'order', item.order) ?? undefined;
+    }
+    if (Object.keys(nestedErrors).length > 0) {
+      itemErrors[index] = nestedErrors;
+      hasErrors = true;
     }
     if (foodId !== undefined) {
-      items.push({ foodId, grams, ...(order !== undefined ? { order } : {}) });
+      // MealFoodItem is a DecimalField(decimal_places=2), so its persisted
+      // value is rounded when the nested row is loaded by the serializer.
+      const persistedGrams = Number(grams.toFixed(2));
+      items.push({
+        inputIndex: index,
+        foodId,
+        grams: persistedGrams,
+        ...(order !== undefined ? { order } : {}),
+      });
     }
   });
+  if (hasErrors) {
+    errors.food_items = itemErrors.map((entry) => entry ?? {});
+  }
   return items;
 }
 
@@ -594,11 +733,19 @@ function validateMeal(
 
   let mealType = existing?.meal_type;
   if (isCreate || 'mealType' in data) {
-    mealType = choice(errors, 'mealType', data.mealType, MEAL_TYPES);
+    // The legacy serializer exposes mealType as a plain CharField rather
+    // than a ChoiceField, so non-empty custom values remain valid.
+    mealType = requiredText(errors, 'mealType', data.mealType, 255);
   }
 
   let loggedAt = existing ? new Date(existing.logged_at) : new Date();
-  if ('loggedAt' in data && data.loggedAt !== null) {
+  if ('loggedAt' in data) {
+    if (data.loggedAt === null) {
+      addError(errors, 'loggedAt', 'This field may not be null.');
+    } else if (data.loggedAt === undefined) {
+      // Test callers sometimes use an explicit undefined to model an
+      // omitted optional field; leave the auto timestamp untouched.
+    } else {
     const value = data.loggedAt;
     const matchesIso = typeof value === 'string' &&
       /^\d{4}-\d{2}-\d{2}(?:[Tt ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/.test(value);
@@ -609,13 +756,18 @@ function validateMeal(
       // Django's auto_now_add column ignores the supplied timestamp on insert.
       loggedAt = parsed;
     }
+    }
   }
 
   let date = existing?.date ?? calendarDate(loggedAt, timezone);
-  if ('date' in data && data.date !== null && data.date !== undefined) {
-    const normalized = normalizedDate(errors, 'date', data.date);
-    if (normalized !== undefined) {
-      date = normalized;
+  if ('date' in data) {
+    if (data.date === null) {
+      addError(errors, 'date', 'This field may not be null.');
+    } else if (data.date !== undefined) {
+      const normalized = normalizedDate(errors, 'date', data.date);
+      if (normalized !== undefined) {
+        date = normalized;
+      }
     }
   } else if (isCreate) {
     date = calendarDate(loggedAt, timezone);
@@ -631,7 +783,7 @@ function validateMeal(
     if (data.notes === null) {
       notes = null;
     } else if (typeof data.notes === 'string') {
-      notes = data.notes === '' ? null : data.notes;
+      notes = data.notes.trim();
     } else {
       addError(errors, 'notes', 'A valid string is required.');
     }
@@ -679,7 +831,7 @@ function validateTemplate(
     if (data.notes === null) {
       notes = null;
     } else if (typeof data.notes === 'string') {
-      notes = data.notes === '' ? null : data.notes;
+      notes = data.notes.trim();
     } else {
       addError(errors, 'notes', 'A valid string is required.');
     }
@@ -832,20 +984,29 @@ async function resolveNestedFoods(
 ): Promise<ResolvedNestedItems> {
   const foods = await foodMap(context, userId, items.map((item) => item.foodId));
   const errors: JsonObject = {};
-  for (const [index, item] of items.entries()) {
+  for (const item of items) {
     const food = visibleFood(foods.get(item.foodId), userId);
     if (!food) {
-      addError(
+      addNestedError(
         errors,
-        `food_items[${index}].foodId`,
+        item.inputIndex,
+        'foodId',
         `Invalid pk "${item.foodId}" - object does not exist.`,
       );
+    }
+  }
+  if (Array.isArray(errors.food_items)) {
+    // A parser error list may already have established the DRF positional
+    // shape.  Preserve empty entries for valid siblings.
+    const parsedErrors = errors.food_items;
+    while (parsedErrors.length < Math.max(...items.map((item) => item.inputIndex + 1), 0)) {
+      parsedErrors.push({});
     }
   }
   fail(errors);
 
   const resolved: NestedFoodItemRecord[] = [];
-  for (const [index, item] of items.entries()) {
+  for (const item of items) {
     const id = await context.repository.nextId(
       kind === 'meal' ? 'meal_food_item' : 'meal_template_food_item',
     );
@@ -859,7 +1020,7 @@ async function resolveNestedFoods(
       ...(kind === 'meal' ? { meal_id: parentId } : { template_id: parentId }),
       food_id: item.foodId,
       grams: item.grams,
-      order: item.order ?? index,
+      order: item.order ?? item.inputIndex,
     });
   }
   return { items: resolved, foods };
