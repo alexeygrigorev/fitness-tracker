@@ -23,6 +23,7 @@ async function createArtifact(): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), 'fitness-artifact-'));
   await mkdir(path.join(root, 'Api', 'dist'), { recursive: true });
   await mkdir(path.join(root, 'Api', 'src'), { recursive: true });
+  await mkdir(path.join(root, 'Api', 'frontend', 'assets'), { recursive: true });
   await writeFile(
     path.join(root, 'Api', 'dist', 'lambda.cjs'),
     [
@@ -45,6 +46,18 @@ async function createArtifact(): Promise<string> {
   await writeFile(
     path.join(root, 'Api', 'openapi.json'),
     JSON.stringify({ openapi: '3.0.0' }),
+  );
+  await writeFile(
+    path.join(root, 'Api', 'frontend', 'index.html'),
+    '<!doctype html><title>Fitness</title>\n',
+  );
+  await writeFile(
+    path.join(root, 'Api', 'frontend', 'vite.svg'),
+    '<svg xmlns="http://www.w3.org/2000/svg" />\n',
+  );
+  await writeFile(
+    path.join(root, 'Api', 'frontend', 'assets', 'app.test.js'),
+    'window.test = true;\n',
   );
   await writeFile(path.join(root, 'template.yaml'), [
     'Resources:',
@@ -71,7 +84,7 @@ describe('LambdaArtifactGateTests', () => {
     const result = await verifyArtifact(artifactRoot);
     assert.equal(result.codeUri, 'Api');
     assert.equal(result.handler, 'dist/lambda.cjs.handler');
-    assert.equal(result.files, 4);
+    assert.equal(result.files, 7);
   });
 
   it('fails when SAM packaged a handlerless artifact', async () => {

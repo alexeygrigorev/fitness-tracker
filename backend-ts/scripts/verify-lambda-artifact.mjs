@@ -21,6 +21,13 @@ function handlerToFilePath(handler) {
   return extension ? module : `${module}.js`;
 }
 
+function isFrontendAsset(file) {
+  const relative = path.relative(path.join('frontend', 'assets'), file);
+  return relative !== '..' &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relative);
+}
+
 async function walk(root, relative = '') {
   const entries = await readdir(root, { withFileTypes: true });
   const files = [];
@@ -83,11 +90,21 @@ export async function verifyArtifact(artifactRoot) {
     'package.json',
     'package-lock.json',
     'README.md',
+    'frontend/index.html',
+    'frontend/vite.svg',
   ].map((entry) => path.normalize(entry)));
+  const frontendEntrypoint = path.normalize('frontend/index.html');
+
   for (const file of deployableFiles) {
-    if (!allowedFiles.has(file)) {
+    if (!allowedFiles.has(file) && !isFrontendAsset(file)) {
       throw new Error(`Unexpected deployable file: ${file}`);
     }
+  }
+  if (!deployableFiles.includes(frontendEntrypoint)) {
+    throw new Error('SPA entrypoint was not packaged: frontend/index.html');
+  }
+  if (!deployableFiles.some(isFrontendAsset)) {
+    throw new Error('SPA assets were not packaged under frontend/assets');
   }
 
   const artifactRequire = createRequire(pathToFileURL(handlerPath).href);

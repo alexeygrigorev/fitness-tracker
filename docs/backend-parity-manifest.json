@@ -36,6 +36,14 @@
       "passing": true,
       "verifiedAt": "2026-08-24"
     },
+    "frontendCutoverArtifact": {
+      "buildCommand": "cd backend-ts && npm run build:cutover",
+      "packagingCommand": "cd backend-ts && npm run verify:artifact",
+      "result": "Typecheck and 161 TypeScript tests passed; SAM build succeeded and the strict verifier accepted the packaged files with the required SPA entrypoint and assets.",
+      "passing": true,
+      "activeTrafficServingBackend": "backend-django",
+      "verifiedAt": "2026-08-24"
+    },
     "translatedTargetsPending": 0,
     "translatedTargetsApprovedOrPassing": 144
   },
@@ -55,6 +63,7 @@
   "gateStatus": {
     "testParityInventoryComplete": true,
     "allTranslatedTestsPass": true,
+    "frontendCutoverConfigured": true,
     "deletionGatePassed": false,
     "translatedTargetsPending": 0,
     "translatedTargetsApprovedOrPassing": 144,

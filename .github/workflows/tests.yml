@@ -111,13 +111,19 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: backend-ts/package-lock.json
+          cache-dependency-path: |
+            backend-ts/package-lock.json
+            web/package-lock.json
 
       - name: Install SAM CLI
         uses: aws-actions/setup-sam@v2
 
       - name: Install backend dependencies
         working-directory: backend-ts
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: web
         run: npm ci
 
       - name: Verify SAM-built Lambda artifact
