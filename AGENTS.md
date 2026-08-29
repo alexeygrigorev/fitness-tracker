@@ -1,3 +1,7 @@
+## Git workflow
+
+Do all work directly on `main` unless multiple agents are running in parallel. Use separate worktrees or branches only to isolate parallel agent work, and merge that work back into `main` when it is complete.
+
 ## CRITICAL: File Editing on Windows
 
 ### ⚠️ MANDATORY: Always Use Backslashes on Windows for File Paths
