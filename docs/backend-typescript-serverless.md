@@ -1,64 +1,56 @@
-# Backend TypeScript Serverless Decision
+# TypeScript serverless backend
 
-Status: **locked** on 2026-08-23.
+The TypeScript Lambda is the sole application backend. It serves the existing
+REST contract through an AWS Lambda Function URL and stores records in a
+single DynamoDB table. The React SPA is packaged into the same SAM artifact so
+the production path can be same-origin.
 
-The replacement backend is implemented in strict TypeScript on AWS Lambda. The
-old Django backend remains the source of truth until every parity gate below
-passes; only then may `backend-django`, its migrations, Docker/Fly deployment
-path, and Python-only tooling be removed.
+## Local verification
 
-## Architecture Decisions
+The following commands exercise the same handler at every layer:
 
-- Use a single monolithic HTTP Lambda for API routes and the built SPA, matching
-  the proven `dataops` backend pattern rather than adding API Gateway or another
-  framework layer.
-- Expose it through an AWS Lambda Function URL with `AuthType: NONE`; JWT
-  authorization remains application-owned.
-- Store data in DynamoDB using `PAY_PER_REQUEST`. This avoids RDS/ECS/Fly fixed
-  costs and supports transactional writes for nested workouts and meals.
-- Preserve numeric public IDs from the existing API. Internal keys may be typed,
-  while response IDs remain numbers.
-- Preserve exact routes, including trailing slashes, request/response field
-  names, status codes, pagination-free arrays, DRF error shapes where callers
-  depend on them, and camelCase domain payloads.
-- Keep authentication contract-compatible: form-encoded login returns access and
-  refresh JWTs plus `user`; protected requests use `Authorization: Bearer`.
-- Implement password hashing with Node crypto and migrate or re-derive existing
-  users through an explicit data migration rehearsal before cutover.
-- Run local integration tests against DynamoDB Local/dynalite and invoke the
-  real handler, not mocked repositories.
-- Deploy with AWS SAM, Node.js 24 ARM64, least-privilege IAM, pay-per-request
-  DynamoDB tables, and no persistent servers.
+```sh
+cd backend-ts
+npm ci
+npm run typecheck
+npm run test:integration
+npm run build:cutover
+npm run verify:artifact
 
-## Parity Lock
+cd ../e2e
+npm ci
+npm run install:browsers
+./run-local-ts.sh
+./run-sam-ts.sh
+```
 
-`docs/backend-parity-lock.json` is the machine-readable control file. Its
-current committed baseline is 22 Python test classes and 140 passing test
-methods at the reliability-lane commit `3030309`. The final manifest must
-inventory every test that exists immediately before Python deletion, not merely
-this historical minimum.
+The two Playwright runners use DynamoDB Local and a deterministic fixture. The
+first uses the compiled source handler; the second starts the handler bundled
+by `sam build` and the packaged SPA. No deployed service is required for
+these checks.
 
-## Deletion Gates
+## Data migration
 
-1. Every Python backend test is mapped one-to-one by intent to a TypeScript
-   test, with no skipped tests unless the lock records an approved equivalent.
-2. All translated TypeScript tests pass against DynamoDB Local.
-3. A generated OpenAPI/contract diff proves route, schema, status, and payload
-   compatibility, including documented examples.
-   The canonical export is `backend-ts/openapi.json`; refresh it with `make
-   export-backend-contract`.
-4. Full frontend unit tests and the complete Playwright suite pass twice against
-   the TypeScript backend: once locally and once from the SAM-built artifact.
-5. Ownership/security boundaries receive a focused review covering users,
-   exercises, sessions, sets, presets, plans, foods, meals, templates, and AI.
-6. A sandbox deployment smoke test passes health, registration/login, workout,
-   nutrition, and AI endpoints.
-7. Existing SQLite data exports and imports successfully in a migration
-   rehearsal.
-8. Frontend configuration switches to the TypeScript runtime only after all
-   preceding gates pass.
-9. The old backend is retained until then, followed by one focused removal
-   commit that also updates scripts, documentation, CI, and E2E runners.
+For an existing SQLite file, export a snapshot and rehearse it into an empty
+DynamoDB Local table:
 
-No lane may delete Python code, disable old tests, or claim parity without
-updating the lock and producing command evidence.
+```sh
+cd backend-ts
+npm run export:sqlite -- /absolute/path/to/source.sqlite .tmp/migration-snapshot.json
+npm run rehearsal:migration -- .tmp/migration-snapshot.json
+```
+
+The exporter is read-only, versioned, and preserves public numeric IDs. The
+rehearsal validates foreign keys, writes in retryable batches, seeds counters,
+and verifies every resulting record.
+
+## Deployment boundary
+
+`backend-ts/template.yaml` defines Node.js 24 ARM64, least-privilege table
+access, pay-per-request billing, point-in-time recovery, and a public Function
+URL whose application code performs JWT authorization and CORS checks.
+
+CI runs typechecking, integration tests, frontend tests, the local browser
+flow, and SAM artifact verification. It intentionally does not deploy to AWS;
+deployment should be an explicit follow-up after credentials, migration
+smoke tests, and the production origin are approved.

@@ -5,11 +5,8 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * Run tests against any URL by setting BASE_URL:
  *
- *   # Default: local dev server (frontend on :5173, backend on :8000)
+ *   # Default: local Vite dev server (frontend on :5173)
  *   npm test
- *
- *   # Docker instance (both frontend and backend on :8000)
- *   BASE_URL=http://localhost:8000 npm test
  *
  *   # Remote staging/production
  *   BASE_URL=https://staging.example.com npm test

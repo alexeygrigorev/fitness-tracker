@@ -1,17 +1,11 @@
-# TypeScript Backend Foundation
+# TypeScript backend
 
-This is the first deployable slice of the locked TypeScript replacement. It is
-intentionally independent of `backend-django`; the Python API remains the
-source of truth until every gate in `docs/backend-parity-lock.json` passes.
+This directory contains the complete API runtime: a Node.js 24 TypeScript
+Lambda handler, DynamoDB repository, migration tools, and integration tests.
+The same handler runs in-process, behind the local HTTP server, and in the SAM
+artifact used for deployment.
 
-The foundation includes the monolithic Function URL Lambda, strict runtime
-configuration, single-table access primitives, numeric ID allocation, JWT
-signing/validation, Django-compatible PBKDF2 password hashes, health, auth,
-user profile, and exercise-settings routes.
-
-`openapi.json` is generated from the locked Django API. Regenerate it after an
-intentional Python contract change with `make export-backend-contract`; the
-Python contract tests fail when the committed artifact drifts.
+## Local checks
 
 ```sh
 npm ci
@@ -21,56 +15,64 @@ npm run build
 npm run verify:artifact
 ```
 
-Integration tests launch official DynamoDB Local, so Java must be installed.
-They invoke the real handler against an in-memory table. The SAM artifact is
-built from the same bundled handler. The artifact verifier builds that payload
-again and checks the handler export, source-map metadata, packaged-file
-inventory, and database-unreachable health fallback:
+Integration tests start an in-memory DynamoDB Local instance and invoke the
+real handler. Java is required by the DynamoDB Local package.
+
+The complete browser suite has two local modes. Both use the committed
+deterministic fixture at `../e2e/fixtures/backend-seed.json`:
 
 ```sh
-sam build
-sam deploy --guided --parameter-overrides \
-  JwtSecret='<50+-character-secret>' \
-  AllowedOrigins='https://fitness.example'
+../e2e/run-local-ts.sh   # TypeScript dev server + Vite
+../e2e/run-sam-ts.sh     # SAM-built Lambda/SPA + Vite-compatible HTTP server
 ```
 
-Set `AllowedOrigins` to the exact comma-separated browser origins that call the
-API. A same-origin SPA needs no value; a local Vite frontend uses
-`http://localhost:5173`.
+## Runtime configuration
 
-## Frontend cutover artifact
+Required production variables are `TABLE_NAME` and `JWT_SECRET` (at least 50
+characters). Optional variables are:
 
-Django remains the active serving backend while parity gates are open. The
-Lambda stack is prepared for its eventual same-origin SPA without switching any
-traffic now. Build the React app with an empty `VITE_API_URL`, copy it into the
-SAM function artifact, and let the default `FrontendBuild` resolve to
-`/var/task/frontend` inside Lambda:
+- `DYNAMODB_ENDPOINT` — local DynamoDB endpoint; the local runners set this
+  automatically.
+- `ALLOWED_ORIGINS` — comma-separated exact browser origins. Leave empty for a
+  same-origin packaged SPA.
+- `FRONTEND_BUILD` — directory containing the packaged SPA (`frontend` in the
+  SAM artifact).
+- `TIME_ZONE` — IANA timezone used when deriving meal dates (defaults to UTC).
+- `NODE_ENV` — use `production` for a packaged deployment.
+
+Run the HTTP adapter manually with `npm run dev`; it provisions an ephemeral
+DynamoDB Local table and optionally loads a migration snapshot from
+`MIGRATION_SNAPSHOT`.
+
+## SQLite migration
+
+`export:sqlite` is a dependency-free, read-only exporter for the existing
+SQLite schema. It emits the versioned snapshot consumed by the migration
+rehearsal and does not need an application server:
+
+```sh
+npm run export:sqlite -- /absolute/path/to/source.sqlite .tmp/migration-snapshot.json
+npm run rehearsal:migration -- .tmp/migration-snapshot.json
+```
+
+The loader refuses non-empty targets, preserves numeric IDs, seeds every
+counter, retries throttled writes, and deep-compares all imported records.
+
+## AWS SAM artifact
+
+The template is `template.yaml` and targets a Node.js 24 ARM64 Lambda Function
+URL with a pay-per-request DynamoDB table. Build the exact package locally:
 
 ```sh
 npm run build:cutover
-sam build
-sam deploy --guided --parameter-overrides \
-  JwtSecret='<50+-character-secret>' \
-  AllowedOrigins=''
+sam build --template template.yaml
 ```
 
-The table retains data on stack updates/deletion. User IDs come from atomic
-counters so migrated SQLite IDs remain stable. Exercise settings are scoped to
-the authenticated user and require a canonical or owner-owned exercise item.
+`npm run verify:artifact` checks the handler export, source-map metadata,
+packaged file inventory, SPA assets, and the health fallback when the database
+is unavailable. AWS deployment is deliberately a separate, explicitly
+authorized operation after local and account-level migration smoke checks.
 
-## SQLite migration rehearsal
-
-Export a migrated SQLite database, then load it into a disposable empty
-DynamoDB Local table. The loader refuses a nonempty target, preserves source
-numeric IDs, seeds every runtime counter, retries throttled batch writes, and
-deep-compares a consistent read of every loaded item.
-
-```sh
-cd backend-django
-DB_PATH=/absolute/path/to/source.sqlite uv run python manage.py migrate
-DB_PATH=/absolute/path/to/source.sqlite uv run python manage.py \
-  export_migration_snapshot --output ../backend-ts/.tmp/migration-snapshot.json
-
-cd ../backend-ts
-npm run rehearsal:migration
-```
+`openapi.json` is the committed public contract. It preserves the existing
+routes, trailing slashes, numeric IDs, JWT header, and compatibility error
+payloads.

@@ -18,25 +18,22 @@ npm test
 BASE_URL=http://localhost:5173 npm run test:ui
 ```
 
-Browser tests default to the Vite frontend on port `5173`, while direct API
-request helpers default to Django on port `8000`. For custom ports, use
-`./run-local.sh` or set both `BASE_URL` and `VITE_API_URL`.
+`./run-local-ts.sh` runs the frontend and TypeScript backend locally against a
+fresh DynamoDB Local database. `./run-sam-ts.sh` runs the same suite against
+the production-built Lambda/SPA artifact. Both use the committed deterministic
+fixture in `fixtures/backend-seed.json` and require no second backend.
+
+To target an already-running stack, set both `BASE_URL` and `VITE_API_URL`.
 
 ## Running Against Different Environments
 
 ```bash
-# Docker instance (port 8000)
-BASE_URL=http://localhost:8000 npm test
-
 # Local dev server (frontend on :5173)
 BASE_URL=http://localhost:5173 npm test
 
 # Remote environment
 BASE_URL=https://staging.example.com npm test
 
-# Using the run script
-./run.sh http://localhost:8000
-./run.sh https://staging.example.com
 ```
 
 ## Project Structure
@@ -46,7 +43,8 @@ e2e/
 ├── tests/*.spec.ts     # Test files
 ├── playwright.config.ts # Playwright configuration
 ├── package.json        # Dependencies
-├── run.sh              # Convenience script
+├── run-local-ts.sh     # Vite + TypeScript backend + DynamoDB Local
+├── run-sam-ts.sh       # Production Lambda/SPA artifact + DynamoDB Local
 └── README.md           # This file
 ```
 

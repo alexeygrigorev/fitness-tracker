@@ -1,232 +1,119 @@
 # Fitness Tracker
 
-A full-stack fitness tracking application with workout logging, nutrition tracking, sleep tracking, and more.
+Fitness Tracker is a React/Vite application backed by a TypeScript Lambda
+handler. The API and the built SPA are packaged together for AWS SAM and can
+be run locally against DynamoDB Local.
 
-## Tech Stack
+## Stack
 
-- **Backend**: Django REST Framework (Python 3.13) with SQLite
-- **Frontend**: React + TypeScript + Vite
-- **Authentication**: JWT tokens with Django auth
-- **Styling**: Tailwind CSS v4
-- **Icons**: FontAwesome
-- **Testing**: Vitest (frontend), Playwright (E2E), pytest (backend)
-- **Package Management**: uv (Python), npm (Node.js)
+- **API:** TypeScript, Node.js 24, AWS Lambda Function URL
+- **Data:** DynamoDB (pay-per-request in AWS)
+- **Web:** React, TypeScript, Vite, Tailwind CSS
+- **Authentication:** JWT with PBKDF2-compatible password hashes
+- **Tests:** Node's test runner, Vitest, and Playwright
 
-## Quick Start
+## Run locally
 
-### Prerequisites
+Prerequisites are Node.js 24+, Java (for DynamoDB Local), and npm.
 
-- Python 3.13+
-- Node.js 22+
-- `uv` (Python package manager) - install with `pip install uv`
-- Docker (optional, for single-container deployment)
+Install each workspace once:
 
-### Option 1: Docker (Recommended)
-
-```bash
-# Build and run
-docker build -t fitness-tracker .
-docker run -p 8000:80 -v $(pwd)/db:/app/backend/db fitness-tracker
+```sh
+cd backend-ts && npm ci
+cd ../web && npm ci
+cd ../e2e && npm ci && npm run install:browsers
 ```
 
-Access at http://localhost:8000
+Run the complete browser flow with a deterministic local database and seed:
 
-### Option 2: Development Mode
-
-**1. Backend Setup**
-```bash
-cd backend-django
-uv sync --all-extras --dev
-uv run python manage.py migrate
-uv run python -m data.generate
-uv run python manage.py runserver
+```sh
+./e2e/run-local-ts.sh
 ```
 
-**2. Frontend Setup (separate terminal)**
-```bash
-cd web
-npm ci
+To exercise the exact SAM-built Lambda and packaged SPA locally:
+
+```sh
+./e2e/run-sam-ts.sh
+```
+
+For interactive development, run the API and Vite separately:
+
+```sh
+# terminal 1
+cd backend-ts
 npm run dev
-```
 
-Access at http://localhost:5173
-
-### Demo Accounts
-
-| Username | Password |
-|----------|----------|
-| `admin`  | `admin`  |
-| `test`   | `test`   |
-
-## Project Structure
-
-```
-fitness-tracker/
-├── backend-django/      # Django REST Framework backend
-│   ├── config/          # Django settings
-│   ├── data/            # Data generation scripts
-│   ├── food/            # Food & nutrition app
-│   ├── users/           # User management app
-│   ├── workouts/        # Workout & exercise app
-│   └── manage.py        # Django entry point
-├── web/                 # React + Vite frontend
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── api/         # API clients
-│   │   ├── auth/        # Authentication context and pages
-│   │   ├── food/        # Nutrition components and pages
-│   │   ├── health/      # Sleep and metabolism pages
-│   │   ├── types/       # Shared TypeScript types
-│   │   ├── workout/     # Workout components and set helpers
-│   │   └── pages/       # Page components
-│   └── tests/           # Frontend unit tests
-├── e2e/                 # Playwright E2E tests
-└── Dockerfile           # Single-container deployment
-```
-
-## API Endpoints
-
-### Public Routes
-- `GET /api/health/` - Health check
-- `POST /api/auth/register/` - Register new user
-- `POST /api/auth/login/` - Login
-
-### Protected Routes (require authentication)
-- `GET /api/auth/me/` - Get current user
-- `GET /api/workouts/exercises/` - List exercises
-- `POST /api/workouts/exercises/` - Create exercise
-- `GET /api/workouts/sessions/` - List workout sessions
-- `GET /api/workouts/presets/` - List workout presets
-- `GET /api/food/foods/` - List food items
-- `POST /api/food/foods/` - Create food item
-- `GET /api/food/meals/` - List meals
-
-### API Documentation
-- Swagger UI: `http://localhost:8000/api/docs/`
-- ReDoc: `http://localhost:8000/api/redoc/`
-- OpenAPI Schema: `http://localhost:8000/api/schema/`
-
-## Data Models
-
-### Exercises
-- Exercise with muscle groups, equipment, tags
-- Workout Presets (template workouts)
-- Workout Sessions (logged workouts)
-- Sets (weight, reps, RPE)
-
-### Nutrition
-- Food Items (macros, micros, serving sizes)
-- Meals (food items with gram amounts)
-- Meal Templates (reusable meal templates)
-
-### Users
-- Custom user model with dark mode preference
-- JWT-based authentication
-
-## Development
-
-### Running Tests
-
-```bash
-# Backend tests
-cd backend-django
-uv run pytest -v
-
-# Frontend unit tests
+# terminal 2
 cd web
-npm test
-
-# E2E tests (requires running app)
-cd e2e
-npm ci
-npm run install:browsers
-npm test
+VITE_API_URL=http://127.0.0.1:8000 npm run dev
 ```
 
-### Environment Variables
+The API listens on `http://127.0.0.1:8000`; Vite listens on
+`http://127.0.0.1:5173`.
 
-**Backend** (`backend-django/.env` or as environment variables):
-```bash
-SECRET_KEY=your-secret-key
-DB_PATH=db/db.sqlite3
-ALLOWED_HOSTS=localhost,127.0.0.1
-SERVE_FRONTEND=false  # Set to 'true' to have Django serve the frontend (Docker only)
-```
+The committed browser fixture contains the demo accounts `admin/admin`,
+`test/test`, and `test2/test2`. It is loaded only by the local E2E runners.
 
-**Frontend** (`web/.env`):
-```bash
-VITE_API_URL=http://127.0.0.1:8000
-```
+## Tests and builds
 
-#### Frontend Serving Modes
-
-The frontend can be served in two ways:
-
-**Development Mode (default)**
-- Frontend runs on Vite dev server (`npm run dev`) on port 5173
-- Django serves API only on port 8000
-- `SERVE_FRONTEND=false` or not set
-
-**Production/Docker Mode**
-- Django serves both API and frontend static files from a single container
-- Frontend is pre-built and copied to `web/dist/`
-- `SERVE_FRONTEND=true` enables Django to serve the frontend
-- Use this for Docker builds or when testing production builds locally
-
-To test a production build locally:
-```bash
-# Build the frontend
-cd web
+```sh
+cd backend-ts
+npm run typecheck
+npm run test:integration
 npm run build
+npm run verify:artifact
 
-# Start Django with SERVE_FRONTEND=true
-cd ../backend-django
-SERVE_FRONTEND=true uv run python manage.py runserver
+cd ../web
+npm test
+npm run build
 ```
 
-Now Django will serve the frontend at http://localhost:8000 (same as Docker).
+The integration suite provisions an in-memory DynamoDB Local table and invokes
+the real handler. `verify:artifact` builds the SAM package and checks that the
+deployable handler and SPA are self-contained.
 
-### Database Management
+## SQLite migration rehearsal
 
-```bash
-# Run migrations
-cd backend-django
-uv run python manage.py migrate
+The one-time exporter reads an existing SQLite file without requiring an
+application runtime. It writes the versioned snapshot consumed by the DynamoDB
+migration loader:
 
-# Create migrations after model changes
-uv run python manage.py makemigrations
-
-# Generate sample data
-uv run python -m data.generate
+```sh
+cd backend-ts
+npm run export:sqlite -- /absolute/path/to/source.sqlite .tmp/migration-snapshot.json
+npm run rehearsal:migration -- .tmp/migration-snapshot.json
 ```
 
-### Data Generation
+The rehearsal refuses to write into a non-empty table, preserves numeric IDs,
+seeds all runtime counters, and verifies every imported item.
 
-The `data.generate` module creates:
-- 3 demo users (admin, test, test2)
-- 42 exercises across all muscle groups
-- 6 workout presets (Push Day, Pull Day, Leg Day)
-- 4 historical workout sessions
-- 34 canonical food items
-- 2 sample meals
+## Project layout
 
-## Deployment
-
-The Dockerfile builds a single container serving both the React frontend (static files) and Django backend. The `SERVE_FRONTEND=true` environment variable is set in the Dockerfile to enable this mode; Gunicorn serves the WSGI application and Django static files are collected during the image build.
-
-```bash
-docker build -t fitness-tracker .
-docker run -d -p 8000:80 -v fitness-db:/app/backend/db \
-  -e SECRET_KEY="$(openssl rand -base64 48)" \
-  -e DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
-  fitness-tracker
+```text
+fitness-tracker/
+├── backend-ts/       # TypeScript Lambda, repository, migration tools, tests
+├── web/               # React/Vite frontend
+├── e2e/               # Playwright tests and local runners
+├── docs/              # API contract and migration decisions
+└── Makefile           # Common local commands
 ```
 
-The image starts with `DEBUG=false`, so every deployment needs a random `SECRET_KEY` of at least 50 characters and its public hostname. For an HTTP-only local container run, leave `DJANGO_TRUST_PROXY_TLS=false`; enable it only for a trusted reverse proxy that strips client-supplied forwarding headers. Fly sets its exact host, trusted TLS proxy setting, and verifies that the `SECRET_KEY` secret exists before deploying.
+## API
 
-## CI/CD
+The handler preserves the existing `/api/.../` routes, numeric IDs, JWT
+`Authorization: Bearer` header, and DRF-compatible error payloads. The
+committed contract is [backend-ts/openapi.json](backend-ts/openapi.json).
 
-GitHub Actions runs on every push:
-- Backend tests (pytest)
-- Frontend tests (vitest)
-- E2E tests (Playwright in Docker)
+## AWS packaging
+
+The SAM template is [backend-ts/template.yaml](backend-ts/template.yaml).
+Build it locally before any deployment:
+
+```sh
+cd backend-ts
+npm run build:cutover
+sam build --template template.yaml
+```
+
+AWS deployment is intentionally a separate, explicitly authorized step after
+the local checks above and a migration smoke test against the target account.
