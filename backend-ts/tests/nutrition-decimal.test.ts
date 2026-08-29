@@ -10,7 +10,7 @@ import {
 
 let api!: TestApi;
 
-describe('NutritionDecimalParityTests', () => {
+describe('NutritionDecimalTests', () => {
   let accessToken: string;
   let ownerId: number;
 
@@ -55,7 +55,7 @@ describe('NutritionDecimalParityTests', () => {
     }));
   }
 
-  it('test_decimal_calculations_match_django_precision_and_rounding', async () => {
+  it('test_decimal_calculations_match_sqlite_precision_and_rounding', async () => {
     const macroResponse = await api.call(
       'POST',
       '/api/food/calculations/calculate-calories/',

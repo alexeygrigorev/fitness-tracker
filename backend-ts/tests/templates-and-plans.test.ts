@@ -480,7 +480,7 @@ describe('TestWorkoutPlans', () => {
     assert.deepEqual(response.body, { detail: 'Not found.' });
   });
 
-  it('test_documented_get_plan_detail_matches_django', async () => {
+  it('test_documented_get_plan_detail_matches_current_contract', async () => {
     await seedPlan(6008, ownerId, 'Detail Plan');
 
     const owned = await api.call('GET', '/api/workouts/plans/6008/', {

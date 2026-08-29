@@ -12,7 +12,7 @@ export function registerHealthRoutes(addRoute: (route: RouteDefinition) => void)
         {
           status: ready ? 'healthy' : 'unhealthy',
           version: '1.0.0',
-          framework: 'Django REST Framework',
+          framework: 'TypeScript Lambda',
         },
         cors,
       );

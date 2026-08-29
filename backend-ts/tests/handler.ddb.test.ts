@@ -23,7 +23,7 @@ describe('TypeScript Lambda API foundation', () => {
     assert.deepEqual(result.body, {
       status: 'healthy',
       version: '1.0.0',
-      framework: 'Django REST Framework',
+      framework: 'TypeScript Lambda',
     });
   });
 

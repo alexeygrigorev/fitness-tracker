@@ -222,7 +222,7 @@ describe('TestUserExercises', () => {
   });
 });
 
-describe('TestEquipmentCaseParity', () => {
+describe('TestEquipmentCase', () => {
   let owner: Awaited<ReturnType<typeof registerAndLogin>>;
 
   before(async () => {

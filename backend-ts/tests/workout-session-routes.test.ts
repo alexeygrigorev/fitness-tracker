@@ -923,7 +923,7 @@ describe('TestE2ECompleteScenario', () => {
   });
 });
 
-describe('TestSessionsSetsParityRoutes', () => {
+describe('TestSessionsSetsRoutes', () => {
   async function createSession(
     token: string,
     overrides: Record<string, unknown> = {},

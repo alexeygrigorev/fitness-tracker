@@ -26,7 +26,7 @@ test.describe('Backend API Connectivity', () => {
     const data = await response.json();
     expect(data).toMatchObject({
       status: 'healthy',
-      framework: 'Django REST Framework'
+      framework: 'TypeScript Lambda'
     });
   });
 

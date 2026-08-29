@@ -229,8 +229,8 @@ export class FitnessRepository {
   }
 
   /**
-   * Migrated exercises flatten the Django equipment foreign key, but migrated
-   * taxonomy rows remain authoritative for deterministic case-insensitive reuse.
+   * Migrated exercises flatten the old equipment foreign key, but taxonomy
+   * rows remain authoritative for deterministic case-insensitive reuse.
    */
   async resolveEquipmentName(rawName: string): Promise<string> {
     const name = rawName.trim();

@@ -142,11 +142,8 @@ function repsCount(errors: JsonObject, field: string, value: unknown): number {
 /**
  * exercise_id: ExerciseIdentifierField(required=False, default="unknown", max_length=100).
  *
- * Note: Django's ExerciseIdentifierField.to_internal_value applies DRF's
- * built-in max_length validator to the raw value, which crashes with
- * `TypeError: object of type 'int' has no len()` when exercise_id is a
- * numeric ID (verified against a live Django server). We intentionally do
- * not replicate that crash; numeric exercise_id is handled without error.
+ * Numeric exercise identifiers are accepted as-is and grouped by their
+ * string representation in the response.
  */
 function exerciseIdentifier(errors: JsonObject, field: string, value: unknown): string | number {
   if (value === undefined) {

@@ -62,9 +62,8 @@ export function registerSchemaRoutes(
     },
   });
 
-  // Mirrors Django's drf-spectacular SpectacularSwaggerView/SpectacularRedocView:
-  // static HTML shells that load their viewer bundle from a CDN and point it
-  // at the OpenAPI document served above.
+  // Static HTML shells that load the viewer bundle from a CDN and point it at
+  // the OpenAPI document served above.
   addRoute({
     method: 'GET',
     pattern: '/api/docs/',

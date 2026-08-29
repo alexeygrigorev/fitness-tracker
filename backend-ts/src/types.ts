@@ -80,9 +80,8 @@ export interface FoodItemRecord {
   sodium: number | null;
   category: FoodCategory | '' | null;
   glycemic_index: number | null;
-  // The legacy CRUD serializer exposes this as a plain CharField (it accepts
-  // custom non-empty values), even though seed data normally uses these
-  // three labels.
+  // This field accepts custom non-empty values, even though seed data normally
+  // uses these three labels.
   absorption_speed: string | null;
   insulin_response: number | null;
   satiety_score: number | null;
