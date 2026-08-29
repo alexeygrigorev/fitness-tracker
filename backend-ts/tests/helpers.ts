@@ -50,6 +50,8 @@ async function freePort(): Promise<number> {
 }
 
 function waitForPort(selectedPort: number): Promise<void> {
+  const retryDelayMs = 100;
+  const maxAttempts = 300;
   return new Promise((resolve, reject) => {
     let attempts = 0;
     const connect = (): void => {
@@ -61,11 +63,11 @@ function waitForPort(selectedPort: number): Promise<void> {
       socket.once('error', () => {
         socket.destroy();
         attempts += 1;
-        if (attempts >= 100) {
-          reject(new Error('DynamoDB Local did not open its port'));
+        if (attempts >= maxAttempts) {
+          reject(new Error(`DynamoDB Local did not open port ${selectedPort}`));
           return;
         }
-        setTimeout(connect, 50);
+        setTimeout(connect, retryDelayMs);
       });
     };
     connect();
