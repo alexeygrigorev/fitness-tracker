@@ -22,6 +22,7 @@
     "test": "npm run test:integration",
     "test:integration": "npm run build:test && find .tmp/ts-build/tests -type f -name '*.test.js' -print0 | xargs -0 node --test --test-concurrency=1",
     "rehearsal:migration": "npm run build:test && node scripts/run-migration-rehearsal.mjs",
+    "export:sqlite": "node scripts/export-sqlite-snapshot.mjs",
     "verify:artifact": "npm run build:cutover && sam build --template template.yaml --build-dir .tmp/sam-build && node scripts/verify-lambda-artifact.mjs",
     "dev": "npm run build:test && node scripts/dev-server.mjs"
   },

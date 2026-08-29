@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# E2E Test Runner - starts vite and the backend-ts (TypeScript/DynamoDB) dev
-# server locally, then runs the Playwright suite against them. Mirrors
-# run-local.sh, which exercises backend-django instead.
+# E2E Test Runner - starts Vite and the TypeScript/DynamoDB dev server locally,
+# then runs the complete Playwright suite against them.
 
 set -e
 
@@ -47,13 +46,10 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-# Export the current Django dataset (users, exercises, presets, etc.) and load
-# it into DynamoDB Local so the TS backend serves the same fixtures (e.g. the
-# "test"/"test" login) that Django-backed E2E runs depend on.
-echo "Exporting migration snapshot from backend-django..."
-cd backend-django
-uv run python manage.py export_migration_snapshot --output ../backend-ts/.tmp/migration-snapshot.json
-cd ..
+# Load a committed, deterministic seed directly into DynamoDB Local. This
+# keeps the TypeScript E2E path independent from Python and from mutable local
+# databases while preserving the "test"/"test" fixture used by the suite.
+SEED_SNAPSHOT="${PROJECT_ROOT}/e2e/fixtures/backend-seed.json"
 
 echo "Building backend-ts..."
 cd backend-ts
@@ -62,7 +58,7 @@ cd ..
 
 echo "Starting backend-ts dev server..."
 cd backend-ts
-PORT="${BACKEND_PORT}" node scripts/dev-server.mjs &
+PORT="${BACKEND_PORT}" MIGRATION_SNAPSHOT="${SEED_SNAPSHOT}" node scripts/dev-server.mjs &
 BACKEND_PID=$!
 cd ..
 
@@ -71,6 +67,11 @@ for i in {1..60}; do
     if curl -sf "${BACKEND_URL}/api/health" > /dev/null 2>&1; then
         echo "Backend is ready!"
         break
+    fi
+    if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
+        echo "backend-ts exited before becoming ready" >&2
+        wait "$BACKEND_PID" || true
+        exit 1
     fi
     if [ $i -eq 60 ]; then
         echo "Timeout waiting for backend-ts to start"
@@ -92,6 +93,11 @@ for i in {1..30}; do
         echo "Vite is ready!"
         break
     fi
+    if ! kill -0 "$VITE_PID" 2>/dev/null; then
+        echo "Vite exited before becoming ready" >&2
+        wait "$VITE_PID" || true
+        exit 1
+    fi
     if [ $i -eq 30 ]; then
         echo "Timeout waiting for vite to start"
         exit 1
@@ -102,4 +108,8 @@ done
 
 echo "Running E2E tests against backend-ts..."
 cd e2e
-BASE_URL="${FRONTEND_URL}" VITE_API_URL="${BACKEND_URL}" npm test -- "$@"
+TEST_STATUS=0
+BASE_URL="${FRONTEND_URL}" VITE_API_URL="${BACKEND_URL}" npm test -- "$@" || TEST_STATUS=$?
+cleanup
+trap - EXIT INT TERM
+exit "$TEST_STATUS"

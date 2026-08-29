@@ -7,11 +7,11 @@
 // in-process `handler()` invocation used by the Node test runner.
 //
 // Data is served from DynamoDB Local. By default an empty table is created;
-// pass a migration snapshot (see `npm run rehearsal:migration`) to load a
-// realistic dataset exported from the Django backend, matching production
-// parity fixtures (including real pbkdf2_sha256 password hashes that verify
-// unchanged against backend-ts's own crypto module).
+// pass a migration snapshot to load deterministic fixtures or rehearse a
+// production migration. HANDLER_PATH may point at a bundled SAM artifact so
+// the exact deployable handler can be exercised over HTTP.
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -21,12 +21,19 @@ const compiledPath = (relativePath) =>
   pathToFileURL(join(backendRoot, '.tmp/ts-build', relativePath)).href;
 
 const port = Number.parseInt(process.env.PORT ?? '8000', 10);
+const handlerPath = process.env.HANDLER_PATH;
 const snapshotArgument = process.argv[2] ??
   process.env.MIGRATION_SNAPSHOT ??
   join(backendRoot, '.tmp/migration-snapshot.json');
 
 const { startTestApi } = await import(compiledPath('tests/helpers.js'));
-const { handler } = await import(compiledPath('src/lambda.js'));
+const handlerModule = handlerPath
+  ? createRequire(import.meta.url)(resolve(handlerPath))
+  : await import(compiledPath('src/lambda.js'));
+const { handler } = handlerModule;
+if (typeof handler !== 'function') {
+  throw new Error(`Handler module does not export handler: ${handlerPath}`);
+}
 
 let snapshotSummary = null;
 async function loadSnapshotIfPresent(api) {

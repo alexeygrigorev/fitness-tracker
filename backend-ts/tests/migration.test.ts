@@ -180,8 +180,8 @@ function migrationSnapshotFixture() {
 
   return {
     schemaVersion: 1,
-    sourceEngine: 'django-sqlite',
-    sourceSchema: 'django-current',
+    sourceEngine: 'sqlite',
+    sourceSchema: 'fitness-tracker-v1',
     counts: Object.fromEntries(
       Object.entries(tables).map(([name, entries]) => [name, entries.length]),
     ),

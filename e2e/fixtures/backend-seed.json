@@ -1,0 +1,2773 @@
+{
+  "schemaVersion": 1,
+  "sourceEngine": "sqlite",
+  "sourceSchema": "fitness-tracker-v1",
+  "counts": {
+    "users": 3,
+    "exercise_settings": 0,
+    "muscle_regions": 6,
+    "muscle_groups": 25,
+    "equipment": 6,
+    "exercise_tags": 5,
+    "exercise_muscle_groups": 90,
+    "exercises": 42,
+    "workout_presets": 4,
+    "workout_preset_exercises": 17,
+    "superset_exercise_items": 0,
+    "workout_plans": 0,
+    "workout_plan_presets": 0,
+    "workout_sessions": 0,
+    "workout_sets": 0,
+    "food_items": 33,
+    "meals": 0,
+    "meal_food_items": 0,
+    "meal_templates": 0,
+    "meal_template_food_items": 0
+  },
+  "tables": {
+    "users": [
+      {
+        "id": 1,
+        "password": "pbkdf2_sha256$1200000$u0kw0I5Qk6Em0TpZNh68X9$hcevxeLH3cxvr1c6C/nZb8C+b7LdEOUoKADERGaZl7w=",
+        "last_login": null,
+        "is_superuser": true,
+        "first_name": "",
+        "last_name": "",
+        "is_staff": true,
+        "date_joined": "2026-08-29T06:52:26.589662+00:00",
+        "email": "admin@example.com",
+        "username": "admin",
+        "is_active": true,
+        "dark_mode": false
+      },
+      {
+        "id": 2,
+        "password": "pbkdf2_sha256$1200000$lrc3BjwC2llrl4oUSiza8B$5/Y9N+Eq8/LgQdLuTg3O6gDLE3JMOuHNyv6hwZeckdQ=",
+        "last_login": null,
+        "is_superuser": false,
+        "first_name": "",
+        "last_name": "",
+        "is_staff": false,
+        "date_joined": "2026-08-29T06:52:26.904168+00:00",
+        "email": "test@example.com",
+        "username": "test",
+        "is_active": true,
+        "dark_mode": false
+      },
+      {
+        "id": 3,
+        "password": "pbkdf2_sha256$1200000$FOBUJtAzi6dbjCPpsXT0za$qVGS8AZWzEF5n9VhIIDa21HYheMosBKlJlOSsTDQbdY=",
+        "last_login": null,
+        "is_superuser": false,
+        "first_name": "",
+        "last_name": "",
+        "is_staff": false,
+        "date_joined": "2026-08-29T06:52:27.144393+00:00",
+        "email": "test2@example.com",
+        "username": "test2",
+        "is_active": true,
+        "dark_mode": false
+      }
+    ],
+    "exercise_settings": [],
+    "muscle_regions": [
+      {
+        "id": 1,
+        "name": "Chest"
+      },
+      {
+        "id": 2,
+        "name": "Back"
+      },
+      {
+        "id": 3,
+        "name": "Legs"
+      },
+      {
+        "id": 4,
+        "name": "Shoulders"
+      },
+      {
+        "id": 5,
+        "name": "Arms"
+      },
+      {
+        "id": 6,
+        "name": "Core"
+      }
+    ],
+    "muscle_groups": [
+      {
+        "id": 1,
+        "name": "Pectoralis Major",
+        "region_id": 1
+      },
+      {
+        "id": 2,
+        "name": "Pectoralis Minor",
+        "region_id": 1
+      },
+      {
+        "id": 3,
+        "name": "Latissimus Dorsi",
+        "region_id": 2
+      },
+      {
+        "id": 4,
+        "name": "Trapezius",
+        "region_id": 2
+      },
+      {
+        "id": 5,
+        "name": "Rhomboids",
+        "region_id": 2
+      },
+      {
+        "id": 6,
+        "name": "Teres Major",
+        "region_id": 2
+      },
+      {
+        "id": 7,
+        "name": "Quadriceps",
+        "region_id": 3
+      },
+      {
+        "id": 8,
+        "name": "Hamstrings",
+        "region_id": 3
+      },
+      {
+        "id": 9,
+        "name": "Gluteus Maximus",
+        "region_id": 3
+      },
+      {
+        "id": 10,
+        "name": "Gluteus Medius",
+        "region_id": 3
+      },
+      {
+        "id": 11,
+        "name": "Gluteus Minimus",
+        "region_id": 3
+      },
+      {
+        "id": 12,
+        "name": "Calves",
+        "region_id": 3
+      },
+      {
+        "id": 13,
+        "name": "Tibialis Anterior",
+        "region_id": 3
+      },
+      {
+        "id": 14,
+        "name": "Anterior Deltoid",
+        "region_id": 4
+      },
+      {
+        "id": 15,
+        "name": "Lateral Deltoid",
+        "region_id": 4
+      },
+      {
+        "id": 16,
+        "name": "Posterior Deltoid",
+        "region_id": 4
+      },
+      {
+        "id": 17,
+        "name": "Rotator Cuff",
+        "region_id": 4
+      },
+      {
+        "id": 18,
+        "name": "Biceps Brachii",
+        "region_id": 5
+      },
+      {
+        "id": 19,
+        "name": "Brachialis",
+        "region_id": 5
+      },
+      {
+        "id": 20,
+        "name": "Triceps Brachii",
+        "region_id": 5
+      },
+      {
+        "id": 21,
+        "name": "Forearms",
+        "region_id": 5
+      },
+      {
+        "id": 22,
+        "name": "Rectus Abdominis",
+        "region_id": 6
+      },
+      {
+        "id": 23,
+        "name": "Obliques",
+        "region_id": 6
+      },
+      {
+        "id": 24,
+        "name": "Transverse Abdominis",
+        "region_id": 6
+      },
+      {
+        "id": 25,
+        "name": "Erector Spinae",
+        "region_id": 6
+      }
+    ],
+    "equipment": [
+      {
+        "id": 1,
+        "name": "Barbell"
+      },
+      {
+        "id": 2,
+        "name": "Dumbbells"
+      },
+      {
+        "id": 3,
+        "name": "Cables"
+      },
+      {
+        "id": 4,
+        "name": "Machine"
+      },
+      {
+        "id": 5,
+        "name": "Kettlebell"
+      },
+      {
+        "id": 6,
+        "name": "Resistance Bands"
+      }
+    ],
+    "exercise_tags": [
+      {
+        "id": 1,
+        "name": "Compound",
+        "is_preset": false
+      },
+      {
+        "id": 2,
+        "name": "Isolation",
+        "is_preset": false
+      },
+      {
+        "id": 3,
+        "name": "Push",
+        "is_preset": false
+      },
+      {
+        "id": 4,
+        "name": "Pull",
+        "is_preset": false
+      },
+      {
+        "id": 5,
+        "name": "Bodyweight",
+        "is_preset": false
+      }
+    ],
+    "exercise_muscle_groups": [
+      {
+        "id": 1,
+        "target_type": "primary",
+        "exercise_id": 1,
+        "muscle_group_id": 1
+      },
+      {
+        "id": 2,
+        "target_type": "secondary",
+        "exercise_id": 1,
+        "muscle_group_id": 14
+      },
+      {
+        "id": 3,
+        "target_type": "secondary",
+        "exercise_id": 1,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 4,
+        "target_type": "primary",
+        "exercise_id": 2,
+        "muscle_group_id": 1
+      },
+      {
+        "id": 5,
+        "target_type": "secondary",
+        "exercise_id": 2,
+        "muscle_group_id": 14
+      },
+      {
+        "id": 6,
+        "target_type": "secondary",
+        "exercise_id": 2,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 7,
+        "target_type": "primary",
+        "exercise_id": 3,
+        "muscle_group_id": 1
+      },
+      {
+        "id": 8,
+        "target_type": "secondary",
+        "exercise_id": 3,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 9,
+        "target_type": "primary",
+        "exercise_id": 4,
+        "muscle_group_id": 1
+      },
+      {
+        "id": 10,
+        "target_type": "primary",
+        "exercise_id": 5,
+        "muscle_group_id": 1
+      },
+      {
+        "id": 11,
+        "target_type": "secondary",
+        "exercise_id": 5,
+        "muscle_group_id": 14
+      },
+      {
+        "id": 12,
+        "target_type": "secondary",
+        "exercise_id": 5,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 13,
+        "target_type": "primary",
+        "exercise_id": 6,
+        "muscle_group_id": 1
+      },
+      {
+        "id": 14,
+        "target_type": "secondary",
+        "exercise_id": 6,
+        "muscle_group_id": 14
+      },
+      {
+        "id": 15,
+        "target_type": "secondary",
+        "exercise_id": 6,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 16,
+        "target_type": "primary",
+        "exercise_id": 7,
+        "muscle_group_id": 3
+      },
+      {
+        "id": 17,
+        "target_type": "secondary",
+        "exercise_id": 7,
+        "muscle_group_id": 18
+      },
+      {
+        "id": 18,
+        "target_type": "secondary",
+        "exercise_id": 7,
+        "muscle_group_id": 16
+      },
+      {
+        "id": 19,
+        "target_type": "primary",
+        "exercise_id": 8,
+        "muscle_group_id": 3
+      },
+      {
+        "id": 20,
+        "target_type": "secondary",
+        "exercise_id": 8,
+        "muscle_group_id": 18
+      },
+      {
+        "id": 21,
+        "target_type": "secondary",
+        "exercise_id": 8,
+        "muscle_group_id": 16
+      },
+      {
+        "id": 22,
+        "target_type": "primary",
+        "exercise_id": 9,
+        "muscle_group_id": 3
+      },
+      {
+        "id": 23,
+        "target_type": "secondary",
+        "exercise_id": 9,
+        "muscle_group_id": 4
+      },
+      {
+        "id": 24,
+        "target_type": "secondary",
+        "exercise_id": 9,
+        "muscle_group_id": 16
+      },
+      {
+        "id": 25,
+        "target_type": "secondary",
+        "exercise_id": 9,
+        "muscle_group_id": 18
+      },
+      {
+        "id": 26,
+        "target_type": "primary",
+        "exercise_id": 10,
+        "muscle_group_id": 8
+      },
+      {
+        "id": 27,
+        "target_type": "primary",
+        "exercise_id": 10,
+        "muscle_group_id": 9
+      },
+      {
+        "id": 28,
+        "target_type": "primary",
+        "exercise_id": 10,
+        "muscle_group_id": 25
+      },
+      {
+        "id": 29,
+        "target_type": "secondary",
+        "exercise_id": 10,
+        "muscle_group_id": 4
+      },
+      {
+        "id": 30,
+        "target_type": "primary",
+        "exercise_id": 11,
+        "muscle_group_id": 3
+      },
+      {
+        "id": 31,
+        "target_type": "secondary",
+        "exercise_id": 11,
+        "muscle_group_id": 18
+      },
+      {
+        "id": 32,
+        "target_type": "primary",
+        "exercise_id": 12,
+        "muscle_group_id": 3
+      },
+      {
+        "id": 33,
+        "target_type": "secondary",
+        "exercise_id": 12,
+        "muscle_group_id": 4
+      },
+      {
+        "id": 34,
+        "target_type": "secondary",
+        "exercise_id": 12,
+        "muscle_group_id": 16
+      },
+      {
+        "id": 35,
+        "target_type": "secondary",
+        "exercise_id": 12,
+        "muscle_group_id": 18
+      },
+      {
+        "id": 36,
+        "target_type": "primary",
+        "exercise_id": 13,
+        "muscle_group_id": 16
+      },
+      {
+        "id": 37,
+        "target_type": "secondary",
+        "exercise_id": 13,
+        "muscle_group_id": 4
+      },
+      {
+        "id": 38,
+        "target_type": "secondary",
+        "exercise_id": 13,
+        "muscle_group_id": 17
+      },
+      {
+        "id": 39,
+        "target_type": "primary",
+        "exercise_id": 14,
+        "muscle_group_id": 4
+      },
+      {
+        "id": 40,
+        "target_type": "primary",
+        "exercise_id": 15,
+        "muscle_group_id": 14
+      },
+      {
+        "id": 41,
+        "target_type": "primary",
+        "exercise_id": 15,
+        "muscle_group_id": 15
+      },
+      {
+        "id": 42,
+        "target_type": "secondary",
+        "exercise_id": 15,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 43,
+        "target_type": "primary",
+        "exercise_id": 16,
+        "muscle_group_id": 15
+      },
+      {
+        "id": 44,
+        "target_type": "primary",
+        "exercise_id": 17,
+        "muscle_group_id": 14
+      },
+      {
+        "id": 45,
+        "target_type": "primary",
+        "exercise_id": 18,
+        "muscle_group_id": 16
+      },
+      {
+        "id": 46,
+        "target_type": "primary",
+        "exercise_id": 19,
+        "muscle_group_id": 14
+      },
+      {
+        "id": 47,
+        "target_type": "primary",
+        "exercise_id": 19,
+        "muscle_group_id": 15
+      },
+      {
+        "id": 48,
+        "target_type": "secondary",
+        "exercise_id": 19,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 49,
+        "target_type": "primary",
+        "exercise_id": 20,
+        "muscle_group_id": 7
+      },
+      {
+        "id": 50,
+        "target_type": "secondary",
+        "exercise_id": 20,
+        "muscle_group_id": 8
+      },
+      {
+        "id": 51,
+        "target_type": "secondary",
+        "exercise_id": 20,
+        "muscle_group_id": 9
+      },
+      {
+        "id": 52,
+        "target_type": "primary",
+        "exercise_id": 21,
+        "muscle_group_id": 7
+      },
+      {
+        "id": 53,
+        "target_type": "secondary",
+        "exercise_id": 21,
+        "muscle_group_id": 8
+      },
+      {
+        "id": 54,
+        "target_type": "secondary",
+        "exercise_id": 21,
+        "muscle_group_id": 9
+      },
+      {
+        "id": 55,
+        "target_type": "primary",
+        "exercise_id": 22,
+        "muscle_group_id": 7
+      },
+      {
+        "id": 56,
+        "target_type": "secondary",
+        "exercise_id": 22,
+        "muscle_group_id": 8
+      },
+      {
+        "id": 57,
+        "target_type": "secondary",
+        "exercise_id": 22,
+        "muscle_group_id": 9
+      },
+      {
+        "id": 58,
+        "target_type": "primary",
+        "exercise_id": 23,
+        "muscle_group_id": 7
+      },
+      {
+        "id": 59,
+        "target_type": "primary",
+        "exercise_id": 24,
+        "muscle_group_id": 8
+      },
+      {
+        "id": 60,
+        "target_type": "secondary",
+        "exercise_id": 24,
+        "muscle_group_id": 9
+      },
+      {
+        "id": 61,
+        "target_type": "primary",
+        "exercise_id": 25,
+        "muscle_group_id": 12
+      },
+      {
+        "id": 62,
+        "target_type": "primary",
+        "exercise_id": 26,
+        "muscle_group_id": 9
+      },
+      {
+        "id": 63,
+        "target_type": "secondary",
+        "exercise_id": 26,
+        "muscle_group_id": 8
+      },
+      {
+        "id": 64,
+        "target_type": "primary",
+        "exercise_id": 27,
+        "muscle_group_id": 9
+      },
+      {
+        "id": 65,
+        "target_type": "secondary",
+        "exercise_id": 27,
+        "muscle_group_id": 8
+      },
+      {
+        "id": 66,
+        "target_type": "primary",
+        "exercise_id": 28,
+        "muscle_group_id": 9
+      },
+      {
+        "id": 67,
+        "target_type": "secondary",
+        "exercise_id": 28,
+        "muscle_group_id": 7
+      },
+      {
+        "id": 68,
+        "target_type": "secondary",
+        "exercise_id": 28,
+        "muscle_group_id": 10
+      },
+      {
+        "id": 69,
+        "target_type": "primary",
+        "exercise_id": 29,
+        "muscle_group_id": 9
+      },
+      {
+        "id": 70,
+        "target_type": "primary",
+        "exercise_id": 30,
+        "muscle_group_id": 10
+      },
+      {
+        "id": 71,
+        "target_type": "secondary",
+        "exercise_id": 30,
+        "muscle_group_id": 11
+      },
+      {
+        "id": 72,
+        "target_type": "primary",
+        "exercise_id": 31,
+        "muscle_group_id": 10
+      },
+      {
+        "id": 73,
+        "target_type": "primary",
+        "exercise_id": 32,
+        "muscle_group_id": 10
+      },
+      {
+        "id": 74,
+        "target_type": "secondary",
+        "exercise_id": 32,
+        "muscle_group_id": 11
+      },
+      {
+        "id": 75,
+        "target_type": "primary",
+        "exercise_id": 33,
+        "muscle_group_id": 18
+      },
+      {
+        "id": 76,
+        "target_type": "secondary",
+        "exercise_id": 33,
+        "muscle_group_id": 19
+      },
+      {
+        "id": 77,
+        "target_type": "primary",
+        "exercise_id": 34,
+        "muscle_group_id": 19
+      },
+      {
+        "id": 78,
+        "target_type": "secondary",
+        "exercise_id": 34,
+        "muscle_group_id": 21
+      },
+      {
+        "id": 79,
+        "target_type": "primary",
+        "exercise_id": 35,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 80,
+        "target_type": "primary",
+        "exercise_id": 36,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 81,
+        "target_type": "primary",
+        "exercise_id": 37,
+        "muscle_group_id": 20
+      },
+      {
+        "id": 82,
+        "target_type": "primary",
+        "exercise_id": 38,
+        "muscle_group_id": 21
+      },
+      {
+        "id": 83,
+        "target_type": "primary",
+        "exercise_id": 39,
+        "muscle_group_id": 22
+      },
+      {
+        "id": 84,
+        "target_type": "primary",
+        "exercise_id": 39,
+        "muscle_group_id": 24
+      },
+      {
+        "id": 85,
+        "target_type": "secondary",
+        "exercise_id": 39,
+        "muscle_group_id": 23
+      },
+      {
+        "id": 86,
+        "target_type": "primary",
+        "exercise_id": 40,
+        "muscle_group_id": 22
+      },
+      {
+        "id": 87,
+        "target_type": "primary",
+        "exercise_id": 41,
+        "muscle_group_id": 22
+      },
+      {
+        "id": 88,
+        "target_type": "secondary",
+        "exercise_id": 41,
+        "muscle_group_id": 23
+      },
+      {
+        "id": 89,
+        "target_type": "primary",
+        "exercise_id": 42,
+        "muscle_group_id": 23
+      },
+      {
+        "id": 90,
+        "target_type": "secondary",
+        "exercise_id": 42,
+        "muscle_group_id": 22
+      }
+    ],
+    "exercises": [
+      {
+        "id": 1,
+        "name": "Bench Press",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.378301+00:00",
+        "updated_at": "2026-08-29T06:52:27.379535+00:00",
+        "equipment_id": 1,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Anterior Deltoid",
+          "Pectoralis Major",
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Incline Dumbbell Press",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.380843+00:00",
+        "updated_at": "2026-08-29T06:52:27.381601+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Anterior Deltoid",
+          "Pectoralis Major",
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Decline Bench Press",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.382734+00:00",
+        "updated_at": "2026-08-29T06:52:27.383438+00:00",
+        "equipment_id": 1,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Pectoralis Major",
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Cable Flyes",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.384289+00:00",
+        "updated_at": "2026-08-29T06:52:27.384936+00:00",
+        "equipment_id": 3,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Pectoralis Major"
+        ],
+        "tag_ids": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": 5,
+        "name": "Dips",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.385801+00:00",
+        "updated_at": "2026-08-29T06:52:27.386804+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Anterior Deltoid",
+          "Pectoralis Major",
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          1,
+          3,
+          5
+        ]
+      },
+      {
+        "id": 6,
+        "name": "Push-ups",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.388247+00:00",
+        "updated_at": "2026-08-29T06:52:27.389118+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Anterior Deltoid",
+          "Pectoralis Major",
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          1,
+          3,
+          5
+        ]
+      },
+      {
+        "id": 7,
+        "name": "Pull-ups",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.390646+00:00",
+        "updated_at": "2026-08-29T06:52:27.391732+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Biceps Brachii",
+          "Latissimus Dorsi",
+          "Posterior Deltoid"
+        ],
+        "tag_ids": [
+          1,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 8,
+        "name": "Chin-ups",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.393095+00:00",
+        "updated_at": "2026-08-29T06:52:27.393972+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Biceps Brachii",
+          "Latissimus Dorsi",
+          "Posterior Deltoid"
+        ],
+        "tag_ids": [
+          1,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 9,
+        "name": "Barbell Rows",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.395118+00:00",
+        "updated_at": "2026-08-29T06:52:27.395881+00:00",
+        "equipment_id": 1,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Biceps Brachii",
+          "Latissimus Dorsi",
+          "Posterior Deltoid",
+          "Trapezius"
+        ],
+        "tag_ids": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 10,
+        "name": "Deadlifts",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.397567+00:00",
+        "updated_at": "2026-08-29T06:52:27.398601+00:00",
+        "equipment_id": 1,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Erector Spinae",
+          "Gluteus Maximus",
+          "Hamstrings",
+          "Trapezius"
+        ],
+        "tag_ids": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 11,
+        "name": "Lat Pulldown",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.400297+00:00",
+        "updated_at": "2026-08-29T06:52:27.401247+00:00",
+        "equipment_id": 4,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Biceps Brachii",
+          "Latissimus Dorsi"
+        ],
+        "tag_ids": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 12,
+        "name": "Seated Cable Rows",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.402440+00:00",
+        "updated_at": "2026-08-29T06:52:27.403366+00:00",
+        "equipment_id": 3,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Biceps Brachii",
+          "Latissimus Dorsi",
+          "Posterior Deltoid",
+          "Trapezius"
+        ],
+        "tag_ids": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 13,
+        "name": "Face Pulls",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.405114+00:00",
+        "updated_at": "2026-08-29T06:52:27.406070+00:00",
+        "equipment_id": 3,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Posterior Deltoid",
+          "Rotator Cuff",
+          "Trapezius"
+        ],
+        "tag_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "id": 14,
+        "name": "Shrugs",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.407458+00:00",
+        "updated_at": "2026-08-29T06:52:27.408386+00:00",
+        "equipment_id": 1,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Trapezius"
+        ],
+        "tag_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "id": 15,
+        "name": "Overhead Press",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.409283+00:00",
+        "updated_at": "2026-08-29T06:52:27.410169+00:00",
+        "equipment_id": 1,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Anterior Deltoid",
+          "Lateral Deltoid",
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 16,
+        "name": "Lateral Raises",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.411483+00:00",
+        "updated_at": "2026-08-29T06:52:27.412328+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Lateral Deltoid"
+        ],
+        "tag_ids": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": 17,
+        "name": "Front Raises",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.413155+00:00",
+        "updated_at": "2026-08-29T06:52:27.413854+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Anterior Deltoid"
+        ],
+        "tag_ids": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": 18,
+        "name": "Rear Delt Flyes",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.414628+00:00",
+        "updated_at": "2026-08-29T06:52:27.415447+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Posterior Deltoid"
+        ],
+        "tag_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "id": 19,
+        "name": "Arnold Press",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.416416+00:00",
+        "updated_at": "2026-08-29T06:52:27.417334+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Anterior Deltoid",
+          "Lateral Deltoid",
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 20,
+        "name": "Squats",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.418645+00:00",
+        "updated_at": "2026-08-29T06:52:27.419537+00:00",
+        "equipment_id": 1,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Maximus",
+          "Hamstrings",
+          "Quadriceps"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 21,
+        "name": "Leg Press",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.420863+00:00",
+        "updated_at": "2026-08-29T06:52:27.422095+00:00",
+        "equipment_id": 4,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Maximus",
+          "Hamstrings",
+          "Quadriceps"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 22,
+        "name": "Lunges",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.423294+00:00",
+        "updated_at": "2026-08-29T06:52:27.424102+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Maximus",
+          "Hamstrings",
+          "Quadriceps"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 23,
+        "name": "Leg Extensions",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.425341+00:00",
+        "updated_at": "2026-08-29T06:52:27.426148+00:00",
+        "equipment_id": 4,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Quadriceps"
+        ],
+        "tag_ids": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": 24,
+        "name": "Leg Curls",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.427096+00:00",
+        "updated_at": "2026-08-29T06:52:27.427999+00:00",
+        "equipment_id": 4,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Maximus",
+          "Hamstrings"
+        ],
+        "tag_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "id": 25,
+        "name": "Calf Raises",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.429235+00:00",
+        "updated_at": "2026-08-29T06:52:27.430133+00:00",
+        "equipment_id": 4,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Calves"
+        ],
+        "tag_ids": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": 26,
+        "name": "Hip Thrusts",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.431076+00:00",
+        "updated_at": "2026-08-29T06:52:27.431775+00:00",
+        "equipment_id": 1,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Maximus",
+          "Hamstrings"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 27,
+        "name": "Glute Bridges",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.432757+00:00",
+        "updated_at": "2026-08-29T06:52:27.433993+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Maximus",
+          "Hamstrings"
+        ],
+        "tag_ids": [
+          2,
+          3,
+          5
+        ]
+      },
+      {
+        "id": 28,
+        "name": "Bulgarian Split Squats",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.434903+00:00",
+        "updated_at": "2026-08-29T06:52:27.435636+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Maximus",
+          "Gluteus Medius",
+          "Quadriceps"
+        ],
+        "tag_ids": [
+          1,
+          3
+        ]
+      },
+      {
+        "id": 29,
+        "name": "Cable Kickbacks",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.436848+00:00",
+        "updated_at": "2026-08-29T06:52:27.437785+00:00",
+        "equipment_id": 3,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Maximus"
+        ],
+        "tag_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "id": 30,
+        "name": "Side Lying Clamshells",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.438777+00:00",
+        "updated_at": "2026-08-29T06:52:27.439702+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Medius",
+          "Gluteus Minimus"
+        ],
+        "tag_ids": [
+          2,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 31,
+        "name": "Fire Hydrants",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.440880+00:00",
+        "updated_at": "2026-08-29T06:52:27.441879+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Medius"
+        ],
+        "tag_ids": [
+          2,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 32,
+        "name": "Abductions",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.442923+00:00",
+        "updated_at": "2026-08-29T06:52:27.443880+00:00",
+        "equipment_id": 4,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Gluteus Medius",
+          "Gluteus Minimus"
+        ],
+        "tag_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "id": 33,
+        "name": "Bicep Curls",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.445004+00:00",
+        "updated_at": "2026-08-29T06:52:27.445849+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Biceps Brachii",
+          "Brachialis"
+        ],
+        "tag_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "id": 34,
+        "name": "Hammer Curls",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.447491+00:00",
+        "updated_at": "2026-08-29T06:52:27.448338+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Brachialis",
+          "Forearms"
+        ],
+        "tag_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "id": 35,
+        "name": "Tricep Pushdowns",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.449465+00:00",
+        "updated_at": "2026-08-29T06:52:27.450312+00:00",
+        "equipment_id": 3,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": 36,
+        "name": "Skull Crushers",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.451224+00:00",
+        "updated_at": "2026-08-29T06:52:27.452082+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": 37,
+        "name": "Overhead Tricep Extension",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.488535+00:00",
+        "updated_at": "2026-08-29T06:52:27.506295+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Triceps Brachii"
+        ],
+        "tag_ids": [
+          2,
+          3
+        ]
+      },
+      {
+        "id": 38,
+        "name": "Wrist Curls",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": false,
+        "created_at": "2026-08-29T06:52:27.507473+00:00",
+        "updated_at": "2026-08-29T06:52:27.508478+00:00",
+        "equipment_id": 2,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Forearms"
+        ],
+        "tag_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "id": 39,
+        "name": "Plank",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.509479+00:00",
+        "updated_at": "2026-08-29T06:52:27.510358+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Obliques",
+          "Rectus Abdominis",
+          "Transverse Abdominis"
+        ],
+        "tag_ids": [
+          2,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 40,
+        "name": "Crunches",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.511764+00:00",
+        "updated_at": "2026-08-29T06:52:27.512659+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Rectus Abdominis"
+        ],
+        "tag_ids": [
+          2,
+          3,
+          5
+        ]
+      },
+      {
+        "id": 41,
+        "name": "Hanging Leg Raises",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.513620+00:00",
+        "updated_at": "2026-08-29T06:52:27.514532+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Obliques",
+          "Rectus Abdominis"
+        ],
+        "tag_ids": [
+          1,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 42,
+        "name": "Russian Twists",
+        "description": null,
+        "is_compound": false,
+        "is_bodyweight": true,
+        "created_at": "2026-08-29T06:52:27.515669+00:00",
+        "updated_at": "2026-08-29T06:52:27.516616+00:00",
+        "equipment_id": null,
+        "user_id": null,
+        "category": "isolation",
+        "instructions": [],
+        "muscle_group_names": [
+          "Obliques",
+          "Rectus Abdominis"
+        ],
+        "tag_ids": [
+          2,
+          3,
+          5
+        ]
+      }
+    ],
+    "workout_presets": [
+      {
+        "id": 1,
+        "name": "Push Day",
+        "notes": "Weekly push workout for chest, shoulders, and triceps",
+        "created_at": "2026-08-29T06:52:27.518074+00:00",
+        "updated_at": "2026-08-29T06:52:27.518361+00:00",
+        "user_id": 2,
+        "is_public": false,
+        "day_label": "Monday",
+        "status": "active",
+        "tags": [
+          "strength"
+        ]
+      },
+      {
+        "id": 2,
+        "name": "Pull Day",
+        "notes": "Weekly pull workout for back and biceps",
+        "created_at": "2026-08-29T06:52:27.522737+00:00",
+        "updated_at": "2026-08-29T06:52:27.522961+00:00",
+        "user_id": 2,
+        "is_public": false,
+        "day_label": "Wednesday",
+        "status": "active",
+        "tags": [
+          "strength"
+        ]
+      },
+      {
+        "id": 3,
+        "name": "Leg Day",
+        "notes": "Weekly leg workout",
+        "created_at": "2026-08-29T06:52:27.526489+00:00",
+        "updated_at": "2026-08-29T06:52:27.526718+00:00",
+        "user_id": 2,
+        "is_public": false,
+        "day_label": "Friday",
+        "status": "active",
+        "tags": [
+          "strength"
+        ]
+      },
+      {
+        "id": 4,
+        "name": "Test Last Used Weights",
+        "notes": "Test preset for E2E testing of last used weights feature",
+        "created_at": "2026-08-29T06:52:27.530707+00:00",
+        "updated_at": "2026-08-29T06:52:27.530938+00:00",
+        "user_id": 2,
+        "is_public": false,
+        "day_label": "Monday",
+        "status": "active",
+        "tags": [
+          "strength"
+        ]
+      }
+    ],
+    "workout_preset_exercises": [
+      {
+        "id": 1,
+        "type": "dropdown",
+        "sets": 4,
+        "dropdowns": 2,
+        "include_warmup": true,
+        "order": 0,
+        "exercise_id": 1,
+        "preset_id": 1,
+        "exercise_name": "Bench Press"
+      },
+      {
+        "id": 2,
+        "type": "normal",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 1,
+        "exercise_id": 2,
+        "preset_id": 1,
+        "exercise_name": "Incline Dumbbell Press"
+      },
+      {
+        "id": 3,
+        "type": "normal",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 2,
+        "exercise_id": 15,
+        "preset_id": 1,
+        "exercise_name": "Overhead Press"
+      },
+      {
+        "id": 4,
+        "type": "normal",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 3,
+        "exercise_id": 16,
+        "preset_id": 1,
+        "exercise_name": "Lateral Raises"
+      },
+      {
+        "id": 5,
+        "type": "normal",
+        "sets": 4,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 4,
+        "exercise_id": 35,
+        "preset_id": 1,
+        "exercise_name": "Tricep Pushdowns"
+      },
+      {
+        "id": 6,
+        "type": "normal",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": true,
+        "order": 0,
+        "exercise_id": 10,
+        "preset_id": 2,
+        "exercise_name": "Deadlifts"
+      },
+      {
+        "id": 7,
+        "type": "dropdown",
+        "sets": 4,
+        "dropdowns": 2,
+        "include_warmup": false,
+        "order": 1,
+        "exercise_id": 9,
+        "preset_id": 2,
+        "exercise_name": "Barbell Rows"
+      },
+      {
+        "id": 8,
+        "type": "normal",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 2,
+        "exercise_id": 7,
+        "preset_id": 2,
+        "exercise_name": "Pull-ups"
+      },
+      {
+        "id": 9,
+        "type": "normal",
+        "sets": 4,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 3,
+        "exercise_id": 33,
+        "preset_id": 2,
+        "exercise_name": "Bicep Curls"
+      },
+      {
+        "id": 10,
+        "type": "dropdown",
+        "sets": 4,
+        "dropdowns": 2,
+        "include_warmup": true,
+        "order": 0,
+        "exercise_id": 20,
+        "preset_id": 3,
+        "exercise_name": "Squats"
+      },
+      {
+        "id": 11,
+        "type": "normal",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 1,
+        "exercise_id": 21,
+        "preset_id": 3,
+        "exercise_name": "Leg Press"
+      },
+      {
+        "id": 12,
+        "type": "normal",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 2,
+        "exercise_id": 23,
+        "preset_id": 3,
+        "exercise_name": "Leg Extensions"
+      },
+      {
+        "id": 13,
+        "type": "normal",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 3,
+        "exercise_id": 24,
+        "preset_id": 3,
+        "exercise_name": "Leg Curls"
+      },
+      {
+        "id": 14,
+        "type": "normal",
+        "sets": 4,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 4,
+        "exercise_id": 25,
+        "preset_id": 3,
+        "exercise_name": "Calf Raises"
+      },
+      {
+        "id": 15,
+        "type": "normal",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 0,
+        "exercise_id": 15,
+        "preset_id": 4,
+        "exercise_name": "Overhead Press"
+      },
+      {
+        "id": 16,
+        "type": "bodyweight",
+        "sets": 3,
+        "dropdowns": null,
+        "include_warmup": false,
+        "order": 1,
+        "exercise_id": 5,
+        "preset_id": 4,
+        "exercise_name": "Dips"
+      },
+      {
+        "id": 17,
+        "type": "dropdown",
+        "sets": 4,
+        "dropdowns": 2,
+        "include_warmup": true,
+        "order": 2,
+        "exercise_id": 1,
+        "preset_id": 4,
+        "exercise_name": "Bench Press"
+      }
+    ],
+    "superset_exercise_items": [],
+    "workout_plans": [],
+    "workout_plan_presets": [],
+    "workout_sessions": [],
+    "workout_sets": [],
+    "food_items": [
+      {
+        "id": 1,
+        "name": "Chicken Breast",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 120,
+        "serving_unit": "120g cooked (1 palm-sized portion)",
+        "calories": 165,
+        "protein": 31,
+        "carbs": 0,
+        "fat": 3.6,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "protein",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": 40,
+        "satiety_score": 8,
+        "protein_quality": 3,
+        "user_id": null
+      },
+      {
+        "id": 2,
+        "name": "Salmon Fillet",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 150,
+        "serving_unit": "150g fillet",
+        "calories": 208,
+        "protein": 20,
+        "carbs": 0,
+        "fat": 13,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "protein",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": 40,
+        "satiety_score": 8,
+        "protein_quality": 3,
+        "user_id": null
+      },
+      {
+        "id": 3,
+        "name": "Eggs",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 50,
+        "serving_unit": "1 large egg (50g)",
+        "calories": 155,
+        "protein": 13,
+        "carbs": 1.1,
+        "fat": 11,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "protein",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": 40,
+        "satiety_score": 8,
+        "protein_quality": 3,
+        "user_id": null
+      },
+      {
+        "id": 4,
+        "name": "Greek Yogurt",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 170,
+        "serving_unit": "170g container (1 cup)",
+        "calories": 59,
+        "protein": 10,
+        "carbs": 3.6,
+        "fat": 0.4,
+        "fiber": 0,
+        "sugar": 3.6,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "protein",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": null,
+        "satiety_score": null,
+        "protein_quality": 3,
+        "user_id": null
+      },
+      {
+        "id": 5,
+        "name": "Cottage Cheese",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 100,
+        "serving_unit": "100g (1/2 cup)",
+        "calories": 98,
+        "protein": 11,
+        "carbs": 3.4,
+        "fat": 4.3,
+        "fiber": 0,
+        "sugar": 1.2,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "protein",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": null,
+        "satiety_score": null,
+        "protein_quality": 3,
+        "user_id": null
+      },
+      {
+        "id": 6,
+        "name": "Lean Beef",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 100,
+        "serving_unit": "100g cooked (palm-sized)",
+        "calories": 250,
+        "protein": 26,
+        "carbs": 0,
+        "fat": 15,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "protein",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": 40,
+        "satiety_score": 8,
+        "protein_quality": 3,
+        "user_id": null
+      },
+      {
+        "id": 7,
+        "name": "Tuna",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 100,
+        "serving_unit": "100g canned (1/2 can)",
+        "calories": 116,
+        "protein": 26,
+        "carbs": 0,
+        "fat": 1,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "protein",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": 40,
+        "satiety_score": 8,
+        "protein_quality": 3,
+        "user_id": null
+      },
+      {
+        "id": 8,
+        "name": "Whey Protein",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 30,
+        "serving_unit": "1 scoop (30g)",
+        "calories": 120,
+        "protein": 24,
+        "carbs": 3,
+        "fat": 1,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "protein",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": 40,
+        "satiety_score": 8,
+        "protein_quality": 3,
+        "user_id": null
+      },
+      {
+        "id": 9,
+        "name": "Brown Rice",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 150,
+        "serving_unit": "150g cooked (1 cup)",
+        "calories": 111,
+        "protein": 2.6,
+        "carbs": 23,
+        "fat": 0.9,
+        "fiber": 1.8,
+        "sugar": 0.3,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "carb",
+        "glycemic_index": 50,
+        "absorption_speed": "moderate",
+        "insulin_response": 50,
+        "satiety_score": 5,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 10,
+        "name": "Oats",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 50,
+        "serving_unit": "50g dry (5 tbsp)",
+        "calories": 389,
+        "protein": 16.9,
+        "carbs": 66,
+        "fat": 6.9,
+        "fiber": 10.6,
+        "sugar": 0.8,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "carb",
+        "glycemic_index": 54,
+        "absorption_speed": "slow",
+        "insulin_response": 40,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 11,
+        "name": "Sweet Potato",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 150,
+        "serving_unit": "150g cooked (1 medium)",
+        "calories": 86,
+        "protein": 1.6,
+        "carbs": 20,
+        "fat": 0.1,
+        "fiber": 3,
+        "sugar": 4.2,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "carb",
+        "glycemic_index": 45,
+        "absorption_speed": "moderate",
+        "insulin_response": null,
+        "satiety_score": null,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 12,
+        "name": "Banana",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 120,
+        "serving_unit": "1 medium (120g)",
+        "calories": 89,
+        "protein": 1.1,
+        "carbs": 23,
+        "fat": 0.3,
+        "fiber": 2.6,
+        "sugar": 12,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "carb",
+        "glycemic_index": 51,
+        "absorption_speed": "fast",
+        "insulin_response": 75,
+        "satiety_score": 2,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 13,
+        "name": "White Rice",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 150,
+        "serving_unit": "150g cooked (1 cup)",
+        "calories": 130,
+        "protein": 2.7,
+        "carbs": 28,
+        "fat": 0.3,
+        "fiber": 0.4,
+        "sugar": 0.1,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "carb",
+        "glycemic_index": 73,
+        "absorption_speed": "moderate",
+        "insulin_response": 50,
+        "satiety_score": 5,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 14,
+        "name": "Pasta",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 100,
+        "serving_unit": "100g cooked (1 cup)",
+        "calories": 131,
+        "protein": 5,
+        "carbs": 25,
+        "fat": 1.1,
+        "fiber": 1.5,
+        "sugar": 0.5,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "carb",
+        "glycemic_index": 45,
+        "absorption_speed": "moderate",
+        "insulin_response": 55,
+        "satiety_score": 5,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 15,
+        "name": "Quinoa",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 150,
+        "serving_unit": "150g cooked (1 cup)",
+        "calories": 120,
+        "protein": 4.4,
+        "carbs": 21,
+        "fat": 1.9,
+        "fiber": 2.8,
+        "sugar": 0.9,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "carb",
+        "glycemic_index": 53,
+        "absorption_speed": "moderate",
+        "insulin_response": 55,
+        "satiety_score": 5,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 16,
+        "name": "Whole Wheat Bread",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 30,
+        "serving_unit": "1 slice (30g)",
+        "calories": 247,
+        "protein": 13,
+        "carbs": 41,
+        "fat": 3.4,
+        "fiber": 6,
+        "sugar": 5,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "carb",
+        "glycemic_index": 71,
+        "absorption_speed": "slow",
+        "insulin_response": 40,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 17,
+        "name": "Almonds",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 28,
+        "serving_unit": "28g (small handful)",
+        "calories": 579,
+        "protein": 21,
+        "carbs": 22,
+        "fat": 50,
+        "fiber": 12.5,
+        "sugar": 3.9,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "fat",
+        "glycemic_index": null,
+        "absorption_speed": "slow",
+        "insulin_response": 120,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 18,
+        "name": "Peanut Butter",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 32,
+        "serving_unit": "32g (2 tbsp)",
+        "calories": 588,
+        "protein": 25,
+        "carbs": 20,
+        "fat": 50,
+        "fiber": 6,
+        "sugar": 9,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "fat",
+        "glycemic_index": null,
+        "absorption_speed": "slow",
+        "insulin_response": 120,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 19,
+        "name": "Avocado",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 150,
+        "serving_unit": "150g (1 whole)",
+        "calories": 160,
+        "protein": 2,
+        "carbs": 9,
+        "fat": 15,
+        "fiber": 7,
+        "sugar": 0.7,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "fat",
+        "glycemic_index": null,
+        "absorption_speed": "slow",
+        "insulin_response": 50,
+        "satiety_score": 7,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 20,
+        "name": "Olive Oil",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 15,
+        "serving_unit": "15ml (1 tbsp)",
+        "calories": 884,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 100,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "fat",
+        "glycemic_index": null,
+        "absorption_speed": "slow",
+        "insulin_response": 220,
+        "satiety_score": 7,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 21,
+        "name": "Cheese",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 28,
+        "serving_unit": "28g (1 oz cube)",
+        "calories": 402,
+        "protein": 25,
+        "carbs": 1.3,
+        "fat": 33,
+        "fiber": 0,
+        "sugar": 1.3,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "fat",
+        "glycemic_index": null,
+        "absorption_speed": "slow",
+        "insulin_response": 86,
+        "satiety_score": 7,
+        "protein_quality": 3,
+        "user_id": null
+      },
+      {
+        "id": 22,
+        "name": "Walnuts",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 28,
+        "serving_unit": "28g (small handful)",
+        "calories": 654,
+        "protein": 15,
+        "carbs": 14,
+        "fat": 65,
+        "fiber": 6.7,
+        "sugar": 2.6,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "fat",
+        "glycemic_index": 15,
+        "absorption_speed": "slow",
+        "insulin_response": 150,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 23,
+        "name": "Hummus",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 100,
+        "serving_unit": "100g (1/3 cup)",
+        "calories": 166,
+        "protein": 8,
+        "carbs": 14,
+        "fat": 9.6,
+        "fiber": 6,
+        "sugar": 0.3,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "mixed",
+        "glycemic_index": 40,
+        "absorption_speed": "slow",
+        "insulin_response": 40,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 24,
+        "name": "Lentils",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 100,
+        "serving_unit": "100g cooked (1/2 cup)",
+        "calories": 116,
+        "protein": 9,
+        "carbs": 20,
+        "fat": 0.4,
+        "fiber": 7.9,
+        "sugar": 1.8,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "mixed",
+        "glycemic_index": 50,
+        "absorption_speed": "slow",
+        "insulin_response": 40,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 25,
+        "name": "Black Beans",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 100,
+        "serving_unit": "100g cooked (1/2 cup)",
+        "calories": 132,
+        "protein": 8.9,
+        "carbs": 20,
+        "fat": 0.5,
+        "fiber": 8.7,
+        "sugar": 1.1,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "mixed",
+        "glycemic_index": 50,
+        "absorption_speed": "slow",
+        "insulin_response": 40,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 26,
+        "name": "Chickpeas",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 100,
+        "serving_unit": "100g cooked (1/2 cup)",
+        "calories": 164,
+        "protein": 8.9,
+        "carbs": 27,
+        "fat": 2.6,
+        "fiber": 7.6,
+        "sugar": 4.8,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "mixed",
+        "glycemic_index": 40,
+        "absorption_speed": "slow",
+        "insulin_response": 40,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 27,
+        "name": "Edamame",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 100,
+        "serving_unit": "100g (1/2 cup)",
+        "calories": 121,
+        "protein": 12,
+        "carbs": 9,
+        "fat": 5,
+        "fiber": 5,
+        "sugar": 2.2,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "mixed",
+        "glycemic_index": 50,
+        "absorption_speed": "slow",
+        "insulin_response": 40,
+        "satiety_score": 7,
+        "protein_quality": 2,
+        "user_id": null
+      },
+      {
+        "id": 28,
+        "name": "Water",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 250,
+        "serving_unit": "250ml glass",
+        "calories": 0,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 0,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "beverage",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": null,
+        "satiety_score": null,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 29,
+        "name": "Black Coffee",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 250,
+        "serving_unit": "250ml cup",
+        "calories": 2,
+        "protein": 0.1,
+        "carbs": 0,
+        "fat": 0,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "beverage",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": null,
+        "satiety_score": null,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 30,
+        "name": "Green Tea",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 250,
+        "serving_unit": "250ml cup",
+        "calories": 1,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 0,
+        "fiber": 0,
+        "sugar": 0,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "beverage",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": null,
+        "satiety_score": null,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 31,
+        "name": "Orange Juice",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 250,
+        "serving_unit": "250ml glass",
+        "calories": 45,
+        "protein": 0.7,
+        "carbs": 10,
+        "fat": 0.2,
+        "fiber": 0.2,
+        "sugar": 8,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "beverage",
+        "glycemic_index": 50,
+        "absorption_speed": "fast",
+        "insulin_response": 80,
+        "satiety_score": 2,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 32,
+        "name": "Milk (Whole)",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 250,
+        "serving_unit": "250ml glass",
+        "calories": 61,
+        "protein": 3.2,
+        "carbs": 4.8,
+        "fat": 3.3,
+        "fiber": 0,
+        "sugar": 4.8,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "beverage",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": null,
+        "satiety_score": null,
+        "protein_quality": 1,
+        "user_id": null
+      },
+      {
+        "id": 33,
+        "name": "Protein Shake",
+        "brand": null,
+        "barcode": null,
+        "source": "canonical",
+        "serving_size": 300,
+        "serving_unit": "300ml shaker",
+        "calories": 120,
+        "protein": 25,
+        "carbs": 5,
+        "fat": 2,
+        "fiber": 0,
+        "sugar": 2,
+        "saturated_fat": null,
+        "sodium": null,
+        "category": "beverage",
+        "glycemic_index": null,
+        "absorption_speed": "moderate",
+        "insulin_response": 40,
+        "satiety_score": 8,
+        "protein_quality": 2,
+        "user_id": null
+      }
+    ],
+    "meals": [],
+    "meal_food_items": [],
+    "meal_templates": [],
+    "meal_template_food_items": []
+  }
+}

@@ -429,10 +429,10 @@ function validateSnapshot(value: unknown): MigrationSnapshot {
   }
   const candidate = value as Record<string, unknown>;
   if (candidate.schemaVersion !== 1) fail('Unsupported migration snapshot schemaVersion');
-  if (candidate.sourceEngine !== 'django-sqlite') {
+  if (candidate.sourceEngine !== 'sqlite') {
     fail('Migration snapshot was not produced by the supported SQLite exporter');
   }
-  if (candidate.sourceSchema !== 'django-current') fail('Unknown source schema version');
+  if (candidate.sourceSchema !== 'fitness-tracker-v1') fail('Unknown source schema version');
   const rawTables = candidate.tables;
   if (typeof rawTables !== 'object' || rawTables === null || Array.isArray(rawTables)) {
     fail('Migration snapshot tables must be an object');
