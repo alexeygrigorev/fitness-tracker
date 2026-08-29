@@ -130,7 +130,6 @@
         "id": "missing-documented-workout-routes",
         "requiredOperations": [
           "POST /api/workouts/calculations/calculate-volume/",
-          "GET /api/workouts/plans/{id}/",
           "GET /api/workouts/sets/",
           "PATCH /api/workouts/sessions/{id}/",
           "PUT /api/workouts/sessions/{id}/",
@@ -140,9 +139,21 @@
         "status": "open"
       },
       {
+        "id": "missing-documented-workout-plan-detail-route",
+        "requiredOperations": [
+          "GET /api/workouts/plans/{id}/"
+        ],
+        "requiredBehavior": "Plan detail retrieval returns the owner's serialized plan, returns DRF-compatible missing-plan errors, and hides other users' plans.",
+        "status": "fixed_verified",
+        "evidenceCommit": "c4a0f01",
+        "verifiedAt": "2026-08-24"
+      },
+      {
         "id": "use-plan-method-drift",
         "requiredBehavior": "The documented POST plan use operation works and undocumented runtime GET behavior does not replace it unless product evidence proves a compatibility requirement.",
-        "status": "open"
+        "status": "fixed_verified",
+        "evidenceCommit": "c4a0f01",
+        "verifiedAt": "2026-08-24"
       },
       {
         "id": "workout-explicit-null-alias-drift",
