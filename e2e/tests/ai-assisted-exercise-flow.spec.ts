@@ -215,7 +215,7 @@ test('AI exercise review creates an editable persistent exercise', async ({
       .filter({ has: page.getByText(editedName, { exact: true }) })
       .first();
     await expect(editedRow).toBeVisible();
-    await expect(editedRow.getByText('BW')).toBeVisible();
+    await expect(editedRow.getByText('BW', { exact: true })).toBeVisible();
     await editedRow
       .getByRole('button', { name: `View details for ${editedName}` })
       .click();
