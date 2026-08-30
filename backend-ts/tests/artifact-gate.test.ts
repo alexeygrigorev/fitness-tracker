@@ -65,7 +65,7 @@ async function createArtifact(): Promise<string> {
     '    Type: AWS::Serverless::Function',
     '    Properties:',
     '      CodeUri: Api',
-    '      Handler: dist/lambda.cjs.handler',
+    '      Handler: dist/lambda.handler',
     '',
   ].join('\n'));
   return root;
@@ -83,7 +83,7 @@ describe('LambdaArtifactGateTests', () => {
     artifactRoot = await createArtifact();
     const result = await verifyArtifact(artifactRoot);
     assert.equal(result.codeUri, 'Api');
-    assert.equal(result.handler, 'dist/lambda.cjs.handler');
+    assert.equal(result.handler, 'dist/lambda.handler');
     assert.equal(result.files, 7);
   });
 

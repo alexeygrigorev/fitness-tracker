@@ -3041,9 +3041,39 @@
         ]
       }
     },
+    "/api/auth/config/": {
+      "get": {
+        "description": "Return the public shared Cognito browser-login configuration.",
+        "operationId": "auth_config_retrieve",
+        "responses": {
+          "200": {
+            "content": {"application/json": {"schema": {"type": "object"}}},
+            "description": ""
+          }
+        },
+        "tags": ["auth"]
+      }
+    },
+    "/api/auth/callback/": {
+      "post": {
+        "description": "Exchange a Cognito authorization code with its PKCE verifier and nonce, provision or resolve the local user, and issue application JWTs.",
+        "operationId": "auth_callback_create",
+        "requestBody": {
+          "content": {"application/json": {"schema": {"type": "object", "required": ["code", "code_verifier", "nonce"], "properties": {"code": {"type": "string"}, "code_verifier": {"type": "string"}, "nonce": {"type": "string"}}}}},
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/LoginResponse"}}},
+            "description": ""
+          }
+        },
+        "tags": ["auth"]
+      }
+    },
     "/api/auth/login/": {
       "post": {
-        "description": "Authenticate with a username and password and receive JWTs plus the user profile.",
+        "description": "Development-only password login. Disabled whenever shared authentication is configured.",
         "operationId": "auth_login_create",
         "requestBody": {
           "content": {

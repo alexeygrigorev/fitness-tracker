@@ -4,6 +4,7 @@ import { jsonResponse } from '../http.js';
 import { issueTokenPair } from '../jwt.js';
 import { mergeExerciseSetting, settingsResponse } from '../repository.js';
 import { hashPassword, verifyPassword } from '../crypto.js';
+import { exchangeCognitoCode, findOrCreateCognitoUser, sharedAuthPublicConfig } from '../cognito.js';
 import {
   validateExerciseSettings,
   validateLogin,
@@ -92,7 +93,24 @@ function profileRequest(request: NormalizedRequest): void {
 }
 
 export function registerAuthRoutes(addRoute: (route: RouteDefinition) => void): void {
+  addRoute(profileRoute('GET', '/api/auth/config', async (context) =>
+    jsonResponse(200, context.config.auth
+      ? { enabled: true, ...sharedAuthPublicConfig(context.config.auth) }
+      : { enabled: false }, context.cors)));
+
+  addRoute(profileRoute('POST', '/api/auth/callback', async (context) => {
+    if (!context.config.auth) throw new HttpError(404, { detail: 'Shared authentication is not configured.' });
+    const body = context.request.body as Record<string, unknown>;
+    if (!body || typeof body.code !== 'string' || typeof body.code_verifier !== 'string' || typeof body.nonce !== 'string') {
+      throw new HttpError(400, { detail: 'Invalid authentication callback.' });
+    }
+    const claims = await exchangeCognitoCode(body.code, body.code_verifier, body.nonce, context.config.auth);
+    const user = await findOrCreateCognitoUser(context.repository, claims);
+    return jsonResponse(200, { ...issueTokenPair(user.id, context.config.jwtSecret), user: publicUser(user) }, context.cors);
+  }));
+
   addRoute(profileRoute('POST', '/api/auth/login', async (context) => {
+    if (context.config.auth) throw new HttpError(404, { detail: 'Password login is disabled.' });
     const input = validateLogin(context.request.body);
     const user = await context.repository.getUserByUsername(input.username);
     const valid = user && user.is_active && await verifyPassword(
@@ -116,6 +134,7 @@ export function registerAuthRoutes(addRoute: (route: RouteDefinition) => void): 
   }));
 
   addRoute(profileRoute('POST', '/api/auth/register', async (context) => {
+    if (context.config.auth) throw new HttpError(404, { detail: 'Registration is managed by shared authentication.' });
     const input = validateRegistration(context.request.body);
     if (await context.repository.getUserByUsername(input.username)) {
       throw new HttpError(400, { error: 'Username already exists' });

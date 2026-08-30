@@ -18,7 +18,7 @@ function handlerToFilePath(handler) {
   assert.ok(!path.isAbsolute(module), 'Lambda handler must be relative');
   assert.ok(!module.split(/[/\\]/).includes('..'), 'Lambda handler must not escape the artifact');
   const extension = path.extname(module);
-  return extension ? module : `${module}.js`;
+  return extension ? module : `${module}.cjs`;
 }
 
 function isFrontendAsset(file) {

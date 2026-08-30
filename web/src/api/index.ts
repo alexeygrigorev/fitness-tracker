@@ -153,7 +153,63 @@ function serializeFoodsPayload<T extends { foods?: MealFoodItem[] }>(payload: T)
 }
 
 // Auth API
+export interface SharedAuthConfig {
+  enabled: boolean;
+  base_url?: string;
+  client_id?: string;
+  callback_url?: string;
+  logout_url?: string;
+}
+
+function base64Url(bytes: Uint8Array): string {
+  let binary = '';
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function sharedAuthConfig(): Promise<SharedAuthConfig> {
+  const response = await fetch(`${API_BASE}/api/auth/config/`);
+  if (!response.ok) throw new Error('Authentication is unavailable');
+  return response.json();
+}
+
 export const authApi = {
+  getConfig: sharedAuthConfig,
+
+  beginSharedLogin: async (returnTo = '/') => {
+    const config = await sharedAuthConfig();
+    if (!config.enabled || !config.base_url || !config.client_id || !config.callback_url) {
+      throw new Error('Shared authentication is not configured');
+    }
+    const random = (length: number) => base64Url(crypto.getRandomValues(new Uint8Array(length)));
+    const verifier = random(64);
+    const state = random(32);
+    const nonce = random(32);
+    const challenge = base64Url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
+    sessionStorage.setItem('oidc_login', JSON.stringify({ verifier, state, nonce, returnTo }));
+    const query = new URLSearchParams({
+      response_type: 'code', client_id: config.client_id, redirect_uri: config.callback_url,
+      scope: 'openid email profile', state, nonce, code_challenge: challenge,
+      code_challenge_method: 'S256', identity_provider: 'Google',
+    });
+    window.location.assign(`${config.base_url}/oauth2/authorize?${query}`);
+  },
+
+  completeSharedLogin: async (code: string, state: string) => {
+    const raw = sessionStorage.getItem('oidc_login');
+    sessionStorage.removeItem('oidc_login');
+    const pending = raw ? JSON.parse(raw) as { verifier?: string; state?: string; nonce?: string; returnTo?: string } : undefined;
+    if (!pending?.verifier || !pending.nonce || pending.state !== state) throw new Error('Invalid or expired login state');
+    const response = await fetch(`${API_BASE}/api/auth/callback/`, {
+      method: 'POST', headers: await getHeaders(),
+      body: JSON.stringify({ code, code_verifier: pending.verifier, nonce: pending.nonce }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Sign-in failed' }));
+      throw new Error(error.detail || 'Sign-in failed');
+    }
+    return { ...(await response.json()), returnTo: pending.returnTo || '/' };
+  },
   login: async (username: string, password: string) => {
     const formData = new FormData();
     formData.append('username', username);

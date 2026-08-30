@@ -41,7 +41,7 @@ describe('OpenApiContractTests', () => {
     const committed = await readFile(`${process.cwd()}/openapi.json`);
     assert.equal(
       createHash('sha256').update(committed).digest('hex'),
-      'c8389cf488b9f51896c417b4cdf8ed8c819d9a0deecda378d1401e0917bfe38a',
+      'c6dc11a89f2c895276c94c5f6e10f9048a3dd9a1df9417803d0599716af5d2c0',
     );
   });
 

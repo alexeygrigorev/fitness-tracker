@@ -14,6 +14,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Weight = lazy(() => import('./pages/Weight'));
 const LoginPage = lazy(() => import('@/auth/LoginPage'));
 const RegisterPage = lazy(() => import('@/auth/RegisterPage'));
+const AuthCallbackPage = lazy(() => import('@/auth/AuthCallbackPage'));
 
 type Tab = 'dashboard' | 'exercises' | 'nutrition' | 'sleep' | 'metabolism' | 'profile' | 'weight';
 
@@ -74,13 +75,14 @@ function App() {
   );
 
   // Auth pages have their own layout
-  if (location.pathname === '/login' || location.pathname === '/register') {
+  if (location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/auth/callback') {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <Suspense fallback={routeFallback}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
           </Routes>
         </Suspense>
       </div>

@@ -170,6 +170,24 @@ describe('ProductionSettingsTests', () => {
       /JWT_SECRET must contain at least 50 characters/,
     );
   });
+
+  it('requires complete shared-auth configuration', () => {
+    assert.throws(
+      () => loadConfig({ ...controlEnvironment(), AUTH_BASE_URL: 'https://auth.example.test' }),
+      /Shared auth configuration must be complete/,
+    );
+    const config = loadConfig({
+      ...controlEnvironment(),
+      AUTH_BASE_URL: 'https://auth.example.test/',
+      AUTH_CLIENT_ID: 'client',
+      AUTH_CALLBACK_URL: 'https://gym.example.test/auth/callback',
+      AUTH_LOGOUT_URL: 'https://gym.example.test/',
+      AUTH_ISSUER: 'https://issuer.example.test/pool/',
+      AUTH_JWKS_URL: 'https://issuer.example.test/pool/.well-known/jwks.json',
+    });
+    assert.equal(config.auth?.baseUrl, 'https://auth.example.test');
+    assert.equal(config.auth?.issuer, 'https://issuer.example.test/pool');
+  });
 });
 
 describe('HealthEndpointTests', () => {
@@ -257,7 +275,7 @@ describe('FrontendCutoverTests', () => {
       /FrontendBuild:\r?\n\s*Type:\s*String\r?\n\s*Default:\s*\/var\/task\/frontend/,
     );
     assert.match(variables, /FRONTEND_BUILD:\s*!Ref FrontendBuild/);
-    assert.match(functionConfig, /Handler:\s*dist\/lambda\.cjs\.handler/);
+    assert.match(functionConfig, /Handler:\s*dist\/lambda\.handler/);
     assert.ok(project.files?.includes('frontend'));
     assert.equal(
       project.scripts?.['build:cutover'],

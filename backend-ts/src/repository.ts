@@ -171,6 +171,41 @@ export class FitnessRepository {
     return this.getItem<UserItem>({ pk: key, sk: 'PROFILE' });
   }
 
+  async getUserByCognitoSub(subject: string): Promise<UserItem | undefined> {
+    const identity = await this.getItem<{ user_pk?: string }>({
+      pk: `IDENTITY#${subject}`,
+      sk: 'USER',
+    });
+    return typeof identity?.user_pk === 'string'
+      ? this.getUserByKey(identity.user_pk)
+      : undefined;
+  }
+
+  async linkCognitoIdentity(user: UserItem, subject: string): Promise<UserItem> {
+    await this.client.send(new DocTransactWriteCommand({
+      TransactItems: [
+        {
+          Put: {
+            TableName: this.tableName,
+            Item: { pk: `IDENTITY#${subject}`, sk: 'USER', user_pk: user.pk },
+            ConditionExpression: 'attribute_not_exists(pk) OR user_pk = :userPk',
+            ExpressionAttributeValues: { ':userPk': user.pk },
+          },
+        },
+        {
+          Update: {
+            TableName: this.tableName,
+            Key: { pk: user.pk, sk: user.sk },
+            UpdateExpression: 'SET cognito_sub = :subject',
+            ConditionExpression: 'attribute_exists(pk) AND (attribute_not_exists(cognito_sub) OR cognito_sub = :subject)',
+            ExpressionAttributeValues: { ':subject': subject },
+          },
+        },
+      ],
+    }));
+    return { ...user, cognito_sub: subject };
+  }
+
   async createUser(user: UserItem): Promise<void> {
     const usernameKey = `USERNAME#${user.username}`;
     const emailKey = `EMAIL#${user.email}`;

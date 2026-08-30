@@ -12,6 +12,7 @@ export interface UserItem {
   username: string;
   email: string;
   password: string;
+  cognito_sub?: string;
   dark_mode: boolean;
   is_active: boolean;
   date_joined?: string;

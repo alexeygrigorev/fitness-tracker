@@ -6,10 +6,10 @@ be run locally against DynamoDB Local.
 
 ## Stack
 
-- **API:** TypeScript, Node.js 24, AWS Lambda Function URL
+- **API:** TypeScript, Node.js 24, AWS Lambda and API Gateway
 - **Data:** DynamoDB (pay-per-request in AWS)
 - **Web:** React, TypeScript, Vite, Tailwind CSS
-- **Authentication:** JWT with PBKDF2 password hashes
+- **Authentication:** shared Cognito/Google login with authorization-code + S256 PKCE
 - **Tests:** Node's test runner, Vitest, and Playwright
 
 ## Run locally
@@ -104,7 +104,7 @@ The handler exposes the `/api/.../` routes, numeric IDs, JWT
 `Authorization: Bearer` header, and structured validation errors. The committed
 contract is [backend-ts/openapi.json](backend-ts/openapi.json).
 
-## AWS packaging
+## Production deployment
 
 The SAM template is [backend-ts/template.yaml](backend-ts/template.yaml).
 Build it locally before any deployment:
@@ -115,5 +115,15 @@ npm run build:cutover
 sam build --template template.yaml
 ```
 
-AWS deployment is intentionally a separate, explicitly authorized step after
-the local checks above and a migration smoke test against the target account.
+The production app is deployed at `https://gym.dtcdev.click`. The deploy script
+resolves the shared Cognito client dynamically, builds the Lambda/SPA artifact,
+updates the retained fitness stack, and points the existing domain mapping at
+its HTTP API:
+
+```sh
+./scripts/deploy.sh
+```
+
+The previous AI Engineering Gym review table remains retained in its original
+stack; the fitness data table also has deletion protection through retention,
+point-in-time recovery, and server-side encryption.

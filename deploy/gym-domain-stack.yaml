@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Legacy AI Engineering Gym resources with gym.dtcdev.click routed to Fitness Tracker.
+
+Parameters:
+  CodeBucket: {Type: String}
+  CodeKey: {Type: String}
+  Passphrase: {Type: String, Default: aislgym, NoEcho: true}
+  SessionSecret: {Type: String, NoEcho: true}
+  DomainName: {Type: String, Default: gym.dtcdev.click}
+  HostedZoneId: {Type: String}
+  AuthBaseUrl: {Type: String, Default: 'https://auth.dtcdev.click'}
+  AuthClientId: {Type: String}
+  AuthIssuer: {Type: String}
+  AuthJwksUrl: {Type: String}
+  FitnessApiId:
+    Type: String
+    Description: HTTP API ID exported by the fitness-tracker stack.
+
+Resources:
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole]
+      Policies:
+        - PolicyName: reviews-table-access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:Scan]
+                Resource: !GetAtt ReviewsTable.Arn
+
+  ReviewsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: ai-engineering-gym-reviews
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions: [{AttributeName: item_id, AttributeType: S}]
+      KeySchema: [{AttributeName: item_id, KeyType: HASH}]
+
+  GymFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: ai-engineering-gym
+      Runtime: python3.12
+      Architectures: [x86_64]
+      Handler: app.main.handler
+      MemorySize: 1024
+      Timeout: 30
+      Role: !GetAtt LambdaRole.Arn
+      Code: {S3Bucket: !Ref CodeBucket, S3Key: !Ref CodeKey}
+      Environment:
+        Variables:
+          CONTENT_DIR: content
+          INGEST_INCLUDE_DRAFTS: 'true'
+          GYM_PASSPHRASE: !Ref Passphrase
+          SESSION_SECRET: !Ref SessionSecret
+          REVIEWS_TABLE: !Ref ReviewsTable
+          SESSION_HTTPS_ONLY: 'true'
+          AUTH_BASE_URL: !Ref AuthBaseUrl
+          AUTH_CLIENT_ID: !Ref AuthClientId
+          AUTH_CALLBACK_URL: !Sub https://${DomainName}/auth/callback
+          AUTH_LOGOUT_URL: !Sub https://${DomainName}/
+          AUTH_ISSUER: !Ref AuthIssuer
+          AUTH_JWKS_URL: !Ref AuthJwksUrl
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties: {Name: ai-engineering-gym, ProtocolType: HTTP}
+  Integration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt GymFunction.Arn
+      PayloadFormatVersion: '2.0'
+  DefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: $default
+      Target: !Sub integrations/${Integration}
+  DefaultStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties: {ApiId: !Ref HttpApi, StageName: $default, AutoDeploy: true}
+  InvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GymFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*
+  WarmRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: rate(5 minutes)
+      State: ENABLED
+      Targets: [{Arn: !GetAtt GymFunction.Arn, Id: warm, Input: '{"warmup": true}'}]
+  WarmPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref GymFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt WarmRule.Arn
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions: [{DomainName: !Ref DomainName, HostedZoneId: !Ref HostedZoneId}]
+  ApiDomain:
+    Type: AWS::ApiGatewayV2::DomainName
+    Properties:
+      DomainName: !Ref DomainName
+      DomainNameConfigurations: [{CertificateArn: !Ref Certificate, EndpointType: REGIONAL}]
+  ApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Properties:
+      ApiId: !Ref FitnessApiId
+      DomainName: !Ref ApiDomain
+      Stage: $default
+  AliasRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiDomain.RegionalDomainName
+        HostedZoneId: !GetAtt ApiDomain.RegionalHostedZoneId
+
+Outputs:
+  ApiEndpoint: {Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'}
+  CustomDomain: {Value: !Sub 'https://${DomainName}'}

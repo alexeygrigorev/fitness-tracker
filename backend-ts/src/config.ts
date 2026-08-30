@@ -1,6 +1,14 @@
 export interface RuntimeConfig {
   tableName: string;
   jwtSecret: string;
+  auth?: {
+    baseUrl: string;
+    clientId: string;
+    callbackUrl: string;
+    logoutUrl: string;
+    issuer: string;
+    jwksUrl: string;
+  };
   frontendBuild?: string;
   dynamodbEndpoint?: string;
   timezone: string;
@@ -35,6 +43,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RuntimeConfig 
   const frontendBuild = env.FRONTEND_BUILD?.trim();
   const dynamodbEndpoint = env.DYNAMODB_ENDPOINT?.trim();
   const timezone = env.TIME_ZONE?.trim() || 'UTC';
+  const authValues = {
+    baseUrl: env.AUTH_BASE_URL?.trim().replace(/\/$/, '') ?? '',
+    clientId: env.AUTH_CLIENT_ID?.trim() ?? '',
+    callbackUrl: env.AUTH_CALLBACK_URL?.trim() ?? '',
+    logoutUrl: env.AUTH_LOGOUT_URL?.trim() ?? '',
+    issuer: env.AUTH_ISSUER?.trim().replace(/\/$/, '') ?? '',
+    jwksUrl: env.AUTH_JWKS_URL?.trim() ?? '',
+  };
+  const configuredAuthValues = Object.values(authValues).filter(Boolean);
+  if (configuredAuthValues.length > 0 && configuredAuthValues.length !== Object.keys(authValues).length) {
+    throw new Error('Shared auth configuration must be complete');
+  }
   return {
     tableName,
     jwtSecret,
@@ -42,5 +62,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RuntimeConfig 
     ...(dynamodbEndpoint ? { dynamodbEndpoint } : {}),
     timezone,
     allowedOrigins,
+    ...(configuredAuthValues.length > 0 ? { auth: authValues } : {}),
   };
 }

@@ -7,6 +7,7 @@ export interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   login: (username: string, password: string) => Promise<void>;
+  completeSharedLogin: (code: string, state: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;

@@ -15,19 +15,32 @@ Parameters:
     Type: String
     Default: ''
     Description: Comma-separated browser origins allowed by the application CORS handler.
+  AuthBaseUrl:
+    Type: String
+    Default: https://auth.dtcdev.click
+  AuthClientId:
+    Type: String
+  AuthIssuer:
+    Type: String
+  AuthJwksUrl:
+    Type: String
+  DomainName:
+    Type: String
+    Default: gym.dtcdev.click
 
 Resources:
   Api:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: .
-      Handler: dist/lambda.cjs.handler
+      Handler: dist/lambda.handler
       Runtime: nodejs24.x
       Architectures:
         - arm64
       MemorySize: 512
       Timeout: 29
       AutoPublishAlias: live
+      AutoPublishAliasAllProperties: true
       DeploymentPreference:
         Type: AllAtOnce
       Environment:
@@ -37,6 +50,12 @@ Resources:
           NODE_ENV: production
           FRONTEND_BUILD: !Ref FrontendBuild
           ALLOWED_ORIGINS: !Ref AllowedOrigins
+          AUTH_BASE_URL: !Ref AuthBaseUrl
+          AUTH_CLIENT_ID: !Ref AuthClientId
+          AUTH_CALLBACK_URL: !Sub https://${DomainName}/auth/callback
+          AUTH_LOGOUT_URL: !Sub https://${DomainName}/
+          AUTH_ISSUER: !Ref AuthIssuer
+          AUTH_JWKS_URL: !Ref AuthJwksUrl
       Policies:
         - Statement:
             - Sid: TableRecords
@@ -59,6 +78,25 @@ Resources:
       FunctionUrlConfig:
         AuthType: NONE
         InvokeMode: BUFFERED
+
+      Events:
+        Root:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /
+            Method: ANY
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
 
   Table:
     Type: AWS::DynamoDB::Table
@@ -97,3 +135,11 @@ Resources:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
+
+Outputs:
+  HttpApiId:
+    Value: !Ref HttpApi
+  HttpApiEndpoint:
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  FunctionUrl:
+    Value: !GetAtt ApiUrl.FunctionUrl

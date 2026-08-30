@@ -44,6 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string) => {
+    const config = await authApi.getConfig();
+    if (config.enabled) {
+      interface LocationState { from?: { pathname?: string } }
+      const state = location.state as LocationState | null;
+      await authApi.beginSharedLogin(state?.from?.pathname || '/');
+      return;
+    }
     const accessToken = await authApi.login(username, password);
 
     // Store token first so getMe() can use it via getHeaders()
@@ -65,6 +72,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigate(from, { replace: true });
   };
 
+  const completeSharedLogin = async (code: string, state: string) => {
+    const result = await authApi.completeSharedLogin(code, state);
+    setToken(result.access);
+    setUser(result.user);
+    setDarkMode(result.user.dark_mode || false);
+    authApi.setAuth(result.access, result.user);
+    navigate(result.returnTo, { replace: true });
+  };
+
   const register = async (email: string, username: string, password: string) => {
     await authApi.register(email, username, password);
     // Auto-login after registration
@@ -76,7 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setDarkMode(false);
     authApi.clearAuth();
-    navigate('/login', { replace: true });
+    authApi.getConfig().then((config) => {
+      if (config.enabled && config.base_url && config.client_id && config.logout_url) {
+        const query = new URLSearchParams({ client_id: config.client_id, logout_uri: config.logout_url });
+        window.location.assign(`${config.base_url}/logout?${query}`);
+      } else {
+        navigate('/login', { replace: true });
+      }
+    }).catch(() => navigate('/login', { replace: true }));
   };
 
   const toggleDarkMode = async () => {
@@ -98,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading, darkMode, toggleDarkMode }}>
+    <AuthContext.Provider value={{ user, token, login, completeSharedLogin, register, logout, loading, darkMode, toggleDarkMode }}>
       {children}
     </AuthContext.Provider>
   );

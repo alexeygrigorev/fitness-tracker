@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from './useAuth';
 
@@ -8,6 +8,13 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const [sharedAuth, setSharedAuth] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    import('@/api').then(({ authApi }) => authApi.getConfig())
+      .then((config) => setSharedAuth(config.enabled))
+      .catch(() => setSharedAuth(false));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +38,7 @@ export default function LoginPage() {
             Fitness Tracker
           </h1>
           <h2 className="text-lg font-medium text-center text-gray-700 dark:text-gray-300 mb-6">
-            Sign in to your account
+            {sharedAuth ? 'Sign in with your DataTalks.Club account' : 'Sign in to your account'}
           </h2>
 
           {error && (
@@ -44,7 +51,16 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {sharedAuth ? (
+            <button
+              type="button"
+              onClick={() => void handleSubmit({ preventDefault() {} } as React.FormEvent)}
+              disabled={loading}
+              className="w-full py-3 px-4 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+            >
+              {loading ? 'Redirecting…' : 'Continue with Google'}
+            </button>
+          ) : <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Username
@@ -86,14 +102,14 @@ export default function LoginPage() {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
-          </form>
+          </form>}
 
-          <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
+          {!sharedAuth && <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
             Don't have an account?{' '}
             <Link to="/register" className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300">
               Sign up
             </Link>
-          </p>
+          </p>}
         </div>
       </div>
     </main>

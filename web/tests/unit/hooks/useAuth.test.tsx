@@ -9,6 +9,9 @@ import { MemoryRouter } from 'react-router-dom';
 // Mock before imports
 vi.mock('@/api', () => ({
   authApi: {
+    getConfig: vi.fn(),
+    beginSharedLogin: vi.fn(),
+    completeSharedLogin: vi.fn(),
     login: vi.fn(),
     register: vi.fn(),
     getMe: vi.fn(),
@@ -25,6 +28,9 @@ import { useAuth } from '@/auth/useAuth';
 import { authApi } from '@/api';
 
 const mockAuthApi = authApi as unknown as {
+  getConfig: ReturnType<typeof vi.fn>;
+  beginSharedLogin: ReturnType<typeof vi.fn>;
+  completeSharedLogin: ReturnType<typeof vi.fn>;
   login: ReturnType<typeof vi.fn>;
   register: ReturnType<typeof vi.fn>;
   getMe: ReturnType<typeof vi.fn>;
@@ -44,6 +50,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('useAuth Hook', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthApi.getConfig.mockResolvedValue({ enabled: false });
   });
 
   describe('initial state', () => {
