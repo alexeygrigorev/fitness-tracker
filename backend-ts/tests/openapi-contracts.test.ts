@@ -41,7 +41,7 @@ describe('OpenApiContractTests', () => {
     const committed = await readFile(`${process.cwd()}/openapi.json`);
     assert.equal(
       createHash('sha256').update(committed).digest('hex'),
-      'c6dc11a89f2c895276c94c5f6e10f9048a3dd9a1df9417803d0599716af5d2c0',
+      '0b7c91034f7cb349c6d09beae0df6e2e937d9b8d6e5fb9603312e36b7ce48545',
     );
   });
 
@@ -128,6 +128,21 @@ describe('OpenApiContractTests', () => {
     assert.equal(
       requestBodySchema('/api/auth/me/update/', 'patch').$ref,
       '#/components/schemas/PatchedUserProfileUpdateRequestRequest',
+    );
+    const userProfile = (components().schemas as JsonObject)
+      .UserProfileResponse as JsonObject;
+    assert.deepEqual(
+      new Set(Object.keys(userProfile.properties as JsonObject)),
+      new Set([
+        'id', 'username', 'email', 'dark_mode', 'display_name',
+        'weight_kg', 'height_cm', 'age', 'goal', 'weekly_workouts',
+      ]),
+    );
+    const profileUpdate = (components().schemas as JsonObject)
+      .PatchedUserProfileUpdateRequestRequest as JsonObject;
+    assert.deepEqual(
+      new Set(Object.keys(profileUpdate.properties as JsonObject)),
+      new Set(['dark_mode', 'weight_kg', 'height_cm', 'age', 'goal', 'weekly_workouts']),
     );
 
     const settingsResponse = responseSchema(

@@ -10,6 +10,7 @@ import type {
   DailySummary,
   MealTemplate,
   User,
+  ProfileUpdates,
   Exercise,
   AiFoodAnalysis,
   AiMealAnalysis,
@@ -257,7 +258,7 @@ export const authApi = {
     return response.json();
   },
 
-  updateProfile: async (updates: { dark_mode?: boolean }) => {
+  updateProfile: async (updates: ProfileUpdates): Promise<User> => {
     const response = await fetch(`${API_BASE}/api/auth/me/update/`, {
       method: 'PATCH',
       headers: await getHeaders(),

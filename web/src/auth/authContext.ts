@@ -1,5 +1,6 @@
 import { createContext } from 'react';
 import type { User } from '@/types';
+import type { ProfileUpdates } from '@/types';
 
 export type AuthUser = User;
 
@@ -13,6 +14,7 @@ export interface AuthContextType {
   loading: boolean;
   darkMode: boolean;
   toggleDarkMode: () => Promise<void>;
+  updateProfile: (updates: ProfileUpdates) => Promise<AuthUser>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

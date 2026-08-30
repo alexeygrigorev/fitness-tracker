@@ -1,4 +1,4 @@
-import type { ApiUser } from '../types.js';
+import type { ApiUser, UserItem } from '../types.js';
 import { HttpError } from '../types.js';
 import { jsonResponse } from '../http.js';
 import { issueTokenPair } from '../jwt.js';
@@ -13,42 +13,76 @@ import {
 import type {
   ExerciseSettingsItem,
   NormalizedRequest,
+  ProfileGoal,
 } from '../types.js';
 import type {
   RouteContext,
   RouteDefinition,
 } from '../router.js';
 
-export function publicUser(user: {
-  id: number;
-  username: string;
-  email: string;
-  dark_mode: boolean;
-}): ApiUser {
+export function publicUser(user: UserItem): ApiUser {
   return {
     id: user.id,
     username: user.username,
     email: user.email,
     dark_mode: user.dark_mode,
+    display_name: user.display_name?.trim() || user.username,
+    weight_kg: user.weight_kg ?? null,
+    height_cm: user.height_cm ?? null,
+    age: user.age ?? null,
+    goal: user.goal ?? null,
+    weekly_workouts: user.weekly_workouts ?? null,
   };
 }
 
-async function updateProfile(context: RouteContext) {
-  const body = context.request.body;
-  if (
-    typeof body !== 'object' ||
-    body === null ||
-    Array.isArray(body) ||
-    typeof (body as Record<string, unknown>).dark_mode !== 'boolean'
-  ) {
-    throw new HttpError(400, { dark_mode: ['This field is required.'] });
-  }
+interface ProfileUpdates {
+  dark_mode?: boolean;
+  weight_kg?: number | null;
+  height_cm?: number | null;
+  age?: number | null;
+  goal?: ProfileGoal | null;
+  weekly_workouts?: number | null;
+}
 
+function profileUpdates(body: unknown): ProfileUpdates {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    throw new HttpError(400, { detail: 'Expected a profile object.' });
+  }
+  const input = body as Record<string, unknown>;
+  const allowed = ['dark_mode', 'weight_kg', 'height_cm', 'age', 'goal', 'weekly_workouts'] as const;
+  const updates: ProfileUpdates = {};
+  const errors: Record<string, string[]> = {};
+  for (const key of Object.keys(input)) {
+    if (!allowed.includes(key as typeof allowed[number])) errors[key] = ['Unknown field.'];
+  }
+  if ('dark_mode' in input) {
+    if (typeof input.dark_mode === 'boolean') updates.dark_mode = input.dark_mode;
+    else errors.dark_mode = ['Must be a boolean.'];
+  }
+  const numberField = (key: 'weight_kg' | 'height_cm' | 'age' | 'weekly_workouts', min: number, max: number, integer = false) => {
+    if (!(key in input)) return;
+    const value = input[key];
+    if (value === null) updates[key] = null;
+    else if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) {
+      errors[key] = [`Must be ${integer ? 'a whole number' : 'a number'} between ${min} and ${max}.`];
+    } else updates[key] = value;
+  };
+  numberField('weight_kg', 20, 500);
+  numberField('height_cm', 50, 300);
+  numberField('age', 1, 120, true);
+  numberField('weekly_workouts', 0, 14, true);
+  if ('goal' in input) {
+    if (input.goal === null || input.goal === 'lose_weight' || input.goal === 'maintain' || input.goal === 'gain_muscle') updates.goal = input.goal;
+    else errors.goal = ['Choose a valid fitness goal.'];
+  }
+  if (Object.keys(input).length === 0) errors.detail = ['Provide at least one profile field.'];
+  if (Object.keys(errors).length > 0) throw new HttpError(400, errors);
+  return updates;
+}
+
+async function updateProfile(context: RouteContext) {
   const user = await context.requireUser();
-  const updated = await context.repository.updateUserDarkMode(
-    user,
-    (body as { dark_mode: boolean }).dark_mode,
-  );
+  const updated = await context.repository.updateUserProfile(user, profileUpdates(context.request.body));
   return jsonResponse(200, publicUser(updated), context.cors);
 }
 
@@ -144,7 +178,7 @@ export function registerAuthRoutes(addRoute: (route: RouteDefinition) => void): 
     }
 
     const userId = await context.repository.nextId('user');
-    await context.repository.createUser({
+    const user: UserItem = {
       pk: `USER#${userId}`,
       sk: 'PROFILE',
       id: userId,
@@ -154,16 +188,12 @@ export function registerAuthRoutes(addRoute: (route: RouteDefinition) => void): 
       dark_mode: false,
       is_active: true,
       date_joined: new Date().toISOString(),
-    });
+    };
+    await context.repository.createUser(user);
     return jsonResponse(
       201,
       {
-        user: {
-          id: userId,
-          username: input.username,
-          email: input.email,
-          dark_mode: false,
-        },
+        user: publicUser(user),
         message: 'User created successfully',
       },
       context.cors,

@@ -14,6 +14,7 @@ interface CognitoClaims {
   exp: number;
   nonce: string;
   token_use: string;
+  name?: string;
 }
 
 interface JsonWebKeySet { keys?: JsonWebKey[] }
@@ -85,15 +86,16 @@ export async function exchangeCognitoCode(
 }
 
 export async function findOrCreateCognitoUser(repository: FitnessRepository, claims: CognitoClaims): Promise<UserItem> {
+  const displayName = claims.name?.trim() || claims.email.trim().split('@')[0] || claims.email.trim();
   const bySubject = await repository.getUserByCognitoSub(claims.sub);
-  if (bySubject) return bySubject;
+  if (bySubject) return repository.updateUserDisplayName(bySubject, displayName);
   const email = claims.email.trim().toLowerCase();
   const byEmail = await repository.getUserByEmail(email);
-  if (byEmail) return repository.linkCognitoIdentity(byEmail, claims.sub);
+  if (byEmail) return repository.updateUserDisplayName(await repository.linkCognitoIdentity(byEmail, claims.sub), displayName);
   const id = await repository.nextId('user');
   const user: UserItem = {
     pk: `USER#${id}`, sk: 'PROFILE', id,
-    username: email, email, password: '', cognito_sub: claims.sub,
+    username: email, email, password: '', cognito_sub: claims.sub, display_name: displayName,
     dark_mode: false, is_active: true, date_joined: new Date().toISOString(),
   };
   try {
@@ -101,7 +103,7 @@ export async function findOrCreateCognitoUser(repository: FitnessRepository, cla
     return await repository.linkCognitoIdentity(user, claims.sub);
   } catch (error) {
     const raced = await repository.getUserByEmail(email);
-    if (raced) return repository.linkCognitoIdentity(raced, claims.sub);
+    if (raced) return repository.updateUserDisplayName(await repository.linkCognitoIdentity(raced, claims.sub), displayName);
     throw error;
   }
 }

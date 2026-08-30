@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { authApi } from '@/api';
 import { AuthContext } from './authContext';
 import type { AuthUser } from './authContext';
+import type { ProfileUpdates } from '@/types';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(() => authApi.getStoredUser());
@@ -120,8 +121,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateProfile = async (updates: ProfileUpdates) => {
+    const updatedUser = await authApi.updateProfile(updates);
+    setUser(updatedUser);
+    setDarkMode(updatedUser.dark_mode || false);
+    if (token) authApi.setAuth(token, updatedUser);
+    return updatedUser;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, completeSharedLogin, register, logout, loading, darkMode, toggleDarkMode }}>
+    <AuthContext.Provider value={{ user, token, login, completeSharedLogin, register, logout, loading, darkMode, toggleDarkMode, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

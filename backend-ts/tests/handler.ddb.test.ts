@@ -54,6 +54,12 @@ describe('TypeScript Lambda API foundation', () => {
       username: 'foundation-user',
       email: 'foundation@example.com',
       dark_mode: false,
+      display_name: 'foundation-user',
+      weight_kg: null,
+      height_cm: null,
+      age: null,
+      goal: null,
+      weekly_workouts: null,
     });
 
     const updated = await api.call('PATCH', '/api/auth/me/update/', {
@@ -62,6 +68,48 @@ describe('TypeScript Lambda API foundation', () => {
     });
     assert.equal(updated.status, 200);
     assert.equal(updated.body.dark_mode, true);
+  });
+
+  it('persists profile fields on the authenticated user only', async () => {
+    const updated = await api.call('PATCH', '/api/auth/me/update/', {
+      body: {
+        weight_kg: 82.5,
+        height_cm: 181,
+        age: 34,
+        goal: 'gain_muscle',
+        weekly_workouts: 4,
+      },
+      token: accessToken,
+    });
+    assert.equal(updated.status, 200);
+    assert.equal(updated.body.weight_kg, 82.5);
+    assert.equal(updated.body.goal, 'gain_muscle');
+
+    const reloaded = await api.call('GET', '/api/auth/me/', { token: accessToken });
+    assert.equal(reloaded.body.height_cm, 181);
+    assert.equal(reloaded.body.weekly_workouts, 4);
+
+    const registered = await api.call('POST', '/api/auth/register/', { body: {
+      username: 'profile-isolation-user',
+      email: 'profile-isolation@example.com',
+      password: 'another-password-123',
+      password_confirm: 'another-password-123',
+    }});
+    assert.equal(registered.status, 201);
+    const loggedIn = await api.call('POST', '/api/auth/login/', { body: {
+      username: 'profile-isolation-user',
+      password: 'another-password-123',
+    }});
+    const isolated = await api.call('GET', '/api/auth/me/', { token: loggedIn.body.access });
+    assert.equal(isolated.body.weight_kg, null);
+    assert.equal(isolated.body.goal, null);
+
+    const invalid = await api.call('PATCH', '/api/auth/me/update/', {
+      body: { age: 121 },
+      token: accessToken,
+    });
+    assert.equal(invalid.status, 400);
+    assert.deepEqual(invalid.body.age, ['Must be a whole number between 1 and 120.']);
   });
 
   it('rejects anonymous profile access and bad credentials', async () => {

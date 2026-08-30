@@ -1733,8 +1733,41 @@
       },
       "PatchedUserProfileUpdateRequestRequest": {
         "properties": {
+          "age": {
+            "maximum": 120,
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
           "dark_mode": {
             "type": "boolean"
+          },
+          "goal": {
+            "enum": [
+              "lose_weight",
+              "maintain",
+              "gain_muscle"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "height_cm": {
+            "maximum": 300,
+            "minimum": 50,
+            "nullable": true,
+            "type": "number"
+          },
+          "weekly_workouts": {
+            "maximum": 14,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "weight_kg": {
+            "maximum": 500,
+            "minimum": 20,
+            "nullable": true,
+            "type": "number"
           }
         },
         "type": "object"
@@ -2116,25 +2149,59 @@
       "UserProfileResponse": {
         "description": "Response serializer for user profile (me) endpoint",
         "properties": {
+          "age": {
+            "nullable": true,
+            "type": "integer"
+          },
           "dark_mode": {
             "type": "boolean"
+          },
+          "display_name": {
+            "type": "string"
           },
           "email": {
             "format": "email",
             "type": "string"
+          },
+          "goal": {
+            "enum": [
+              "lose_weight",
+              "maintain",
+              "gain_muscle"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "height_cm": {
+            "nullable": true,
+            "type": "number"
           },
           "id": {
             "type": "integer"
           },
           "username": {
             "type": "string"
+          },
+          "weekly_workouts": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "weight_kg": {
+            "nullable": true,
+            "type": "number"
           }
         },
         "required": [
+          "age",
           "dark_mode",
+          "display_name",
           "email",
+          "goal",
+          "height_cm",
           "id",
-          "username"
+          "username",
+          "weekly_workouts",
+          "weight_kg"
         ],
         "type": "object"
       },

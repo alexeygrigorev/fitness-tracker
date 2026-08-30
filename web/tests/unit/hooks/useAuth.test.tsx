@@ -15,6 +15,7 @@ vi.mock('@/api', () => ({
     login: vi.fn(),
     register: vi.fn(),
     getMe: vi.fn(),
+    updateProfile: vi.fn(),
     setAuth: vi.fn(),
     setToken: vi.fn(),
     clearAuth: vi.fn(),
@@ -34,6 +35,7 @@ const mockAuthApi = authApi as unknown as {
   login: ReturnType<typeof vi.fn>;
   register: ReturnType<typeof vi.fn>;
   getMe: ReturnType<typeof vi.fn>;
+  updateProfile: ReturnType<typeof vi.fn>;
   setAuth: ReturnType<typeof vi.fn>;
   setToken: ReturnType<typeof vi.fn>;
   clearAuth: ReturnType<typeof vi.fn>;
@@ -165,6 +167,28 @@ describe('useAuth Hook', () => {
       expect(mockAuthApi.clearAuth).toHaveBeenCalled();
       expect(result.current.user).toBeNull();
       expect(result.current.token).toBeNull();
+    });
+  });
+
+  describe('profile updates', () => {
+    it('persists updates and replaces the authenticated user', async () => {
+      const original = { id: 1, email: 'test@example.com', username: 'testuser', is_active: true };
+      const updated = { ...original, display_name: 'Test User', dark_mode: false, weight_kg: 82.5 };
+      mockAuthApi.getToken.mockReturnValue('profile-token');
+      mockAuthApi.getStoredUser.mockReturnValue(original);
+      mockAuthApi.getMe.mockResolvedValue(original);
+      mockAuthApi.updateProfile.mockResolvedValue(updated);
+
+      const { result } = renderHook(() => useAuth(), { wrapper });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      await act(async () => {
+        await result.current.updateProfile({ weight_kg: 82.5 });
+      });
+
+      expect(mockAuthApi.updateProfile).toHaveBeenCalledWith({ weight_kg: 82.5 });
+      expect(mockAuthApi.setAuth).toHaveBeenCalledWith('profile-token', updated);
+      expect(result.current.user).toEqual(updated);
     });
   });
 

@@ -28,6 +28,7 @@ import type {
   MealTemplateRecord,
   NestedFoodItemRecord,
   UserItem,
+  ProfileGoal,
 } from './types.js';
 import { HttpError } from './types.js';
 
@@ -247,16 +248,47 @@ export class FitnessRepository {
   }
 
   async updateUserDarkMode(user: UserItem, darkMode: boolean): Promise<UserItem> {
-    await this.client.send(
-      new DocUpdateCommand({
-        TableName: this.tableName,
-        Key: { pk: user.pk, sk: user.sk },
-        UpdateExpression: 'SET dark_mode = :darkMode',
-        ExpressionAttributeValues: { ':darkMode': darkMode },
-        ConditionExpression: 'attribute_exists(pk)',
-      }),
-    );
-    return { ...user, dark_mode: darkMode };
+    return this.updateUserProfile(user, { dark_mode: darkMode });
+  }
+
+  async updateUserProfile(user: UserItem, updates: {
+    dark_mode?: boolean;
+    weight_kg?: number | null;
+    height_cm?: number | null;
+    age?: number | null;
+    goal?: ProfileGoal | null;
+    weekly_workouts?: number | null;
+  }): Promise<UserItem> {
+    const entries = Object.entries(updates);
+    if (entries.length === 0) return user;
+    const names: Record<string, string> = {};
+    const values: Record<string, unknown> = {};
+    const assignments = entries.map(([key, value], index) => {
+      names[`#field${index}`] = key;
+      values[`:value${index}`] = value;
+      return `#field${index} = :value${index}`;
+    });
+    await this.client.send(new DocUpdateCommand({
+      TableName: this.tableName,
+      Key: { pk: user.pk, sk: user.sk },
+      UpdateExpression: `SET ${assignments.join(', ')}`,
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: values,
+      ConditionExpression: 'attribute_exists(pk)',
+    }));
+    return { ...user, ...updates };
+  }
+
+  async updateUserDisplayName(user: UserItem, displayName: string): Promise<UserItem> {
+    if (!displayName || user.display_name === displayName) return user;
+    await this.client.send(new DocUpdateCommand({
+      TableName: this.tableName,
+      Key: { pk: user.pk, sk: user.sk },
+      UpdateExpression: 'SET display_name = :displayName',
+      ExpressionAttributeValues: { ':displayName': displayName },
+      ConditionExpression: 'attribute_exists(pk)',
+    }));
+    return { ...user, display_name: displayName };
   }
 
   getExercise(id: number): Promise<ExerciseItem | undefined> {

@@ -3,7 +3,12 @@ import { useAuth } from './useAuth';
 
 export default function AuthCallbackPage() {
   const { completeSharedLogin } = useAuth();
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    const query = new URLSearchParams(window.location.search);
+    return query.get('code') && query.get('state')
+      ? ''
+      : query.get('error_description') || 'The sign-in response was incomplete.';
+  });
   const started = useRef(false);
 
   useEffect(() => {
@@ -12,10 +17,7 @@ export default function AuthCallbackPage() {
     const query = new URLSearchParams(window.location.search);
     const code = query.get('code');
     const state = query.get('state');
-    if (!code || !state) {
-      setError(query.get('error_description') || 'The sign-in response was incomplete.');
-      return;
-    }
+    if (!code || !state) return;
     completeSharedLogin(code, state).catch((reason) =>
       setError(reason instanceof Error ? reason.message : 'Sign-in failed'));
   }, [completeSharedLogin]);

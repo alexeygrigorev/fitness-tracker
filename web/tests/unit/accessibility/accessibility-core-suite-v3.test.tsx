@@ -33,6 +33,7 @@ const authMocks = vi.hoisted(() => ({
   register: vi.fn(),
   logout: vi.fn(),
   toggleDarkMode: vi.fn(),
+  updateProfile: vi.fn(),
 }));
 
 const apiMocks = vi.hoisted(() => ({
@@ -53,6 +54,7 @@ vi.mock('@/auth/useAuth', () => ({
       id: 1,
       email: 'alex@example.com',
       username: 'Alex',
+      display_name: 'Alex Example',
       is_active: true,
     },
     token: 'test-token',
@@ -62,6 +64,7 @@ vi.mock('@/auth/useAuth', () => ({
     loading: false,
     darkMode: false,
     toggleDarkMode: authMocks.toggleDarkMode,
+    updateProfile: authMocks.updateProfile,
   }),
 }));
 
@@ -389,6 +392,8 @@ describe('accessibility core suite v3', () => {
       expect(screen.getByLabelText('Notes (optional)')).toBeInTheDocument();
 
       render(<Profile />);
+      expect(screen.getByText('Alex Example')).toBeInTheDocument();
+      expect(screen.getByText('alex@example.com')).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: 'Edit' }));
       ['Weight', 'Height', 'Age', 'Primary Goal', 'Weekly Workouts Target'].forEach((label) => {
         expect(screen.getByLabelText(label)).toBeInTheDocument();
