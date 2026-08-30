@@ -30,8 +30,23 @@ export default function Profile() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!isEditing) setEditForm(editableProfile(user));
-  }, [user, isEditing]);
+    if (!isEditing) {
+      setEditForm({
+        weight_kg: user?.weight_kg ?? null,
+        height_cm: user?.height_cm ?? null,
+        age: user?.age ?? null,
+        goal: user?.goal ?? null,
+        weekly_workouts: user?.weekly_workouts ?? null,
+      });
+    }
+  }, [
+    user?.weight_kg,
+    user?.height_cm,
+    user?.age,
+    user?.goal,
+    user?.weekly_workouts,
+    isEditing,
+  ]);
 
   const handleSave = async () => {
     setSaving(true);
